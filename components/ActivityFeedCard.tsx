@@ -15,6 +15,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [likes, setLikes] = useState(activity.likes_count);
   const [shares, setShares] = useState(activity.shares_count);
   const [liked, setLiked] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const handleLike = () => {
     if (liked) {
@@ -49,17 +50,14 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
       {/* Image if available */}
-      {activity.image_url && (
+      {activity.image_url && !imageError && (
         <div className="relative h-64 w-full overflow-hidden bg-muted">
           <Image
             src={activity.image_url}
             alt={activity.title}
             fill
             className="object-cover"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-            }}
+            onError={() => setImageError(true)}
           />
         </div>
       )}

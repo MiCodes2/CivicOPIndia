@@ -24,6 +24,20 @@ export default function NewActivityForm() {
     likes_count: 0,
     shares_count: 0,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,11 +51,44 @@ export default function NewActivityForm() {
         throw new Error("You must be logged in to create activities");
       }
 
+      let finalImageUrl = formData.image_url;
+
+      // Handle file upload if a file was selected
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        
+        // For now, we'll save to public/uploads and use the path
+        // In production, you'd upload to Supabase Storage
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', imageFile);
+        
+        try {
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formDataUpload,
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            finalImageUrl = data.url;
+          } else {
+            // Fallback: use local path
+            finalImageUrl = `/uploads/${fileName}`;
+          }
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          // Continue without image
+          finalImageUrl = "";
+        }
+      }
+
       const { error: insertError } = await supabase
         .from('activities')
         .insert([
           {
             ...formData,
+            image_url: finalImageUrl,
             author_id: user.id,
             author_name: 'Civic Admin',
             activity_date: new Date(formData.activity_date).toISOString(),
@@ -61,6 +108,8 @@ export default function NewActivityForm() {
         likes_count: 0,
         shares_count: 0,
       });
+      setImageFile(null);
+      setImagePreview("");
 
       alert("Activity posted successfully!");
       router.refresh();
@@ -160,9 +209,30 @@ export default function NewActivityForm() {
           </div>
 
           <div className="space-y-2">
+            <label htmlFor="image" className="text-sm font-medium">
+              <ImageIcon className="mr-2 inline h-4 w-4" />
+              Upload Image
+            </label>
+            <Input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+            {imagePreview && (
+              <div className="mt-2">
+                <img src={imagePreview} alt="Preview" className="h-32 w-auto rounded-md object-cover" />
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Or paste image URL below
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <label htmlFor="image_url" className="text-sm font-medium">
               <ImageIcon className="mr-2 inline h-4 w-4" />
-              Image URL
+              Image URL (optional)
             </label>
             <Input
               id="image_url"
