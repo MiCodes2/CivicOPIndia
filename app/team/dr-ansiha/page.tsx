@@ -28,6 +28,14 @@ export default function DrAnsihaPage() {
           >
             <span>LinkedIn</span>
           </a>
+          <a
+            href="https://dranisha.in/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-green-700 hover:underline font-medium flex items-center gap-1"
+          >
+            <span>Website</span>
+          </a>
         </div>
       </div>
       <div className="prose prose-neutral max-w-none mb-8">

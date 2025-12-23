@@ -17,7 +17,7 @@ export default function CaptSanthoshPage() {
             aria-label="Enlarge image"
           >
             <Image
-              src="/Capt_Santhosh_portrait.jpeg"
+              src="/Capt_Santhosh_portrait.jpg"
               alt="Capt Santhosh"
               width={180}
               height={180}
@@ -51,7 +51,7 @@ export default function CaptSanthoshPage() {
               &times;
             </button>
             <Image
-              src="/Capt_Santhosh_large.jpeg"
+              src="/Capt_Santhosh_large.jpg"
               alt="Capt Santhosh Full"
               width={900}
               height={1200}

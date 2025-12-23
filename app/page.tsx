@@ -1,38 +1,39 @@
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Archive, Heart, Users, Target, FileText, Megaphone, Shield } from "lucide-react";
 import TeamMemberCard from "@/components/TeamMemberCard";
 
-export default function Home() {
+export default function HomePage() {
   const stats = [
-    { label: "Active Members", value: "34,100+" },
-    { label: "Campaigns", value: "50+" },
-    { label: "RTI Filed", value: "200+" },
-    { label: "Communities", value: "25+" },
+    { value: "100+", label: "Activities" },
+    { value: "50+", label: "Protests" },
+    { value: "10K+", label: "Supporters" },
+    { value: "5+", label: "Years" }
   ];
 
   const initiatives = [
     {
-      icon: Target,
-      title: "Policy Advocacy",
-      description: "Working with citizens to advocate for better policies and governance reforms at local and national levels."
+      title: "Peaceful Protests",
+      description: "Organizing non-violent demonstrations and rallies to raise awareness and demand accountability.",
+      icon: Target
     },
     {
-      icon: FileText,
       title: "RTI Campaigns",
-      description: "Filing Right to Information requests to expose corruption and ensure government transparency."
+      description: "Filing Right to Information requests to uncover government transparency issues.",
+      icon: FileText
     },
     {
-      icon: Megaphone,
-      title: "Public Awareness",
-      description: "Organizing awareness campaigns, workshops, and community events to educate citizens about their rights."
+      title: "Legal Advocacy",
+      description: "Providing legal support and representation for citizens facing injustice.",
+      icon: Shield
     },
     {
-      icon: Shield,
-      title: "Legal Support",
-      description: "Providing legal assistance and support to citizens fighting for justice and accountability."
-    },
+      title: "Community Organizing",
+      description: "Building grassroots networks to empower local communities and foster collective action.",
+      icon: Users
+    }
   ];
 
   return (
@@ -136,19 +137,60 @@ export default function Home() {
                 name="Capt Santhosh Kumar"
                 role="Advisor"
                 description="Retired Army officer & environmental activist"
-                imageSrc="/Capt_Santhosh_portrait.jpeg"
+                imageSrc="/Capt_Santhosh_portrait.jpg"
                 initials="CS"
               />
             </Link>
-            {/*
-            <TeamMemberCard
-              name="Sumit Gupta"
-              role="Advocacy & Fundraising"
-              description="Strategic fundraiser and advocacy campaign coordinator"
-              imageSrc="/sumit-gupta.jpg"
-              initials="SG"
-            />
-            */}
+          </div>
+        </div>
+      </section>
+
+      {/* Partners Section */}
+      <section className="border-t py-20">
+        <div className="container mx-auto px-4">
+          <div className="mb-12 text-center">
+            <h2 className="text-4xl font-bold tracking-tight">Our Partner Organizations</h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              We collaborate with leading civic, research, and community organizations to strengthen our impact.
+            </p>
+          </div>
+          <div className="mx-auto flex flex-row flex-wrap justify-center gap-8 max-w-5xl">
+            <Link href="/partners/namma-bengaluru" className="flex-1 min-w-[180px] max-w-xs text-center">
+              <div className="bg-card rounded-xl p-6 shadow hover:shadow-lg transition">
+                <img src="/NBF-Logo-Bold.png" alt="Namma Bengaluru Foundation Logo" className="mx-auto h-16 mb-4" />
+                <div className="font-semibold">Namma Bengaluru Foundation</div>
+              </div>
+            </Link>
+            <Link href="/partners/whitefield-rising" className="flex-1 min-w-[180px] max-w-xs text-center">
+              <div className="bg-card rounded-xl p-6 shadow hover:shadow-lg transition">
+                <img src="/wrising.jpg" alt="Whitefield Rising Logo" className="mx-auto h-16 mb-4" />
+                <div className="font-semibold">Whitefield Rising</div>
+              </div>
+            </Link>
+            <Link href="/partners/wri-india" className="flex-1 min-w-[180px] max-w-xs text-center">
+              <div className="bg-card rounded-xl p-6 shadow hover:shadow-lg transition">
+                <img src="/wri-india.png" alt="WRI India Logo" className="mx-auto h-16 mb-4" />
+                <div className="font-semibold">WRI India</div>
+              </div>
+            </Link>
+            <Link href="/partners/citizen-matters" className="flex-1 min-w-[180px] max-w-xs text-center">
+              <div className="bg-card rounded-xl p-6 shadow hover:shadow-lg transition">
+                <img src="/CITIZEN-MATTERS-Logo.jpg" alt="Citizen Matters Logo" className="mx-auto h-16 mb-4" />
+                <div className="font-semibold">Citizen Matters</div>
+              </div>
+            </Link>
+            <Link href="/partners/blrpost" className="flex-1 min-w-[180px] max-w-xs text-center">
+              <div className="bg-card rounded-xl p-6 shadow hover:shadow-lg transition">
+                <img src="/blrpost.jpg" alt="BLR Post Logo" className="mx-auto h-16 mb-4" />
+                <div className="font-semibold">BLR Post</div>
+              </div>
+            </Link>
+            <Link href="/partners/baf" className="flex-1 min-w-[180px] max-w-xs text-center">
+              <div className="bg-card rounded-xl p-6 shadow hover:shadow-lg transition">
+                <img src="/baf.jpg" alt="BAF Logo" className="mx-auto h-16 mb-4" />
+                <div className="font-semibold">Bangalore Apartments’ Federation</div>
+              </div>
+            </Link>
           </div>
         </div>
       </section>
