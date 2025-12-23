@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Home, Activity, Heart, Menu, X, Youtube, Twitter, Shield, LayoutDashboard, LogOut } from "lucide-react";
+import { Home, Activity, Heart, Menu, X, Twitter, Shield, LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -43,7 +43,6 @@ export default function Navbar() {
   const adminLink = { href: "/admin/login", label: "Admin Login", icon: Shield };
 
   const socialLinks = [
-    { href: "https://www.youtube.com/@CivicOPIndia", label: "YouTube", icon: Youtube },
     { href: "https://x.com/CivicOp_india", label: "Twitter", icon: Twitter },
   ];
 

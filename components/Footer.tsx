@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Youtube, Twitter, Heart, Mail, MapPin } from "lucide-react";
+import { Twitter, Heart, Mail, MapPin } from "lucide-react";
 
 export default function Footer() {
   // In the future, this can be fetched from Twitter API
   const twitterFollowers = "34,100";
-  const youtubeSubscribers = "5,000+";
 
   return (
     <footer className="border-t bg-muted/30">
@@ -30,20 +29,6 @@ export default function Footer() {
                   </div>
                 </Link>
 
-                <Link
-                  href="https://www.youtube.com/@CivicOPIndia"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-3 transition-colors hover:text-primary"
-                >
-                  <div className="flex items-center gap-2 rounded-lg bg-background px-4 py-2 shadow-sm transition-shadow group-hover:shadow-md">
-                    <Youtube className="h-5 w-5 text-[#FF0000]" />
-                    <div className="text-left">
-                      <div className="text-xs text-muted-foreground">YouTube</div>
-                      <div className="text-lg font-bold text-primary">{youtubeSubscribers}</div>
-                    </div>
-                  </div>
-                </Link>
               </div>
             </div>
           </div>

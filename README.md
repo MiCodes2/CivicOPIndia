@@ -44,13 +44,11 @@ Next.js 16, TypeScript, Tailwind CSS, Supabase, Shadcn UI
 ## 📞 Contact
 
 - Twitter/X: https://x.com/CivicOp_india
-- YouTube: https://www.youtube.com/@CivicOPIndia
 - Members: 34,100+
 
 ## 📞 Contact
 
 - Twitter/X: https://x.com/CivicOp_india
-- YouTube: https://www.youtube.com/@CivicOPIndia
 - Members: 34,100+
 
 ---
