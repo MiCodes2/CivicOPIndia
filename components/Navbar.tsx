@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
-import { Home, Activity, Heart, Menu, X } from "lucide-react";
+import { Home, Activity, Heart, Menu, X, Youtube, Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
@@ -14,16 +15,25 @@ export default function Navbar() {
     { href: "/donate", label: "Donate", icon: Heart },
   ];
 
+  const socialLinks = [
+    { href: "https://www.youtube.com/@CivicOPIndia", label: "YouTube", icon: Youtube },
+    { href: "https://x.com/CivicOp_india", label: "Twitter", icon: Twitter },
+  ];
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-20 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <span className="text-xl font-bold">CO</span>
-            </div>
-            <span className="hidden font-semibold md:inline-block">
+          <Link href="/" className="flex items-center space-x-3">
+            <Image
+              src="/logo.jpg"
+              alt="Civic Opposition Logo"
+              width={56}
+              height={56}
+              className="rounded-md"
+            />
+            <span className="hidden text-lg font-semibold md:inline-block">
               Civic Opposition
             </span>
           </Link>
@@ -40,6 +50,26 @@ export default function Navbar() {
                 >
                   <Icon className="h-4 w-4" />
                   <span>{link.label}</span>
+                </Link>
+              );
+            })}
+            
+            {/* Social Links Divider */}
+            <div className="h-6 w-px bg-border" />
+            
+            {/* Social Media Links */}
+            {socialLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground transition-colors hover:text-primary"
+                  aria-label={link.label}
+                >
+                  <Icon className="h-5 w-5" />
                 </Link>
               );
             })}
@@ -79,6 +109,31 @@ export default function Navbar() {
                   </Link>
                 );
               })}
+              
+              {/* Social Links in Mobile Menu */}
+              <div className="border-t pt-3">
+                <div className="mb-2 px-3 text-xs font-semibold text-muted-foreground">
+                  Follow Us
+                </div>
+                <div className="flex gap-4 px-3">
+                  {socialLinks.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
+                        aria-label={link.label}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span>{link.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         )}
