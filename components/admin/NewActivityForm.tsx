@@ -172,7 +172,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
             <RichTextEditor
               value={formData.content}
               onChange={(content) => setFormData({ ...formData, content })}
-              placeholder="Describe the activity in detail... Use the toolbar to format text and add links."
+              placeholder="Describe the activity in detail... Use the toolbar to format text and add links. You can embed YouTube videos by pasting the video URL."
             />
           </div>
 

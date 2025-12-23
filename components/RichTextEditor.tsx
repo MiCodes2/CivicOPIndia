@@ -132,7 +132,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
       />
 
       <p className="text-xs text-muted-foreground">
-        Use the toolbar buttons to format text. You can also use HTML tags directly.
+        Use the toolbar buttons to format text. You can also use HTML tags directly. To embed YouTube videos, simply paste the YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID) and it will automatically be converted to an embedded player.
       </p>
     </div>
   );

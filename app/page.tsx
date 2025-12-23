@@ -7,9 +7,9 @@ import TeamMemberCard from "@/components/TeamMemberCard";
 
 export default function HomePage() {
   const stats = [
-    { value: "100+", label: "Activities" },
+    { value: "500+", label: "Activities" },
     { value: "50+", label: "Protests" },
-    { value: "10K+", label: "Supporters" },
+    { value: "34K+", label: "Supporters" },
     { value: "5+", label: "Years" }
   ];
 

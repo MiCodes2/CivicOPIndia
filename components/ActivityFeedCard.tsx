@@ -196,7 +196,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
 function formatContent(input: string) {
   // If it already contains block-level HTML, assume it's already formatted
-  const hasBlockTags = /<(p|div|ul|ol|li|br|h[1-6]|blockquote)\b[^>]*>/i.test(input);
+  const hasBlockTags = /<(p|div|ul|ol|li|br|h[1-6]|blockquote|iframe)\b[^>]*>/i.test(input);
   if (hasBlockTags) return input;
 
   // Normalize line endings and trim
@@ -215,14 +215,26 @@ function formatContent(input: string) {
       return key;
     });
 
+    // Check for YouTube URLs and convert them to embeds
+    let processed = extracted;
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
+    processed = processed.replace(youtubeRegex, (match, videoId) => {
+      return `__YOUTUBE_EMBED_${videoId}__`;
+    });
+
     // Escape the remaining text
-    const escaped = escapeHtml(extracted);
+    const escaped = escapeHtml(processed);
 
     // Restore placeholders (original allowed tags)
     let restored = escaped;
     placeholders.forEach((orig, idx) => {
       const key = `__HTML_TAG_${idx}__`;
       restored = restored.replace(key, orig);
+    });
+
+    // Convert YouTube placeholders to iframe embeds
+    restored = restored.replace(/__YOUTUBE_EMBED_([a-zA-Z0-9_-]{11})__/g, (match, videoId) => {
+      return `<div class="youtube-embed"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
     });
 
     // Replace single newlines with <br /> inside a paragraph
