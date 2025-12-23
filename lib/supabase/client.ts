@@ -9,5 +9,12 @@ export function createClient() {
     console.warn('⚠️ Supabase is not configured. Please add your credentials to .env.local');
   }
   
-  return createBrowserClient(supabaseUrl, supabaseKey);
+  return createBrowserClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: 'civic-op-auth',
+    },
+  });
 }

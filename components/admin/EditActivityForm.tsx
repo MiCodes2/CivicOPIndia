@@ -1,47 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
+import type { Activity } from "@/lib/types/database";
 
-interface NewActivityFormProps {
-  onSuccess?: () => void;
+interface EditActivityFormProps {
+  activity: Activity;
+  onCancel: () => void;
+  onSuccess: () => void;
 }
 
-export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}) {
+export default function EditActivityForm({ activity, onCancel, onSuccess }: EditActivityFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const supabase = createClient();
 
   const [formData, setFormData] = useState({
-    title: "",
-    content: "",
-    location: "",
-    type: "",
-    activity_date: new Date().toISOString().split('T')[0],
-    image_url: "",
-    likes_count: 0,
-    shares_count: 0,
+    title: activity.title,
+    content: activity.content || "",
+    location: activity.location || "",
+    type: activity.type || "",
+    activity_date: new Date(activity.activity_date).toISOString().split('T')[0],
+    image_url: activity.image_url || "",
+    likes_count: activity.likes_count,
+    shares_count: activity.shares_count,
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,74 +38,18 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error("You must be logged in to create activities");
-      }
-
-      let finalImageUrl = formData.image_url;
-
-      // Handle file upload if a file was selected
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        
-        // For now, we'll save to public/uploads and use the path
-        // In production, you'd upload to Supabase Storage
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', imageFile);
-        
-        try {
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formDataUpload,
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            finalImageUrl = data.url;
-          } else {
-            // Fallback: use local path
-            finalImageUrl = `/uploads/${fileName}`;
-          }
-        } catch (uploadError) {
-          console.error('Upload error:', uploadError);
-          // Continue without image
-          finalImageUrl = "";
-        }
-      }
-
-      const { error: insertError } = await supabase
+      const { error: updateError } = await supabase
         .from('activities')
-        .insert([
-          {
-            ...formData,
-            image_url: finalImageUrl,
-            author_id: user.id,
-            author_name: 'Civic Admin',
-            activity_date: new Date(formData.activity_date).toISOString(),
-          }
-        ]);
+        .update({
+          ...formData,
+          activity_date: new Date(formData.activity_date).toISOString(),
+        })
+        .eq('id', activity.id);
 
-      if (insertError) throw insertError;
+      if (updateError) throw updateError;
 
-      // Reset form
-      setFormData({
-        title: "",
-        content: "",
-        location: "",
-        type: "",
-        activity_date: new Date().toISOString().split('T')[0],
-        image_url: "",
-        likes_count: 0,
-        shares_count: 0,
-      });
-      setImageFile(null);
-      setImagePreview("");
-
-      alert("Activity posted successfully!");
-      if (onSuccess) onSuccess();
+      alert("Activity updated successfully!");
+      onSuccess();
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -128,9 +61,9 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Post New Activity</CardTitle>
+        <CardTitle>Edit Activity</CardTitle>
         <CardDescription>
-          Share an activity or event with the community
+          Update the activity details
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -214,30 +147,9 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="image" className="text-sm font-medium">
-              <ImageIcon className="mr-2 inline h-4 w-4" />
-              Upload Image
-            </label>
-            <Input
-              id="image"
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-            {imagePreview && (
-              <div className="mt-2">
-                <img src={imagePreview} alt="Preview" className="h-32 w-auto rounded-md object-cover" />
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Or paste image URL below
-            </p>
-          </div>
-
-          <div className="space-y-2">
             <label htmlFor="image_url" className="text-sm font-medium">
               <ImageIcon className="mr-2 inline h-4 w-4" />
-              Image URL (optional)
+              Image URL
             </label>
             <Input
               id="image_url"
@@ -251,7 +163,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label htmlFor="likes_count" className="text-sm font-medium">
-                Initial Likes Count
+                Likes Count
               </label>
               <Input
                 id="likes_count"
@@ -264,7 +176,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
 
             <div className="space-y-2">
               <label htmlFor="shares_count" className="text-sm font-medium">
-                Initial Shares Count
+                Shares Count
               </label>
               <Input
                 id="shares_count"
@@ -282,9 +194,14 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Posting..." : "Post Activity"}
-          </Button>
+          <div className="flex gap-3">
+            <Button type="submit" className="flex-1" disabled={loading}>
+              {loading ? "Updating..." : "Update Activity"}
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

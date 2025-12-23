@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, Share2, Calendar, MapPin } from "lucide-react";
@@ -16,14 +16,47 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [shares, setShares] = useState(activity.shares_count);
   const [liked, setLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLike = () => {
-    if (liked) {
-      setLikes(likes - 1);
-      setLiked(false);
-    } else {
-      setLikes(likes + 1);
-      setLiked(true);
+  // Check if user already liked this activity
+  useEffect(() => {
+    checkLikeStatus();
+  }, [activity.id]);
+
+  const checkLikeStatus = async () => {
+    try {
+      const response = await fetch(`/api/like?activityId=${activity.id}`);
+      const data = await response.json();
+      setLiked(data.liked);
+    } catch (error) {
+      console.error('Error checking like status:', error);
+    }
+  };
+
+  const handleLike = async () => {
+    if (loading) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch('/api/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activityId: activity.id }),
+      });
+
+      const data = await response.json();
+      
+      if (data.liked) {
+        setLikes(likes + 1);
+        setLiked(true);
+      } else {
+        setLikes(Math.max(0, likes - 1));
+        setLiked(false);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
