@@ -131,6 +131,15 @@ export default function Home() {
                 initials="AM"
               />
             </Link>
+            <Link href="/team/capt-santhosh" className="flex-1 min-w-[220px] max-w-xs">
+              <TeamMemberCard
+                name="Capt Santhosh Kumar"
+                role="Advisor"
+                description="Retired Army officer & environmental activist"
+                imageSrc="/Capt_Santhosh_portrait.jpeg"
+                initials="CS"
+              />
+            </Link>
             {/*
             <TeamMemberCard
               name="Sumit Gupta"
