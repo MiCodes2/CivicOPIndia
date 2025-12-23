@@ -19,7 +19,15 @@ export const metadata: Metadata = {
   title: "Civic Opposition of India",
   description: "Building a transparent, accountable democracy through collective civic action",
   icons: {
-    icon: "/favicon.ico?v=2",
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      "/favicon.ico",
+    ],
+    apple: "/apple-touch-icon.png",
+    other: [
+      { rel: "manifest", url: "/site.webmanifest" },
+    ],
   },
 };
 

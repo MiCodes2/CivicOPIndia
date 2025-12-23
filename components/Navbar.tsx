@@ -53,14 +53,14 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3">
             <Image
-              src="/logo.jpg"
+              src="/logo.png"
               alt="Civic Opposition Logo"
               width={56}
               height={56}
               className="rounded-md"
             />
             <span className="hidden text-lg font-semibold md:inline-block">
-              Civic Opposition
+              Civic Opposition of India
             </span>
           </Link>
 
