@@ -13,13 +13,32 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
+    // Try to get authenticated user (if any)
+    let userId: string | null = null;
+    try {
+      // supabase server client exposes auth.getUser()
+      // @ts-ignore
+      const userRes = await supabase.auth.getUser();
+      // @ts-ignore
+      userId = userRes?.data?.user?.id || null;
+    } catch (e) {
+      userId = null;
+    }
+
     // Check if user already liked this activity
-    const { data: existingLike } = await supabase
+    // Determine existing like by user id (preferred) or by ip fallback
+    let existingLikeQuery = supabase
       .from('activity_likes')
       .select('id')
-      .eq('activity_id', activityId)
-      .eq('ip_address', ip)
-      .single();
+      .eq('activity_id', activityId);
+
+    if (userId) {
+      existingLikeQuery = existingLikeQuery.eq('user_id', userId);
+    } else {
+      existingLikeQuery = existingLikeQuery.eq('ip_address', ip);
+    }
+
+    const { data: existingLike } = await existingLikeQuery.single();
 
     if (existingLike) {
       // Unlike - remove the like
@@ -48,12 +67,14 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Add like
+      // Insert like record, include user_id when available
       await supabase
         .from('activity_likes')
         .insert([{
           activity_id: activityId,
           ip_address: ip,
-          user_agent: userAgent
+          user_agent: userAgent,
+          user_id: userId,
         }]);
 
       // Increment likes_count
@@ -93,22 +114,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Activity ID required' }, { status: 400 });
     }
 
-    const ip = request.headers.get('x-forwarded-for') || 
-               request.headers.get('x-real-ip') || 
+    const ip = request.headers.get('x-forwarded-for') ||
+               request.headers.get('x-real-ip') ||
                'unknown';
 
     const supabase = await createClient();
 
-    // Check if user has liked this activity
-    const { data: existingLike } = await supabase
+    // Try to get authenticated user id
+    let userId: string | null = null;
+    try {
+      // @ts-ignore
+      const userRes = await supabase.auth.getUser();
+      // @ts-ignore
+      userId = userRes?.data?.user?.id || null;
+    } catch (e) {
+      userId = null;
+    }
+
+    let existingLikeQuery = supabase
       .from('activity_likes')
       .select('id')
-      .eq('activity_id', activityId)
-      .eq('ip_address', ip)
-      .single();
+      .eq('activity_id', activityId);
 
-    return NextResponse.json({ 
-      liked: !!existingLike
+    if (userId) {
+      existingLikeQuery = existingLikeQuery.eq('user_id', userId);
+    } else {
+      existingLikeQuery = existingLikeQuery.eq('ip_address', ip);
+    }
+
+    const { data: existingLike } = await existingLikeQuery.single();
+
+    return NextResponse.json({
+      liked: !!existingLike,
     });
   } catch (error) {
     return NextResponse.json({ liked: false });

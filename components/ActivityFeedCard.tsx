@@ -49,10 +49,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       const data = await response.json();
       
       if (data.liked) {
-        setLikes(likes + 1);
+        setLikes((s) => s + 1);
         setLiked(true);
       } else {
-        setLikes(Math.max(0, likes - 1));
+        setLikes((s) => Math.max(0, s - 1));
         setLiked(false);
       }
     } catch (error) {
@@ -195,19 +195,39 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 }
 
 function formatContent(input: string) {
-  // If it looks like HTML already, return as-is
-  const looksLikeHtml = /<[^>]+>/g.test(input);
-  if (looksLikeHtml) return input;
+  // If it already contains block-level HTML, assume it's already formatted
+  const hasBlockTags = /<(p|div|ul|ol|li|br|h[1-6]|blockquote)\b[^>]*>/i.test(input);
+  if (hasBlockTags) return input;
 
-  // Normalize line endings
+  // Normalize line endings and trim
   const text = input.replace(/\r\n/g, "\n").trim();
   if (!text) return "";
 
-  // Split on double newlines into paragraphs
+  // Allowed inline tags we want to preserve
+  const allowedTagRegex = /<\/?(?:a|strong|b|em|i|u|code)\b[^>]*>/gi;
+
   const paragraphs = text.split(/\n\n+/g).map((p) => {
-    // Replace single newlines with <br />
-    const withBreaks = p.replace(/\n/g, "<br />");
-    return `<p>${escapeHtml(withBreaks)}</p>`;
+    // Extract allowed inline tags and replace them with placeholders
+    const placeholders: string[] = [];
+    const extracted = p.replace(allowedTagRegex, (match) => {
+      const key = `__HTML_TAG_${placeholders.length}__`;
+      placeholders.push(match);
+      return key;
+    });
+
+    // Escape the remaining text
+    const escaped = escapeHtml(extracted);
+
+    // Restore placeholders (original allowed tags)
+    let restored = escaped;
+    placeholders.forEach((orig, idx) => {
+      const key = `__HTML_TAG_${idx}__`;
+      restored = restored.replace(key, orig);
+    });
+
+    // Replace single newlines with <br /> inside a paragraph
+    const withBreaks = restored.replace(/\n/g, "<br />");
+    return `<p>${withBreaks}</p>`;
   });
 
   return paragraphs.join("\n");

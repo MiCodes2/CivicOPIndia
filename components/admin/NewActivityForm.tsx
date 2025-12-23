@@ -32,6 +32,18 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
 
+  const isValidImageUrl = (val: string) => {
+    if (!val) return true;
+    if (val.startsWith('/')) return true;
+    try {
+      // eslint-disable-next-line no-new
+      new URL(val);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -86,6 +98,10 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
           // Continue without image
           finalImageUrl = "";
         }
+      }
+
+      if (!isValidImageUrl(finalImageUrl)) {
+        throw new Error('Image must be a valid absolute URL (https://...) or a local path beginning with /uploads/');
       }
 
       const { error: insertError } = await supabase
@@ -235,12 +251,12 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
           <div className="space-y-2">
             <label htmlFor="image_url" className="text-sm font-medium">
               <ImageIcon className="mr-2 inline h-4 w-4" />
-              Image URL (optional)
+              Image URL or local path (optional)
             </label>
             <Input
               id="image_url"
-              type="url"
-              placeholder="https://example.com/image.jpg"
+              type="text"
+              placeholder="https://example.com/image.jpg or /uploads/your-file.png"
               value={formData.image_url}
               onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
             />

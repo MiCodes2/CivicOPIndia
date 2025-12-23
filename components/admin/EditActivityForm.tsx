@@ -33,12 +33,30 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
     shares_count: activity.shares_count,
   });
 
+  const isValidImageUrl = (val: string) => {
+    if (!val) return true;
+    if (val.startsWith('/')) return true; // allow local uploads path
+    try {
+      // absolute URL check
+      // eslint-disable-next-line no-new
+      new URL(val);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
+      if (!isValidImageUrl(formData.image_url)) {
+        setError('Image must be a valid absolute URL (https://...) or a local path beginning with /uploads/');
+        setLoading(false);
+        return;
+      }
       const { error: updateError } = await supabase
         .from('activities')
         .update({
@@ -147,12 +165,12 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
           <div className="space-y-2">
             <label htmlFor="image_url" className="text-sm font-medium">
               <ImageIcon className="mr-2 inline h-4 w-4" />
-              Image URL
+              Image URL or local path
             </label>
             <Input
               id="image_url"
-              type="url"
-              placeholder="https://example.com/image.jpg"
+              type="text"
+              placeholder="https://example.com/image.jpg or /uploads/your-file.png"
               value={formData.image_url}
               onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
             />
