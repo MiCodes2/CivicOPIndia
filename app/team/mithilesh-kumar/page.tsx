@@ -2,23 +2,57 @@
 import Link from "next/link";
 import Image from "next/image";
 
+import { useState } from "react";
+
 export default function MithileshKumarPage() {
+  const [modalOpen, setModalOpen] = useState(false);
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
       <div className="flex flex-col items-center mb-8">
-        <div className="w-full mb-6">
-          <Image
-            src="/mithilesh-kumar.jpeg"
-            alt="Mithilesh Kumar"
-            width={1200}
-            height={800}
-            className="w-full h-auto rounded-xl object-cover border-4 border-primary shadow-lg"
-            priority
-          />
+        <div className="mb-6">
+          <button
+            type="button"
+            className="focus:outline-none"
+            onClick={() => setModalOpen(true)}
+            aria-label="Enlarge image"
+          >
+            <Image
+              src="/uploads/mithilesh_india.jpg"
+              alt="Mithilesh Kumar"
+              width={180}
+              height={180}
+              className="rounded-full object-cover border-4 border-primary shadow-lg w-40 h-40"
+              priority
+            />
+          </button>
         </div>
         <h1 className="text-4xl font-bold mb-2 text-center">Mithilesh Kumar</h1>
         <p className="mb-4 text-muted-foreground text-center font-medium">Founder – Civic Opposition of India</p>
       </div>
+
+      {/* Modal for enlarged image */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setModalOpen(false)}>
+          <div className="relative bg-transparent p-4" onClick={e => e.stopPropagation()}>
+            <button
+              className="absolute top-2 right-2 text-white text-2xl font-bold z-10"
+              onClick={() => setModalOpen(false)}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <Image
+              src="/uploads/mithilesh_india.jpg"
+              alt="Mithilesh Kumar Full"
+              width={900}
+              height={1200}
+              className="rounded-xl object-contain max-h-[80vh] max-w-full border-4 border-primary bg-white"
+              priority
+            />
+          </div>
+        </div>
+      )}
+
       <div className="prose prose-neutral max-w-none mb-8">
         <p><strong>Mithilesh Kumar</strong> is a technology professional, endurance athlete, and civic activist who founded Civic Opposition of India (COI) to strengthen citizen-led engagement on issues of urban governance, mobility, and public accountability.</p>
         <p>Alongside a 15+ year career in advanced technology roles, Mithilesh has worked on large-scale data platforms, artificial intelligence systems, and enterprise-grade digital products across global organizations. His professional background in data science and systems thinking informs his civic work—bringing structure, evidence, and long-term perspective to complex public problems.</p>
