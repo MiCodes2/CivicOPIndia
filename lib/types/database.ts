@@ -18,6 +18,7 @@ export type Activity = {
   location: string | null;
   image_url: string | null;
   author_id: string | null;
+  author_name: string | null; // Display name for the author
   tags: string[] | null;
   likes_count: number;
   shares_count: number;

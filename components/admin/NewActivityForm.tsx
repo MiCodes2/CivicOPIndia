@@ -43,6 +43,7 @@ export default function NewActivityForm() {
           {
             ...formData,
             author_id: user.id,
+            author_name: 'Civic Admin',
             activity_date: new Date(formData.activity_date).toISOString(),
           }
         ]);

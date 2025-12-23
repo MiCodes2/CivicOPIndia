@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS activities (
   location TEXT,
   image_url TEXT,
   author_id UUID REFERENCES auth.users(id),
+  author_name TEXT,
   tags TEXT[],
   likes_count INTEGER DEFAULT 0,
   shares_count INTEGER DEFAULT 0,

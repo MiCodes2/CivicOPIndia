@@ -67,12 +67,19 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       <CardContent className="p-6">
         {/* Header */}
         <div className="mb-4">
-          {activity.type && (
-            <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              {activity.type}
-            </span>
-          )}
+          <div className="mb-2 flex items-center gap-2">
+            {activity.type && (
+              <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                {activity.type}
+              </span>
+            )}
+          </div>
           <h3 className="mt-2 text-2xl font-bold">{activity.title}</h3>
+          {activity.author_name && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Posted by <span className="font-medium text-primary">{activity.author_name}</span>
+            </p>
+          )}
         </div>
 
         {/* Content */}
