@@ -16,6 +16,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [shares, setShares] = useState(activity.shares_count);
   const [liked, setLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalImage, setModalImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Check if user already liked this activity
@@ -81,16 +83,21 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   };
 
   return (
+    <>
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
       {/* Image if available */}
       {activity.image_url && !imageError && (
-        <div className="relative h-64 w-full overflow-hidden bg-muted">
+        <div className="relative h-48 w-full overflow-hidden bg-muted rounded-md">
           <Image
             src={activity.image_url}
             alt={activity.title}
             fill
-            className="object-cover"
+            className="object-cover cursor-pointer"
             onError={() => setImageError(true)}
+            onClick={() => {
+              setModalImage(activity.image_url || null);
+              setModalOpen(true);
+            }}
           />
         </div>
       )}
@@ -114,7 +121,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         </div>
 
         {/* Content */}
-        <p className="mb-4 text-muted-foreground">{activity.content}</p>
+        <div
+          className="mb-4 text-muted-foreground prose prose-sm max-w-none"
+          dangerouslySetInnerHTML={{ __html: formatContent(activity.content || '') }}
+        />
 
         {/* Metadata */}
         <div className="mb-4 space-y-2 text-sm text-muted-foreground">
@@ -161,5 +171,54 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         </div>
       </CardContent>
     </Card>
+
+    {/* Image Modal */}
+    {modalOpen && modalImage && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+        onClick={() => setModalOpen(false)}
+      >
+        <div className="relative mx-4 max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => setModalOpen(false)}
+            className="absolute right-0 top-0 z-50 m-2 rounded bg-white/90 p-2 text-sm"
+            aria-label="Close image"
+          >
+            Close
+          </button>
+          <img src={modalImage} alt="Full image" className="max-h-[90vh] max-w-[90vw] object-contain rounded-md" />
+        </div>
+      </div>
+    )}
+    </>
   );
 }
+
+function formatContent(input: string) {
+  // If it looks like HTML already, return as-is
+  const looksLikeHtml = /<[^>]+>/g.test(input);
+  if (looksLikeHtml) return input;
+
+  // Normalize line endings
+  const text = input.replace(/\r\n/g, "\n").trim();
+  if (!text) return "";
+
+  // Split on double newlines into paragraphs
+  const paragraphs = text.split(/\n\n+/g).map((p) => {
+    // Replace single newlines with <br />
+    const withBreaks = p.replace(/\n/g, "<br />");
+    return `<p>${escapeHtml(withBreaks)}</p>`;
+  });
+
+  return paragraphs.join("\n");
+}
+
+function escapeHtml(unsafe: string) {
+  return unsafe
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+

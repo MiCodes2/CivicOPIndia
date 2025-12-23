@@ -2,12 +2,37 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
-import { Home, Activity, Heart, Menu, X, Youtube, Twitter, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Home, Activity, Heart, Menu, X, Youtube, Twitter, Shield, LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+  const supabase = createClient();
+
+  useEffect(() => {
+    // Check auth state
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    router.push("/");
+  };
 
   const navLinks = [
     { href: "/", label: "Home", icon: Home },
@@ -56,14 +81,35 @@ export default function Navbar() {
               );
             })}
             
-            {/* Admin Login Link */}
-            <Link
-              href={adminLink.href}
-              className="flex items-center space-x-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-            >
-              <Shield className="h-4 w-4" />
-              <span>{adminLink.label}</span>
-            </Link>
+            {/* Admin Links - Desktop */}
+            {user ? (
+              <>
+                <Link
+                  href="/admin/dashboard"
+                  className="flex items-center space-x-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span>Admin Panel</span>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="flex items-center space-x-2 text-sm font-medium"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </Button>
+              </>
+            ) : (
+              <Link
+                href={adminLink.href}
+                className="flex items-center space-x-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              >
+                <Shield className="h-4 w-4" />
+                <span>{adminLink.label}</span>
+              </Link>
+            )}
             
             {/* Social Links Divider */}
             <div className="h-6 w-px bg-border" />
@@ -121,15 +167,38 @@ export default function Navbar() {
                 );
               })}
               
-              {/* Admin Login Link */}
-              <Link
-                href={adminLink.href}
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                <Shield className="h-5 w-5" />
-                <span>{adminLink.label}</span>
-              </Link>
+              {/* Admin Links - Mobile */}
+              {user ? (
+                <>
+                  <Link
+                    href="/admin/dashboard"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-accent"
+                  >
+                    <LayoutDashboard className="h-5 w-5" />
+                    <span>Admin Panel</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex w-full items-center space-x-3 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span>Logout</span>
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/admin/login"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Shield className="h-5 w-5" />
+                  <span>Admin Login</span>
+                </Link>
+              )}
               
               {/* Social Links in Mobile Menu */}
               <div className="border-t pt-3">

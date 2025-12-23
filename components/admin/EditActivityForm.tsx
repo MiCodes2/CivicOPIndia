@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import type { Activity } from "@/lib/types/database";
+import RichTextEditor from "@/components/RichTextEditor";
 
 interface EditActivityFormProps {
   activity: Activity;
@@ -85,13 +86,10 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
             <label htmlFor="content" className="text-sm font-medium">
               Description *
             </label>
-            <textarea
-              id="content"
-              className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              placeholder="Describe the activity in detail..."
+            <RichTextEditor
               value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              required
+              onChange={(content) => setFormData({ ...formData, content })}
+              placeholder="Describe the activity in detail... Use the toolbar to format text and add links."
             />
           </div>
 
