@@ -104,8 +104,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="mx-auto flex flex-row justify-center gap-8 max-w-5xl">
-            <Link href="/team/mithilesh-kumar" className="flex-1 min-w-[220px] max-w-xs">
+          <div className="mx-auto flex flex-col md:flex-row md:justify-center gap-8 max-w-5xl">
+            <Link href="/team/mithilesh-kumar" className="w-full md:flex-1 min-w-[220px] max-w-xs">
               <TeamMemberCard
                 name="Mithilesh Kumar"
                 role="CEO & Founder"
@@ -114,7 +114,7 @@ export default function HomePage() {
                 initials="MK"
               />
             </Link>
-            <Link href="/team/dr-ansiha" className="flex-1 min-w-[220px] max-w-xs">
+            <Link href="/team/dr-ansiha" className="w-full md:flex-1 min-w-[220px] max-w-xs">
               <TeamMemberCard
                 name="Dr. Ansiha"
                 role="Co-founder"
@@ -123,7 +123,7 @@ export default function HomePage() {
                 initials="DA"
               />
             </Link>
-            <Link href="/team/arif-mudgal" className="flex-1 min-w-[220px] max-w-xs">
+            <Link href="/team/arif-mudgal" className="w-full md:flex-1 min-w-[220px] max-w-xs">
               <TeamMemberCard
                 name="ARIF MUDGAL"
                 role="Member"
@@ -132,7 +132,7 @@ export default function HomePage() {
                 initials="AM"
               />
             </Link>
-            <Link href="/team/capt-santhosh" className="flex-1 min-w-[220px] max-w-xs">
+            <Link href="/team/capt-santhosh" className="w-full md:flex-1 min-w-[220px] max-w-xs">
               <TeamMemberCard
                 name="Capt Santhosh Kumar"
                 role="Advisor"
