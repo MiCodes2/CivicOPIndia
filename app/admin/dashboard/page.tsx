@@ -9,6 +9,7 @@ import NewActivityForm from "@/components/admin/NewActivityForm";
 import EditActivityForm from "@/components/admin/EditActivityForm";
 import { LogOut, Activity as ActivityIcon, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
+import RefreshButton from "@/components/admin/RefreshButton";
 import type { Activity } from "@/lib/types/database";
 
 export default function AdminDashboard() {
@@ -96,6 +97,10 @@ export default function AdminDashboard() {
             Sign Out
           </Button>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <RefreshButton />
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">

@@ -103,28 +103,35 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-2 lg:grid-cols-4">
-            <TeamMemberCard
-              name="Mithilesh Kumar"
-              role="CEO & Founder"
-              description="Visionary leader driving civic accountability and democratic reform"
-              imageSrc="/mithilesh-kumar.jpeg"
-              initials="MK"
-            />
-            <TeamMemberCard
-              name="Dr. Ansiha"
-              role="Co-founder"
-              description="Expert in policy advocacy and grassroots mobilization"
-              imageSrc="/dr-ansiha.jpeg"
-              initials="DA"
-            />
-            <TeamMemberCard
-              name="ARIF MUDGAL"
-              role="Member"
-              description="Community organizer and civic engagement specialist"
-              imageSrc="/arif-mudgal.jpg"
-              initials="AM"
-            />
+          <div className="mx-auto flex flex-row justify-center gap-8 max-w-5xl">
+            <Link href="/team/mithilesh-kumar" className="flex-1 min-w-[220px] max-w-xs">
+              <TeamMemberCard
+                name="Mithilesh Kumar"
+                role="CEO & Founder"
+                description="Visionary leader driving civic accountability and democratic reform"
+                imageSrc="/mithilesh-kumar.jpeg"
+                initials="MK"
+              />
+            </Link>
+            <Link href="/team/dr-ansiha" className="flex-1 min-w-[220px] max-w-xs">
+              <TeamMemberCard
+                name="Dr. Ansiha"
+                role="Co-founder"
+                description="Expert in policy advocacy and grassroots mobilization"
+                imageSrc="/dr-ansiha.jpeg"
+                initials="DA"
+              />
+            </Link>
+            <Link href="/team/arif-mudgal" className="flex-1 min-w-[220px] max-w-xs">
+              <TeamMemberCard
+                name="ARIF MUDGAL"
+                role="Member"
+                description="Community organizer and civic engagement specialist"
+                imageSrc="/arif-mudgal.jpg"
+                initials="AM"
+              />
+            </Link>
+            {/*
             <TeamMemberCard
               name="Sumit Gupta"
               role="Advocacy & Fundraising"
@@ -132,6 +139,7 @@ export default function Home() {
               imageSrc="/sumit-gupta.jpg"
               initials="SG"
             />
+            */}
           </div>
         </div>
       </section>
