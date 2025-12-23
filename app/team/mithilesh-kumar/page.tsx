@@ -1,4 +1,6 @@
 
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 
@@ -28,6 +30,24 @@ export default function MithileshKumarPage() {
         </div>
         <h1 className="text-4xl font-bold mb-2 text-center">Mithilesh Kumar</h1>
         <p className="mb-4 text-muted-foreground text-center font-medium">Founder – Civic Opposition of India</p>
+        <div className="flex gap-4 mb-4">
+          <a
+            href="https://www.linkedin.com/in/mithileshk/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-700 hover:underline font-medium flex items-center gap-1"
+          >
+            <span>LinkedIn</span>
+          </a>
+          <a
+            href="https://www.instagram.com/mimiles/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-pink-600 hover:underline font-medium flex items-center gap-1"
+          >
+            <span>Instagram</span>
+          </a>
+        </div>
       </div>
 
       {/* Modal for enlarged image */}
