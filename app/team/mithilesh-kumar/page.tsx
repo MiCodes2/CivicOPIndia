@@ -19,7 +19,7 @@ export default function MithileshKumarPage() {
             aria-label="Enlarge image"
           >
             <Image
-              src="/uploads/mithilesh_india.jpg"
+              src="/mithilesh_india.jpeg"
               alt="Mithilesh Kumar"
               width={180}
               height={180}
@@ -40,7 +40,7 @@ export default function MithileshKumarPage() {
             <span>LinkedIn</span>
           </a>
           <a
-            href="https://www.instagram.com/mimiles/"
+            href="https://www.instagram.com/mi.miles.in/"
             target="_blank"
             rel="noopener noreferrer"
             className="text-pink-600 hover:underline font-medium flex items-center gap-1"
@@ -62,7 +62,7 @@ export default function MithileshKumarPage() {
               &times;
             </button>
             <Image
-              src="/uploads/mithilesh_india.jpg"
+              src="/mithilesh_india.jpeg"
               alt="Mithilesh Kumar Full"
               width={900}
               height={1200}
