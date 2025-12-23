@@ -12,12 +12,16 @@ export type Profile = {
 export type Activity = {
   id: number;
   created_at: string;
+  activity_date: string; // The actual date of the activity (can be backdated)
   title: string;
   content: string | null;
   location: string | null;
   image_url: string | null;
   author_id: string | null;
   tags: string[] | null;
+  likes_count: number;
+  shares_count: number;
+  type: string | null; // e.g., 'Meeting', 'Protest', 'Campaign', 'Workshop'
 };
 
 export type Archive = {

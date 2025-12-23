@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Home, Activity, Heart, Menu, X, Youtube, Twitter } from "lucide-react";
+import { Home, Activity, Heart, Menu, X, Youtube, Twitter, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
@@ -14,6 +14,8 @@ export default function Navbar() {
     { href: "/activities", label: "Activities", icon: Activity },
     { href: "/donate", label: "Donate", icon: Heart },
   ];
+
+  const adminLink = { href: "/admin/login", label: "Admin Login", icon: Shield };
 
   const socialLinks = [
     { href: "https://www.youtube.com/@CivicOPIndia", label: "YouTube", icon: Youtube },
@@ -53,6 +55,15 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            
+            {/* Admin Login Link */}
+            <Link
+              href={adminLink.href}
+              className="flex items-center space-x-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
+              <Shield className="h-4 w-4" />
+              <span>{adminLink.label}</span>
+            </Link>
             
             {/* Social Links Divider */}
             <div className="h-6 w-px bg-border" />
@@ -109,6 +120,16 @@ export default function Navbar() {
                   </Link>
                 );
               })}
+              
+              {/* Admin Login Link */}
+              <Link
+                href={adminLink.href}
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <Shield className="h-5 w-5" />
+                <span>{adminLink.label}</span>
+              </Link>
               
               {/* Social Links in Mobile Menu */}
               <div className="border-t pt-3">
