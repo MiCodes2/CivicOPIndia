@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, Share2, Calendar, MapPin } from "lucide-react";
-import Image from "next/image";
 import type { Activity } from "@/lib/types/database";
 
 interface ActivityFeedCardProps {
@@ -12,10 +11,14 @@ interface ActivityFeedCardProps {
 }
 
 export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
+  const images = (activity.image_urls && activity.image_urls.length > 0)
+    ? activity.image_urls
+    : activity.image_url
+      ? [activity.image_url]
+      : [];
   const [likes, setLikes] = useState(activity.likes_count);
   const [shares, setShares] = useState(activity.shares_count);
   const [liked, setLiked] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -24,6 +27,30 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   useEffect(() => {
     checkLikeStatus();
   }, [activity.id]);
+
+  // Add event listener for embedded image clicks
+  useEffect(() => {
+    const handleImageModal = (event: CustomEvent<string>) => {
+      setModalImage(event.detail);
+      setModalOpen(true);
+    };
+
+    window.addEventListener('openImageModal', handleImageModal as EventListener);
+
+    return () => {
+      window.removeEventListener('openImageModal', handleImageModal as EventListener);
+    };
+  }, []);
+
+  const openImageModal = (imageUrl: string) => {
+    setModalImage(imageUrl);
+    setModalOpen(true);
+  };
+
+  // Make openImageModal available globally for onclick handlers
+  useEffect(() => {
+    (window as any).openImageModal = openImageModal;
+  }, []);
 
   const checkLikeStatus = async () => {
     try {
@@ -85,24 +112,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   return (
     <>
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
-      {/* Image if available */}
-      {activity.image_url && !imageError && (
-        <div className="relative h-48 w-full overflow-hidden bg-muted rounded-md">
-          <Image
-            src={activity.image_url}
-            alt={activity.title}
-            fill
-            className="object-cover cursor-pointer"
-            onError={() => setImageError(true)}
-            onClick={() => {
-              setModalImage(activity.image_url || null);
-              setModalOpen(true);
-            }}
-          />
-        </div>
-      )}
-
-      <CardContent className="p-6">
+      <CardContent className="p-6 relative">
         {/* Header */}
         <div className="mb-4">
           <div className="mb-2 flex items-center gap-2">
@@ -120,11 +130,62 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           )}
         </div>
 
-        {/* Content */}
+        {/* Featured image centered above content */}
+        {images && images.length > 0 && (
+          <div className="mb-6 flex justify-center">
+            <div className="w-full flex justify-center">
+              <div className="w-full md:w-2/5 rounded-lg overflow-hidden shadow-lg">
+                <img
+                  src={images[0]}
+                  alt="Featured"
+                  className="w-full h-auto object-cover cursor-pointer"
+                  onClick={() => {
+                    setModalImage(images[0]);
+                    setModalOpen(true);
+                  }}
+                />
+                {activity.image_captions && activity.image_captions[0] && (
+                  <div className="mt-2 text-center">
+                    <p className="text-sm text-muted-foreground">{activity.image_captions[0]}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Post content */}
         <div
           className="mb-4 text-muted-foreground prose prose-sm max-w-none"
           dangerouslySetInnerHTML={{ __html: formatContent(activity.content || '') }}
         />
+
+        {/* Thumbnails / additional images as centered horizontal strip */}
+        {images && images.length > 1 && (
+          <div className="mb-4 flex justify-center">
+            <div className="flex gap-3 overflow-x-auto px-2">
+              {images.slice(1).map((url, idx) => (
+                <div key={idx} className="flex-shrink-0 w-36">
+                  <button
+                    className="h-24 w-full overflow-hidden rounded-md bg-muted"
+                    onClick={() => {
+                      setModalImage(url);
+                      setModalOpen(true);
+                    }}
+                    aria-label={`Open image ${idx + 2}`}
+                  >
+                    <img src={url} alt={`thumb-${idx}`} className="w-full h-full object-cover" />
+                  </button>
+                  {activity.image_captions && activity.image_captions[idx + 1] && (
+                    <p className="mt-2 text-xs text-center text-muted-foreground">
+                      {activity.image_captions[idx + 1]}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Metadata */}
         <div className="mb-4 space-y-2 text-sm text-muted-foreground">
@@ -197,7 +258,24 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 function formatContent(input: string) {
   // If it already contains block-level HTML, assume it's already formatted
   const hasBlockTags = /<(p|div|ul|ol|li|br|h[1-6]|blockquote|iframe)\b[^>]*>/i.test(input);
-  if (hasBlockTags) return input;
+  if (hasBlockTags) {
+    // Always process YouTube and image URLs, even in HTML content
+    let processed = input;
+
+    // YouTube embeds
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
+    processed = processed.replace(youtubeRegex, (match, videoId) => {
+      return `<div class="youtube-embed"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+    });
+
+    // Image embeds
+    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
+    processed = processed.replace(imageRegex, (match) => {
+      return `<div class="inline-image"><img src="${match}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${match.replace(/'/g, '\\\'')}')" /></div>`;
+    });
+
+    return processed;
+  }
 
   // Normalize line endings and trim
   const text = input.replace(/\r\n/g, "\n").trim();
@@ -222,6 +300,12 @@ function formatContent(input: string) {
       return `__YOUTUBE_EMBED_${videoId}__`;
     });
 
+    // Check for image URLs and convert them to img tags
+    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
+    processed = processed.replace(imageRegex, (match) => {
+      return `__IMAGE_EMBED_${btoa(match)}__`;
+    });
+
     // Escape the remaining text
     const escaped = escapeHtml(processed);
 
@@ -235,6 +319,12 @@ function formatContent(input: string) {
     // Convert YouTube placeholders to iframe embeds
     restored = restored.replace(/__YOUTUBE_EMBED_([a-zA-Z0-9_-]{11})__/g, (match, videoId) => {
       return `<div class="youtube-embed"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+    });
+
+    // Convert image placeholders to img tags
+    restored = restored.replace(/__IMAGE_EMBED_([^_]+)__/g, (match, encodedUrl) => {
+      const imageUrl = atob(encodedUrl);
+      return `<div class="inline-image"><img src="${imageUrl}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${imageUrl.replace(/'/g, '\\\'')}')" /></div>`;
     });
 
     // Replace single newlines with <br /> inside a paragraph

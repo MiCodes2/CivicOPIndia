@@ -26,6 +26,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     type: "",
     activity_date: new Date().toISOString().split('T')[0],
     image_url: "",
+    image_urls: [], // Initialize as an empty array for multiple images
     likes_count: 0,
     shares_count: 0,
   });
@@ -62,61 +63,88 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userGetError } = await supabase.auth.getUser();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      console.log('Supabase auth.getUser error:', userGetError);
+      console.log('Supabase auth.getUser user:', user);
+      console.log('Supabase auth.getSession error:', sessionError);
+      console.log('Supabase auth.getSession data:', sessionData);
       
       if (!user) {
         throw new Error("You must be logged in to create activities");
       }
 
-      let finalImageUrl = formData.image_url;
+      const imageUrls = [];
 
       // Handle file upload if a file was selected
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
-        
-        // For now, we'll save to public/uploads and use the path
-        // In production, you'd upload to Supabase Storage
+
         const formDataUpload = new FormData();
         formDataUpload.append('file', imageFile);
-        
+
         try {
           const response = await fetch('/api/upload', {
             method: 'POST',
             body: formDataUpload,
           });
-          
+
           if (response.ok) {
             const data = await response.json();
-            finalImageUrl = data.url;
+            imageUrls.push(data.url);
           } else {
-            // Fallback: use local path
-            finalImageUrl = `/uploads/${fileName}`;
+            imageUrls.push(`/uploads/${fileName}`);
           }
         } catch (uploadError) {
           console.error('Upload error:', uploadError);
-          // Continue without image
-          finalImageUrl = "";
         }
       }
 
-      if (!isValidImageUrl(finalImageUrl)) {
-        throw new Error('Image must be a valid absolute URL (https://...) or a local path beginning with /uploads/');
+      // Build payload matching the current `activities` table schema
+      const payload = {
+        title: formData.title || null,
+        content: formData.content || null,
+        location: formData.location || null,
+        type: formData.type || null,
+        activity_date: new Date(formData.activity_date).toISOString(),
+        // `activities` table has `image_url` (TEXT) not `image_urls` array
+        image_url: imageUrls[0] || formData.image_url || null,
+        likes_count: formData.likes_count || 0,
+        shares_count: formData.shares_count || 0,
+        author_id: user.id,
+        author_name: 'Civic Admin',
+      };
+
+      console.log('Insert Payload:', payload);
+
+      // Use .select() to ask Supabase to return the inserted row and log full response
+      const insertResult = await supabase
+        .from('activities')
+        .insert([payload])
+        .select();
+
+      console.log('Supabase Insert Result:', insertResult);
+
+      // compat: some SDKs return { data, error }, others may return tuple - handle both
+      const insertError = (insertResult as any).error || (Array.isArray(insertResult) && insertResult[1]) || null;
+      if (insertError) {
+        console.error('Supabase Insert Error:', insertError);
+        throw insertError;
       }
 
-      const { error: insertError } = await supabase
-        .from('activities')
-        .insert([
-          {
-            ...formData,
-            image_url: finalImageUrl,
-            author_id: user.id,
-            author_name: 'Civic Admin',
-            activity_date: new Date(formData.activity_date).toISOString(),
-          }
-        ]);
-
-      if (insertError) throw insertError;
+      // If no detailed error but insertResult looks suspicious/empty, surface full response
+      try {
+        const looksEmpty = insertResult && typeof insertResult === 'object' && Object.keys(insertResult).length === 0;
+        if (looksEmpty) {
+          const full = JSON.stringify(insertResult, null, 2);
+          console.error('Supabase Insert Result (full):', full);
+          throw new Error(`Empty Supabase response:\n${full}`);
+        }
+      } catch (e) {
+        // rethrow to be caught by outer try/catch
+        throw e;
+      }
 
       // Reset form
       setFormData({
@@ -126,6 +154,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         type: "",
         activity_date: new Date().toISOString().split('T')[0],
         image_url: "",
+        image_urls: [], // Reset to empty array
         likes_count: 0,
         shares_count: 0,
       });
@@ -235,7 +264,8 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
             <Input
               id="image"
               type="file"
-              accept="image/*"
+              // include .jfif explicitly while still allowing any image/*
+              accept=".jfif,image/*"
               onChange={handleImageChange}
             />
             {imagePreview && (

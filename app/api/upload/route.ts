@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     // Create unique filename
-    const fileExt = file.name.split('.').pop();
+    let fileExt = (file.name.split('.').pop() || '').toLowerCase();
+    // Normalize JFIF to a common JPEG extension so browsers and image handlers treat it correctly
+    if (fileExt === 'jfif') fileExt = 'jpg';
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
 

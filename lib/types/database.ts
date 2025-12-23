@@ -17,6 +17,8 @@ export type Activity = {
   content: string | null;
   location: string | null;
   image_url: string | null;
+  image_urls: string[] | null; // Array of image URLs for multiple images
+  image_captions: string[] | null; // Array of captions corresponding to image URLs
   author_id: string | null;
   author_name: string | null; // Display name for the author
   tags: string[] | null;

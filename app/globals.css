@@ -201,3 +201,12 @@
   border: 0;
   border-radius: 0.5rem;
 }
+
+/* Inline Images */
+.inline-image {
+  @apply my-4;
+}
+
+.inline-image img {
+  @apply max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity;
+}

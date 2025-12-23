@@ -15,6 +15,35 @@ export default async function ActivitiesPage() {
     .select('*')
     .order('activity_date', { ascending: false });
 
+  // Sample activity for testing image display
+  const sampleActivity = {
+    id: 1,
+    created_at: new Date().toISOString(),
+    activity_date: new Date().toISOString(),
+    title: "Sample Activity with Multiple Images and Captions",
+    content: "<p>This is a sample activity with multiple images and captions.</p>",
+    location: "Sample Location",
+    image_url: null,
+    image_urls: [
+      "/uploads/1766493830808.jpg",
+      "/uploads/1766493830808.jpg"
+    ],
+    image_captions: [
+      "Caption for Image 1",
+      "Caption for Image 2"
+    ],
+    author_id: null,
+    author_name: "Admin",
+    tags: ["sample", "test"],
+    likes_count: 0,
+    shares_count: 0,
+    type: "Test",
+  };
+
+  if (activities) {
+    activities.unshift(sampleActivity);
+  }
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="mb-12">
