@@ -158,7 +158,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
           </aside>
 
           <main className="lg:col-span-2">
-            <ActivitiesClientList activities={activitiesList} types={(typeRows||[]).map((r:any)=>r.name)} initialSelected={selectedType || null} />
+            <ActivitiesClientList activities={activitiesList} types={(typeRows||[]).map((r:any)=>r.name)} initialSelected={selectedType || null} initialQuery={selectedTag ? `#${selectedTag}` : (paramsObj as any)?.q || null} />
           </main>
 
           <aside className="hidden lg:block lg:col-span-1">

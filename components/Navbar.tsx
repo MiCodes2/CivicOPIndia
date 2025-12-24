@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Home, Activity, Heart, Menu, X, Twitter, Shield, LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SearchBar from "@/components/SearchBar";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -66,6 +67,7 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden items-center space-x-6 md:flex">
+            <SearchBar />
             {navLinks.map((link) => {
               const Icon = link.icon;
               return (
@@ -150,6 +152,7 @@ export default function Navbar() {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="border-t py-4 md:hidden">
+            <div className="px-3 mb-3"><SearchBar /></div>
             <div className="flex flex-col space-y-3">
               {navLinks.map((link) => {
                 const Icon = link.icon;
