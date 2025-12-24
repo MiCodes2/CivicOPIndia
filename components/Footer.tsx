@@ -1,9 +1,36 @@
+"use client";
+
 import Link from "next/link";
-import { Twitter, Heart, Mail, MapPin } from "lucide-react";
+import { Heart, Mail, MapPin } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Footer() {
-  // In the future, this can be fetched from Twitter API
-  const twitterFollowers = "34,100";
+  // Load X widgets script for official follow button
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (document.querySelector('script[src="https://platform.x.com/widgets.js"]')) return;
+    const s = document.createElement('script');
+    s.src = 'https://platform.x.com/widgets.js';
+    s.async = true;
+    s.charset = 'utf-8';
+    document.body.appendChild(s);
+    return () => { s.remove(); };
+  }, []);
+
+  // Fetch best-effort follower count from server API and display next to widget
+  const [followers, setFollowers] = useState<string | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/x/followers')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!mounted) return;
+        if (data && data.followers) setFollowers(data.followers);
+      })
+      .catch(() => {});
+    return () => { mounted = false };
+  }, []);
+  const fallbackFollowers = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_X_FOLLOWERS_FALLBACK || null : null;
 
   return (
     <footer className="border-t bg-muted/30">
@@ -14,20 +41,26 @@ export default function Footer() {
             <div className="text-center">
               <div className="mb-1 text-sm font-medium text-muted-foreground">Join Our Community</div>
               <div className="flex items-center justify-center gap-6">
-                <Link
-                  href="https://x.com/CivicOp_india"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-3 transition-colors hover:text-primary"
-                >
-                  <div className="flex items-center gap-2 rounded-lg bg-background px-4 py-2 shadow-sm transition-shadow group-hover:shadow-md">
-                    <Twitter className="h-5 w-5 text-[#1DA1F2]" />
+                <div className="group flex items-center gap-3">
+                  <div className="flex items-center gap-2 rounded-lg bg-background px-4 py-2 shadow-sm">
                     <div className="text-left">
-                      <div className="text-xs text-muted-foreground">Twitter/X</div>
-                      <div className="text-lg font-bold text-primary">{twitterFollowers}</div>
+                      <div className="text-xs text-muted-foreground">X</div>
+                      <div className="flex items-center gap-3">
+                        <a
+                          href="https://x.com/CivicOp_india"
+                          className="twitter-follow-button"
+                          data-show-count="true"
+                          data-show-screen-name="true"
+                        >
+                          Follow @CivicOp_india
+                        </a>
+                        <div className="text-sm text-muted-foreground">
+                          {followers ? `${followers} followers` : (fallbackFollowers ? `${fallbackFollowers} followers` : null)}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </Link>
+                </div>
 
               </div>
             </div>
@@ -60,6 +93,11 @@ export default function Footer() {
                   Activities
                 </Link>
               </li>
+                <li>
+                  <Link href="/about" className="text-muted-foreground transition-colors hover:text-primary">
+                    About
+                  </Link>
+                </li>
               <li>
                 <Link href="/donate" className="text-muted-foreground transition-colors hover:text-primary">
                   Donate
@@ -106,10 +144,10 @@ export default function Footer() {
           <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground md:flex-row">
             <p>© {new Date().getFullYear()} Civic Opposition of India. All rights reserved.</p>
             <div className="flex gap-4">
-              <Link href="#" className="transition-colors hover:text-primary">
+              <Link href="/privacy-policy" className="transition-colors hover:text-primary">
                 Privacy Policy
               </Link>
-              <Link href="#" className="transition-colors hover:text-primary">
+              <Link href="/terms-of-service" className="transition-colors hover:text-primary">
                 Terms of Service
               </Link>
             </div>

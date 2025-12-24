@@ -3,13 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 
-export default function DrAnsihaPage() {
+export default function DrAnishaPage() {
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
       <div className="flex flex-col items-center mb-8">
         <div className="mb-6">
           <Image
-            src="/dr-ansiha.jpeg"
+            src="/dr-anisha.jpeg"
             alt="Dr. Anisha"
             width={180}
             height={180}
