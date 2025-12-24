@@ -35,7 +35,7 @@ export default function SearchBar({ initial = '' }: { initial?: string }) {
         <ul className="mt-2 space-y-2">
           {results.slice(0, 10).map((r: any) => (
             <li key={r.id} className="p-2 border rounded-md">
-              <a href={`/activities/${r.id}`} className="font-semibold">
+              <a href={`/activities#activity-${r.id}`} className="font-semibold">
                 {r.title || 'Untitled'}
               </a>
               <div className="text-sm text-muted-foreground">{r.author_name}</div>

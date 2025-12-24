@@ -41,13 +41,22 @@ export default function ActivitiesClientList({ activities, types = [], initialSe
     }
   }, [selected]);
 
+  React.useEffect(() => {
+    try {
+      // If there's a hash like #activity-123, scroll to it
+      const h = window.location.hash;
+      if (h && h.startsWith('#activity-')) {
+        const el = document.getElementById(h.slice(1));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } catch {}
+  }, []);
+
   return (
     <div className="flex flex-col items-center">
-
-
       <div className="flex flex-col items-center w-full">
         {filtered.map(act => (
-          <div key={act.id} className="w-full px-4 mb-4"><div className="mx-auto w-full max-w-4xl"><ActivityFeedCard activity={act} /></div></div>
+          <div id={`activity-${act.id}`} key={act.id} className="w-full px-4 mb-4"><div className="mx-auto w-full max-w-4xl"><ActivityFeedCard activity={act} /></div></div>
         ))}
       </div>
     </div>
