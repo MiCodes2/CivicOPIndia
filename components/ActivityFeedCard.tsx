@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showHeart, setShowHeart] = useState(false); // small animation on double-tap
+  const doubleTapRef = useRef(false);
+  const touchLastTap = useRef<number | null>(null);
+  const previousLikesRef = useRef<number>(likes);
 
   // Check if user already liked this activity
   useEffect(() => {
@@ -160,9 +164,28 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = async ({ optimistic = true, showAnimation = false } = {}) => {
     if (loading) return;
-    
+
+    const prevLiked = liked;
+    const prevCount = previousLikesRef.current;
+
+    // Optimistic update
+    if (optimistic) {
+      previousLikesRef.current = likes;
+      if (prevLiked) {
+        setLikes((s) => Math.max(0, s - 1));
+        setLiked(false);
+      } else {
+        setLikes((s) => s + 1);
+        setLiked(true);
+        if (showAnimation) {
+          setShowHeart(true);
+          setTimeout(() => setShowHeart(false), 800);
+        }
+      }
+    }
+
     setLoading(true);
     try {
       const response = await fetch('/api/like', {
@@ -172,16 +195,33 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       });
 
       const data = await response.json();
-      
-      if (data.liked) {
-        setLikes((s) => s + 1);
-        setLiked(true);
-      } else {
-        setLikes((s) => Math.max(0, s - 1));
-        setLiked(false);
+
+      // Reconcile with server
+      if (typeof data.liked === 'boolean') {
+        setLiked(Boolean(data.liked));
+        // ensure correct count based on server (best-effort)
+        if (!optimistic) {
+          setLikes((s) => (data.liked ? s + 1 : Math.max(0, s - 1)));
+        } else {
+          // If server disagrees, adjust
+          if (data.liked && !prevLiked) {
+            // already incremented
+          } else if (!data.liked && prevLiked) {
+            // already decremented
+          } else if (data.liked !== !prevLiked) {
+            // reconcile counts - fallback to previous value adjustments
+            setLikes(previousLikesRef.current);
+            setLiked(data.liked);
+          }
+        }
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+      // Revert optimistic changes on error
+      if (optimistic) {
+        setLiked(prevLiked);
+        setLikes(prevCount);
+      }
     } finally {
       setLoading(false);
     }
@@ -235,15 +275,47 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           <div className="mb-6 flex justify-center">
             <div className="w-full flex justify-center">
               <div className="w-full md:w-2/5 rounded-lg overflow-hidden shadow-lg">
-                <img
-                  src={images[0]}
-                  alt="Featured"
-                  className="w-full h-auto object-cover cursor-pointer"
-                  onClick={() => {
-                    setModalImage(images[0]);
-                    setModalOpen(true);
-                  }}
-                />
+                <div className="relative">
+                  <img
+                    src={images[0]}
+                    alt="Featured"
+                    className="w-full h-auto object-cover cursor-pointer"
+                    onClick={(e) => {
+                      // Prevent opening modal if this click is part of a double-tap
+                      if (doubleTapRef.current) {
+                        doubleTapRef.current = false;
+                        return;
+                      }
+                      // small delay to allow double click detection
+                      setTimeout(() => {
+                        if (!doubleTapRef.current) {
+                          setModalImage(images[0]);
+                          setModalOpen(true);
+                        }
+                      }, 200);
+                    }}
+                    onDoubleClick={() => {
+                      doubleTapRef.current = true;
+                      handleLike({ optimistic: true, showAnimation: true });
+                    }}
+                    onTouchStart={() => {
+                      const now = Date.now();
+                      if (touchLastTap.current && (now - touchLastTap.current) < 300) {
+                        // double tap
+                        touchLastTap.current = null;
+                        doubleTapRef.current = true;
+                        handleLike({ optimistic: true, showAnimation: true });
+                      } else {
+                        touchLastTap.current = now;
+                      }
+                    }}
+                  />
+                  {showHeart && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="animate-ping-slow text-6xl text-emerald-500 drop-shadow-lg" style={{ textShadow: '0 0 12px rgba(255,255,255,0.95), 0 0 24px rgba(255,255,255,0.6)', WebkitTextStroke: '1px rgba(255,255,255,0.9)' }}>❤</div>
+                    </div>
+                  )}
+                </div>
                 {activity.image_captions && activity.image_captions[0] && (
                   <div className="mt-2 text-center">
                     <p className="text-sm text-muted-foreground">{activity.image_captions[0]}</p>
@@ -257,6 +329,16 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         {/* Post content */}
         <div
           className="mb-4 text-muted-foreground prose prose-sm max-w-none"
+          onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
+          onTouchStart={() => {
+            const now = Date.now();
+            if (touchLastTap.current && (now - touchLastTap.current) < 300) {
+              touchLastTap.current = null;
+              handleLike({ optimistic: true, showAnimation: true });
+            } else {
+              touchLastTap.current = now;
+            }
+          }}
           dangerouslySetInnerHTML={{ __html: formatContent(activity.content || '') }}
         />
 
@@ -332,11 +414,12 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           <Button
             variant={liked ? "default" : "outline"}
             size="sm"
-            onClick={handleLike}
-            className="flex items-center gap-2"
+            onClick={() => handleLike({ optimistic: true, showAnimation: !liked })}
+            className={`flex items-center gap-2 ${liked ? 'bg-emerald-100 border border-emerald-200 rounded-md px-2' : ''}`}
+            aria-pressed={liked}
           >
-            <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
-            <span>{likes}</span>
+            <Heart className={`h-4 w-4 transition-transform duration-200 ${liked ? 'bg-emerald-600 text-white p-1 rounded-full scale-110 animate-pulse ring-2 ring-white/80 shadow-sm' : ''}`} />
+            <span className="text-black font-medium">{likes}</span>
           </Button>
 
           <Button
