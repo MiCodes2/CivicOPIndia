@@ -12,8 +12,30 @@ export default function SearchBar({ initial = '' }: { initial?: string }) {
       if (!q) return setResults([])
       setLoading(true)
       fetch(`/api/search?q=${encodeURIComponent(q)}`)
-        .then((r) => r.json())
-        .then((json) => setResults(json.results || []))
+        .then(async (r) => {
+          const json = await r.json().catch(() => ({}))
+          // If server indicates Supabase isn't configured, fallback to DOM search
+          if (json?.error === 'no-supabase' || r.status === 501) {
+            // Search rendered activities on the current page (elements with id `activity-<id>`)
+            try {
+              const nodes = Array.from(document.querySelectorAll('[id^="activity-"]')) as HTMLElement[]
+              const lc = q.toLowerCase()
+              const found: any[] = []
+              nodes.forEach((n) => {
+                if ((n.textContent || '').toLowerCase().includes(lc)) {
+                  const id = n.id.replace('activity-', '')
+                  const titleEl = n.querySelector('h1, h2, h3, .text-2xl, .text-xl')
+                  const title = (titleEl && (titleEl.textContent || '').trim()) || `Post ${id}`
+                  found.push({ id, title, author_name: '' })
+                }
+              })
+              return setResults(found)
+            } catch (e) {
+              return setResults([])
+            }
+          }
+          return setResults(json.results || [])
+        })
         .catch(() => setResults([]))
         .finally(() => setLoading(false))
     }, 250)

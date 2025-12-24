@@ -47,6 +47,13 @@ export async function GET(req: Request) {
 
     const supabase = await createClient()
 
+    // If Supabase is not configured (placeholder creds), return a clear error
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    if (supabaseUrl.includes('placeholder') || supabaseKey.includes('placeholder')) {
+      return NextResponse.json({ error: 'no-supabase', message: 'Supabase not configured. Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local to enable DB-backed search.' }, { status: 501 })
+    }
+
     // Try RPC full-text search (requires migration). Fallback to ilike when RPC fails.
     let results: any[] = []
 
