@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Home, Activity, Heart, Menu, X, Twitter, Shield, LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SearchBar from "@/components/SearchBar";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -66,6 +67,11 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden items-center space-x-6 md:flex">
+            <div className="w-64">
+              {/* Search in desktop nav */}
+              {/* @ts-ignore */}
+              <SearchBar />
+            </div>
             {navLinks.map((link) => {
               const Icon = link.icon;
               return (
