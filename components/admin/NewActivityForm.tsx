@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { extractHashtags } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
@@ -103,6 +104,8 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
       }
 
       // Build payload matching the current `activities` table schema
+      const tags = extractHashtags(formData.content);
+
       const payload = {
         title: formData.title || null,
         content: formData.content || null,
@@ -111,6 +114,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         activity_date: new Date(formData.activity_date).toISOString(),
         // `activities` table has `image_url` (TEXT) not `image_urls` array
         image_url: imageUrls[0] || formData.image_url || null,
+        tags: tags.length ? tags : null,
         likes_count: formData.likes_count || 0,
         shares_count: formData.shares_count || 0,
         author_id: user.id,

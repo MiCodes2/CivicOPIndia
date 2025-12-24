@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateShort, formatDateLong } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Heart, Share2, Calendar, MapPin } from "lucide-react";
 import type { Activity } from "@/lib/types/database";
@@ -249,7 +250,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-    <Card className="overflow-hidden transition-shadow hover:shadow-lg">
+    <Card className="mx-auto w-full max-w-4xl overflow-hidden transition-shadow hover:shadow-lg mb-6">
       <CardContent className="p-6 relative">
         {/* Type badge */}
         {localType && (
@@ -261,13 +262,17 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Header */}
-        <div className="mb-4">
-          <h3 className="mt-2 text-2xl font-bold">{activity.title}</h3>
-          {activity.author_name && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              Posted by <span className="font-medium text-primary">{activity.author_name}</span>
-            </p>
-          )}
+        <div className="mb-4 flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
+            <div>
+              <div className="text-sm font-medium">{activity.author_name || 'Unknown'}</div>
+              <div className="text-xs text-muted-foreground">{formatDateShort(activity.activity_date)}</div>
+            </div>
+          </div>
+              <div className="flex items-center gap-2">
+            {/* type badge intentionally rendered at top-right as absolute element to avoid duplication */}
+          </div>
         </div>
 
         {/* Featured image centered above content */}
@@ -373,14 +378,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         <div className="mb-4 space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            <span>
-              {new Date(activity.activity_date).toLocaleDateString('en-IN', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </span>
+            <span>{formatDateLong(activity.activity_date)}</span>
           </div>
           {activity.location && (
             <div className="flex items-center gap-2">
@@ -410,7 +408,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-4 border-t pt-4">
+        <div className="flex items-center gap-4 border-t pt-4 justify-between">
           <Button
             variant={liked ? "default" : "outline"}
             size="sm"

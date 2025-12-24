@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     // Only allow updating specific fields for safety
     const allowed: Record<string, any> = {};
-    const fields = ['title','content','location','type','activity_date','image_url','likes_count','shares_count','author_name'];
+    const fields = ['title','content','location','type','activity_date','image_url','likes_count','shares_count','author_name','tags'];
     for (const f of fields) {
       if (Object.prototype.hasOwnProperty.call(body, f)) allowed[f] = body[f];
     }

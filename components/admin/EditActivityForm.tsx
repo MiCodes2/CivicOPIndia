@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { extractHashtags } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
@@ -58,7 +59,8 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
         return;
       }
       // Use server-side admin update to bypass RLS (requires SUPABASE_SERVICE_ROLE_KEY)
-      const payload = { id: activity.id, ...formData, activity_date: new Date(formData.activity_date).toISOString() };
+      const tags = extractHashtags(formData.content);
+      const payload = { id: activity.id, ...formData, activity_date: new Date(formData.activity_date).toISOString(), tags };
       const res = await fetch('/api/admin/update-activity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

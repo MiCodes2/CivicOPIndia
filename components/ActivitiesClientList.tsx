@@ -42,28 +42,12 @@ export default function ActivitiesClientList({ activities, types = [], initialSe
   }, [selected]);
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => setSelected(null)}
-          className={`inline-flex items-center gap-2 rounded px-3 py-1 ${selected===null ? 'bg-primary text-white shadow' : 'border'}`}
-        >
-          All ({activities.length})
-        </button>
-        {displayTypes.map(t => (
-          <button
-            key={t}
-            onClick={() => setSelected(prev => prev === t ? null : t)}
-            className={`inline-flex items-center gap-2 rounded px-3 py-1 ${selected===t ? 'bg-primary text-white shadow' : 'border'}`}
-          >
-            {t} {counts[t] ? `(${counts[t]})` : ''}
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-col items-center">
 
-      <div className="grid gap-6 lg:grid-cols-2">
+
+      <div className="flex flex-col items-center w-full">
         {filtered.map(act => (
-          <ActivityFeedCard key={act.id} activity={act} />
+          <div key={act.id} className="w-full px-4 mb-4"><div className="mx-auto w-full max-w-4xl"><ActivityFeedCard activity={act} /></div></div>
         ))}
       </div>
     </div>

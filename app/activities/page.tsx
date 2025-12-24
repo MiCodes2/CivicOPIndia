@@ -7,27 +7,42 @@ import ActivitiesClientList from "@/components/ActivitiesClientList";
 import type { Activity } from "@/lib/types/database";
 
 import Link from "next/link";
+import { extractHashtags } from '@/lib/utils';
 
 export const revalidate = 0; // Always fetch fresh data
 
 export default async function ActivitiesPage({ searchParams }: { searchParams?: { type?: string } | Promise<{ type?: string }> }) {
   const supabase = await createClient();
-  let params = searchParams;
-  if (typeof searchParams === 'object' && typeof (searchParams as Promise<any>).then === 'function') {
-    params = await (searchParams as Promise<any>);
+  let paramsObj: { type?: string } | undefined;
+  if (searchParams && typeof (searchParams as any).then === 'function') {
+    paramsObj = await (searchParams as Promise<any>);
+  } else {
+    paramsObj = searchParams as any;
   }
-  const selectedType = params?.type || undefined;
+  const selectedType = paramsObj?.type || undefined;
+  const selectedTag = (paramsObj as any)?.tag || undefined;
 
   // Fetch activity types (lookup table)
   const { data: typeRows } = await supabase.from('activity_types').select('name').order('name');
 
-  // Fetch activities from Supabase ordered by activity_date; optionally filter by type
+  // Fetch activities from Supabase ordered by activity_date
   let query = supabase.from('activities').select('*').order('activity_date', { ascending: false });
-  if (selectedType) query = query.eq('type', selectedType);
   const { data: activities, error } = await query;
 
   // Build counts and distinct types from fetched activities
-  const activitiesList: Activity[] = activities || [];
+  let activitiesList: Activity[] = activities || [];
+
+  // Apply in-memory filters (type/tag) for cases where tags may be in content only
+  if (selectedType) activitiesList = activitiesList.filter(a => ((a.type||'') === selectedType));
+  if (selectedTag) {
+    const st = selectedTag.toLowerCase();
+    activitiesList = activitiesList.filter(a => {
+      const tags = (a.tags || []).map((t:any)=>String(t).toLowerCase());
+      if (tags.includes(st)) return true;
+      const extracted = extractHashtags(a.content || '');
+      return extracted.includes(st);
+    });
+  }
 
   // Build canonical mapping using activity_types lookup to dedupe UI entries
   const canonicalNames: string[] = (typeRows || []).map((r: any) => r.name);
@@ -119,7 +134,59 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
 
       
       {activities && activities.length > 0 ? (
-        <ActivitiesClientList activities={activitiesList} types={(typeRows||[]).map((r:any)=>r.name)} initialSelected={selectedType || null} />
+        // three-column layout: left types, center feed, right trending tags
+        <div className="grid gap-6 lg:grid-cols-4">
+          <aside className="hidden lg:block lg:col-span-1">
+            <Card className="sticky top-24">
+              <CardHeader>
+                <CardTitle>Types</CardTitle>
+                <CardDescription className="text-sm">Filter by type</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  <li>
+                    <a href="/activities" className={`block px-3 py-1 rounded ${!selectedType ? 'bg-primary text-white' : 'hover:bg-gray-100'}`}>All ({activitiesList.length})</a>
+                  </li>
+                  {((typeRows||[]).map((r:any)=>r.name)).map((t:any) => (
+                    <li key={t}>
+                      <a href={`/activities?type=${encodeURIComponent(t)}`} className="block px-3 py-1 rounded hover:bg-gray-100">{t} <span className="text-muted-foreground">({countsByType[t] || 0})</span></a>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </aside>
+
+          <main className="lg:col-span-2">
+            <ActivitiesClientList activities={activitiesList} types={(typeRows||[]).map((r:any)=>r.name)} initialSelected={selectedType || null} />
+          </main>
+
+          <aside className="hidden lg:block lg:col-span-1">
+            <Card className="sticky top-24">
+              <CardHeader>
+                <CardTitle>Trending</CardTitle>
+                <CardDescription className="text-sm">Top hashtags</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {(() => {
+                    const tagCounts: Record<string, number> = {};
+                    // Use all fetched activities (global) to compute trending hashtags
+                    (activities || []).forEach((a:any) => {
+                      const tags = (a.tags && a.tags.length) ? a.tags.map((t:string)=>String(t).toLowerCase()) : extractHashtags(a.content || '');
+                      (tags || []).forEach((tg:string) => { if (!tg) return; tagCounts[tg] = (tagCounts[tg] || 0) + 1; });
+                    });
+                    return Object.entries(tagCounts).sort((a,b) => b[1]-a[1]).slice(0,8).map(([tag,count]) => (
+                      <li key={tag}>
+                        <a href={`/activities?tag=${encodeURIComponent(tag)}`} className="flex items-center justify-between px-3 py-1 rounded hover:bg-gray-100">#{tag} <span className="text-sm text-muted-foreground">{count}</span></a>
+                      </li>
+                    ));
+                  })()}
+                </ul>
+              </CardContent>
+            </Card>
+          </aside>
+        </div>
       ) : (
         !error && (
           <Card>

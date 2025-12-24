@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDateShort } from '@/lib/utils';
 import NewActivityForm from "@/components/admin/NewActivityForm";
 import EditActivityForm from "@/components/admin/EditActivityForm";
 import { LogOut, Activity as ActivityIcon, Edit, Trash2 } from "lucide-react";
@@ -158,7 +159,7 @@ export default function AdminDashboard() {
                     >
                       <div className="font-medium">{activity.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {new Date(activity.activity_date).toLocaleDateString()}
+                        {formatDateShort(activity.activity_date)}
                       </div>
                       <div className="mt-2 flex gap-2">
                         <Button
