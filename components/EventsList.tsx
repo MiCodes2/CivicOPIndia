@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 interface EventItem {
   id: number;
   title: string;
-  activity_date: string;
+  activity_date?: string;
+  event_date?: string;
   type?: string;
   location?: string;
   image_url?: string;
@@ -58,7 +59,7 @@ export default function EventsList() {
               <CardTitle className="text-lg">{ev.title}</CardTitle>
               <div className="text-sm text-muted-foreground">{ev.type}</div>
             </div>
-            <div className="mt-1 text-xs text-muted-foreground">{new Date(ev.activity_date || ev.event_date).toLocaleDateString()}</div>
+            <div className="mt-1 text-xs text-muted-foreground">{new Date(ev.event_date ?? ev.activity_date ?? '').toLocaleDateString()}</div>
             <div className="mt-3 text-sm text-muted-foreground">{ev.location}</div>
             <div className="mt-3 text-sm">{excerpt(ev.content)}</div>
             <div className="mt-4">
