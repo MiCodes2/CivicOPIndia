@@ -16,19 +16,27 @@ export default function SearchBar({ initial = '' }: { initial?: string }) {
           const json = await r.json().catch(() => ({}))
           // If server indicates Supabase isn't configured, fallback to DOM search
           if (json?.error === 'no-supabase' || r.status === 501) {
-            // Search rendered activities on the current page (elements with id `activity-<id>`)
+            // Search the rendered DOM across common content containers (headers, paragraphs, sections)
             try {
-              const nodes = Array.from(document.querySelectorAll('[id^="activity-"]')) as HTMLElement[]
               const lc = q.toLowerCase()
+              const candidates = Array.from(document.querySelectorAll('article, section, main, header, .prose, p, h1, h2, h3')) as HTMLElement[]
               const found: any[] = []
-              nodes.forEach((n) => {
-                if ((n.textContent || '').toLowerCase().includes(lc)) {
-                  const id = n.id.replace('activity-', '')
-                  const titleEl = n.querySelector('h1, h2, h3, .text-2xl, .text-xl')
-                  const title = (titleEl && (titleEl.textContent || '').trim()) || `Post ${id}`
-                  found.push({ id, title, author_name: '' })
+              const seen = new Set<HTMLElement>()
+              for (const n of candidates) {
+                if (seen.has(n)) continue
+                const text = (n.textContent || '').toLowerCase()
+                if (!text.includes(lc)) continue
+                // prefer closest heading as title
+                const heading = n.querySelector('h1,h2,h3') || n.closest('article')?.querySelector('h1,h2,h3')
+                const title = (heading && (heading.textContent || '').trim()) || (n.getAttribute('aria-label') || '').toString().trim() || (n.textContent || '').trim().slice(0, 80)
+                // ensure element has an id we can scroll to
+                if (!n.id) {
+                  n.id = 'search-' + Math.random().toString(36).slice(2, 9)
                 }
-              })
+                seen.add(n)
+                found.push({ id: n.id, title: title || `Result ${found.length + 1}`, author_name: '' })
+                if (found.length >= 20) break
+              }
               return setResults(found)
             } catch (e) {
               return setResults([])
