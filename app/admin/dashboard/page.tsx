@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateShort } from '@/lib/utils';
 import NewActivityForm from "@/components/admin/NewActivityForm";
+import NewEventForm from "@/components/admin/NewEventForm";
 import EditActivityForm from "@/components/admin/EditActivityForm";
 import { LogOut, Activity as ActivityIcon, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -120,7 +121,12 @@ export default function AdminDashboard() {
               }}
             />
           ) : (
-            <NewActivityForm onSuccess={loadActivities} />
+            <>
+              <NewActivityForm onSuccess={loadActivities} />
+              <div className="mt-6">
+                <NewEventForm onSuccess={loadActivities} />
+              </div>
+            </>
           )}
         </div>
 

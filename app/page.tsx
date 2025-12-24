@@ -1,6 +1,8 @@
 
 import Link from "next/link";
+import { pageMetadata } from '@/lib/pageMetadata'
 import { Button } from "@/components/ui/button";
+import EventsList from '@/components/EventsList';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Archive, Heart, Users, Target, FileText, Megaphone, Shield } from "lucide-react";
 import TeamMemberCard from "@/components/TeamMemberCard";
@@ -61,6 +63,20 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Upcoming Events Section */}
+      <section className="border-b py-12">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="text-3xl font-bold">Upcoming Events</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Standard events organized by the community</p>
+            {/* Server-rendered event list will be hydrated on client; fetch via /api/events or render minimal placeholder here. */}
+            <div id="events-list" className="mt-6">
+              <EventsList />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Stats Section */}
       <section className="border-b bg-card py-16">
         <div className="container mx-auto px-4">
@@ -114,12 +130,12 @@ export default function HomePage() {
                 initials="MK"
               />
             </Link>
-            <Link href="/team/dr-ansiha" className="w-full md:flex-1 min-w-[220px] max-w-xs">
+            <Link href="/team/dr-anisha" className="w-full md:flex-1 min-w-[220px] max-w-xs">
               <TeamMemberCard
-                name="Dr. Ansiha"
+                name="Dr. Anisha"
                 role="Co-founder"
                 description="Expert in policy advocacy and grassroots mobilization"
-                imageSrc="/dr-ansiha.jpeg"
+                imageSrc="/dr-anisha.jpeg"
                 initials="DA"
               />
             </Link>
@@ -300,3 +316,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+export const metadata = pageMetadata.home
