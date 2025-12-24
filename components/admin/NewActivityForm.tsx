@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     likes_count: 0,
     shares_count: 0,
   });
+  const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
 
@@ -106,7 +107,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         title: formData.title || null,
         content: formData.content || null,
         location: formData.location || null,
-        type: formData.type || null,
+        type: canonicalizeType(formData.type) || null,
         activity_date: new Date(formData.activity_date).toISOString(),
         // `activities` table has `image_url` (TEXT) not `image_urls` array
         image_url: imageUrls[0] || formData.image_url || null,
@@ -171,6 +172,33 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     }
   };
 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('activity_types').select('name').order('name');
+        if (error) {
+          console.warn('Could not load activity types:', error.message);
+          return;
+        }
+        if (mounted && Array.isArray(data)) setTypeOptions(data.map((r:any)=>r.name));
+      } catch (e) {
+        console.warn('Error fetching activity types', e);
+      }
+    })();
+    return () => { mounted = false };
+  }, [supabase]);
+
+  const canonicalizeType = (chosen: string | null) => {
+    if (!chosen) return null;
+    if (typeOptions.includes(chosen)) return chosen;
+    const lower = chosen.toLowerCase();
+    if (typeOptions.includes(chosen + 's')) return chosen + 's';
+    const found = typeOptions.find(t => t.toLowerCase().includes(lower) || lower.includes(t.toLowerCase()));
+    if (found) return found;
+    return chosen;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -232,13 +260,21 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               >
                 <option value="">Select type</option>
-                <option value="Meeting">Meeting</option>
-                <option value="Protest">Protest</option>
-                <option value="Campaign">Campaign</option>
-                <option value="Workshop">Workshop</option>
-                <option value="Rally">Rally</option>
-                <option value="Press Conference">Press Conference</option>
-                <option value="Other">Other</option>
+                {typeOptions.length > 0 ? (
+                  typeOptions.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Meeting">Meeting</option>
+                    <option value="Protest">Protest</option>
+                    <option value="Campaign">Campaign</option>
+                    <option value="Workshop">Workshop</option>
+                    <option value="Rally">Rally</option>
+                    <option value="Press Conference">Press Conference</option>
+                    <option value="Other">Other</option>
+                  </>
+                )}
               </select>
             </div>
           </div>

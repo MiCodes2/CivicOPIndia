@@ -2,46 +2,91 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { createClient } from "@/lib/supabase/server";
 import { Activity as ActivityIcon, Users, Megaphone, FileText } from "lucide-react";
 import ActivityFeedCard from "@/components/ActivityFeedCard";
+import ActivityTypeManager from "@/components/ActivityTypeManager";
+import ActivitiesClientList from "@/components/ActivitiesClientList";
 import type { Activity } from "@/lib/types/database";
+
+import Link from "next/link";
 
 export const revalidate = 0; // Always fetch fresh data
 
-export default async function ActivitiesPage() {
+export default async function ActivitiesPage({ searchParams }: { searchParams?: { type?: string } | Promise<{ type?: string }> }) {
   const supabase = await createClient();
-  
-  // Fetch activities from Supabase ordered by activity_date
-  const { data: activities, error } = await supabase
-    .from('activities')
-    .select('*')
-    .order('activity_date', { ascending: false });
+  let params = searchParams;
+  if (typeof searchParams === 'object' && typeof (searchParams as Promise<any>).then === 'function') {
+    params = await (searchParams as Promise<any>);
+  }
+  const selectedType = params?.type || undefined;
 
-  // Sample activity for testing image display
-  const sampleActivity = {
-    id: 1,
-    created_at: new Date().toISOString(),
-    activity_date: new Date().toISOString(),
-    title: "Sample Activity with Multiple Images and Captions",
-    content: "<p>This is a sample activity with multiple images and captions.</p>",
-    location: "Sample Location",
-    image_url: null,
-    image_urls: [
-      "/uploads/1766493830808.jpg",
-      "/uploads/1766493830808.jpg"
-    ],
-    image_captions: [
-      "Caption for Image 1",
-      "Caption for Image 2"
-    ],
-    author_id: null,
-    author_name: "Admin",
-    tags: ["sample", "test"],
-    likes_count: 0,
-    shares_count: 0,
-    type: "Test",
+  // Fetch activity types (lookup table)
+  const { data: typeRows } = await supabase.from('activity_types').select('name').order('name');
+
+  // Fetch activities from Supabase ordered by activity_date; optionally filter by type
+  let query = supabase.from('activities').select('*').order('activity_date', { ascending: false });
+  if (selectedType) query = query.eq('type', selectedType);
+  const { data: activities, error } = await query;
+
+  // Build counts and distinct types from fetched activities
+  const activitiesList: Activity[] = activities || [];
+
+  // Build canonical mapping using activity_types lookup to dedupe UI entries
+  const canonicalNames: string[] = (typeRows || []).map((r: any) => r.name);
+
+  const canonicalize = (raw?: string) => {
+    const s = (raw || '').toString().trim();
+    if (!s) return 'Other';
+    // exact match
+    const exact = canonicalNames.find((c) => c === s);
+    if (exact) return exact;
+    const lower = s.toLowerCase();
+    // try plural/singular and substring matches
+    const fuzzy = canonicalNames.find((c) => {
+      const cl = c.toLowerCase();
+      if (cl === lower) return true;
+      if (cl.endsWith('s') && cl.slice(0, -1) === lower) return true;
+      if (lower.endsWith('s') && lower.slice(0, -1) === cl) return true;
+      if (lower.includes(cl) || cl.includes(lower)) return true;
+      return false;
+    });
+    return fuzzy || 'Other';
   };
 
-  if (activities) {
-    activities.unshift(sampleActivity);
+  const countsByType: Record<string, number> = {};
+  // initialize with canonical names so UI order is stable
+  canonicalNames.forEach((n) => (countsByType[n] = 0));
+  activitiesList.forEach((a) => {
+    const key = canonicalize(a.type || 'Other');
+    countsByType[key] = (countsByType[key] || 0) + 1;
+  });
+
+  // Suggested grouping: Drive (cleanliness + encroachment variants), Tree Plantation
+  const normalize = (s?: string) => (s || '').toLowerCase().trim();
+  const driveKeys = new Set(['cleanliness drive', 'encroachment clearance', 'encroachment removal', 'encroachment']);
+  const treeKeys = new Set(['tree plantation', 'treeplantation', 'tree-plantation']);
+
+  let driveCount = 0;
+  let treeCount = 0;
+  Object.entries(countsByType).forEach(([k, v]) => {
+    const nk = normalize(k).replace(/s$/,'');
+    if (driveKeys.has(nk) || nk.includes('encroachment')) driveCount += v;
+    if (treeKeys.has(nk) || nk.includes('tree')) treeCount += v;
+  });
+
+  // Check current user/profile to decide whether to show admin manager
+  let showAdminManager = false;
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = (userData as any)?.user;
+    if (user?.id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profile && (profile as any).role === 'admin') showAdminManager = true;
+    }
+  } catch {
+    // ignore errors — default to not showing
   }
 
   return (
@@ -52,34 +97,6 @@ export default async function ActivitiesPage() {
           Stay updated with our latest actions, protests, and community initiatives.
           Join us in building a more accountable democracy.
         </p>
-      </div>
-
-      {/* Activity Types Info */}
-      <div className="mb-12 grid gap-4 md:grid-cols-4">
-        <Card className="border-primary/20">
-          <CardHeader className="pb-3">
-            <Users className="h-8 w-8 text-primary" />
-            <CardTitle className="text-lg">Meetings</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-primary/20">
-          <CardHeader className="pb-3">
-            <FileText className="h-8 w-8 text-primary" />
-            <CardTitle className="text-lg">Campaigns</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-primary/20">
-          <CardHeader className="pb-3">
-            <Megaphone className="h-8 w-8 text-primary" />
-            <CardTitle className="text-lg">Protests</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-primary/20">
-          <CardHeader className="pb-3">
-            <ActivityIcon className="h-8 w-8 text-primary" />
-            <CardTitle className="text-lg">Workshops</CardTitle>
-          </CardHeader>
-        </Card>
       </div>
 
       {error && (
@@ -100,21 +117,9 @@ export default async function ActivitiesPage() {
         </Card>
       )}
 
-      {/* Activities Feed */}
+      
       {activities && activities.length > 0 ? (
-        <div className="space-y-6">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold">Activity Feed</h2>
-            <p className="text-muted-foreground">
-              {activities.length} {activities.length === 1 ? 'activity' : 'activities'} posted
-            </p>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            {activities.map((activity) => (
-              <ActivityFeedCard key={activity.id} activity={activity} />
-            ))}
-          </div>
-        </div>
+        <ActivitiesClientList activities={activitiesList} types={(typeRows||[]).map((r:any)=>r.name)} initialSelected={selectedType || null} />
       ) : (
         !error && (
           <Card>

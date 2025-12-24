@@ -55,15 +55,18 @@ export default function AdminDashboard() {
     if (!confirm("Are you sure you want to delete this activity?")) {
       return;
     }
-
-    const { error } = await supabase
-      .from('activities')
-      .delete()
-      .eq('id', id);
-
-    if (!error) {
+    try {
+      const res = await fetch('/api/admin/delete-activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || JSON.stringify(data));
       alert("Activity deleted successfully!");
       loadActivities();
+    } catch (e:any) {
+      alert('Failed to delete activity: ' + (e.message || String(e)));
     }
   };
 

@@ -1,16 +1,38 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, Share2, Calendar, MapPin } from "lucide-react";
 import type { Activity } from "@/lib/types/database";
+
+const TYPE_BADGE_CLASSES: Record<string, string> = {
+  'Meetings': 'bg-sky-600',
+  'Campaigns': 'bg-rose-600',
+  'Protests': 'bg-red-600',
+  'Workshops': 'bg-indigo-600',
+  'Drive': 'bg-green-600',
+  'Tree Plantation': 'bg-emerald-600',
+  'Rally': 'bg-yellow-600',
+  'Press Conference': 'bg-amber-600',
+  'Other': 'bg-gray-600',
+};
+
+function badgeColorForType(type: string) {
+  return TYPE_BADGE_CLASSES[type] || 'bg-gray-600';
+}
 
 interface ActivityFeedCardProps {
   activity: Activity;
 }
 
 export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
+  const supabase = createBrowserClient();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [typeOptions, setTypeOptions] = useState<string[]>([]);
+  const [localType, setLocalType] = useState(activity.type || 'Other');
   const images = (activity.image_urls && activity.image_urls.length > 0)
     ? activity.image_urls
     : activity.image_url
@@ -47,9 +69,85 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     setModalOpen(true);
   };
 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (profile && (profile as any).role === 'admin') {
+          if (mounted) setIsAdmin(true);
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        const { data } = await supabase.from('activity_types').select('name').order('name');
+        if (mounted && Array.isArray(data)) setTypeOptions(data.map((r:any)=>r.name));
+      } catch {}
+    })();
+    return () => { mounted = false };
+  }, [supabase]);
+
+  useEffect(() => { setLocalType(activity.type || 'Other'); }, [activity.type]);
+
+  const applyTypeUpdate = async (newType: string) => {
+    try {
+      const res = await fetch('/api/admin/update-activity-type', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: activity.id, type: newType }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || JSON.stringify(data));
+      setLocalType(newType);
+      setEditing(false);
+    } catch (e:any) {
+      alert('Error updating type: ' + (e.message||String(e)));
+    }
+  };
+
   // Make openImageModal available globally for onclick handlers
   useEffect(() => {
     (window as any).openImageModal = openImageModal;
+  }, []);
+
+  // Render iframe only after confirming embeddability (avoids blocked iframes); inserts origin param
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const containers = Array.from(document.querySelectorAll('.youtube-embed')) as HTMLElement[];
+        for (const c of containers) {
+          if (!mounted) return;
+          const vid = c.getAttribute('data-video-id');
+          if (!vid) continue;
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const resp = await fetch(`/api/youtube/check?id=${encodeURIComponent(vid)}`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            const data = await resp.json();
+            const origin = encodeURIComponent(window.location.origin);
+            if (data?.embeddable) {
+              const src = `https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1&origin=${origin}`;
+              const thumb = `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
+              c.innerHTML = `<div class="w-full aspect-video overflow-hidden rounded-md"><iframe src="${src}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe></div><div class="mt-2"><a href="https://youtu.be/${vid}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-3"><img src="${thumb}" alt="Video thumbnail" class="w-36 h-20 object-cover rounded-md" /><span class="text-sm">Watch video on YouTube</span></a></div>`;
+            } else {
+              const thumb = `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
+              c.innerHTML = `<div class="mt-2"><a href="https://youtu.be/${vid}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-3"><img src="${thumb}" alt="Video thumbnail" class="w-36 h-20 object-cover rounded-md" /><span class="text-sm">Watch video on YouTube</span></a></div>`;
+            }
+          } catch (e) {
+            if (mounted) c.innerHTML = `<p class="mt-2 text-sm"><a href="https://youtu.be/${vid}" target="_blank" rel="noopener noreferrer">Watch video on YouTube</a></p>`;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false };
   }, []);
 
   const checkLikeStatus = async () => {
@@ -113,15 +211,17 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     <>
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
       <CardContent className="p-6 relative">
+        {/* Type badge */}
+        {localType && (
+          <div className="absolute right-4 top-4 z-10">
+            <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium text-white shadow transition-colors duration-300 transform hover:scale-105 ${badgeColorForType(localType)}`}>
+              {localType}
+            </span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-4">
-          <div className="mb-2 flex items-center gap-2">
-            {activity.type && (
-              <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                {activity.type}
-              </span>
-            )}
-          </div>
           <h3 className="mt-2 text-2xl font-bold">{activity.title}</h3>
           {activity.author_name && (
             <p className="mt-1 text-sm text-muted-foreground">
@@ -208,6 +308,25 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           )}
         </div>
 
+        {/* Admin quick-edit */}
+        {isAdmin && (
+          <div className="mb-4">
+            {editing ? (
+              <div className="flex items-center gap-2">
+                <select className="rounded border px-2 py-1" value={localType} onChange={(e)=>setLocalType(e.target.value)}>
+                  {typeOptions.length > 0 ? typeOptions.map(t=> <option key={t} value={t}>{t}</option>) : <option value={localType}>{localType}</option>}
+                </select>
+                <button onClick={()=>applyTypeUpdate(localType)} className="rounded bg-primary px-3 py-1 text-white">Save</button>
+                <button onClick={()=>{ setEditing(false); setLocalType(activity.type || 'Other'); }} className="text-sm text-muted-foreground">Cancel</button>
+              </div>
+            ) : (
+              <div className="text-sm">
+                <button onClick={()=>setEditing(true)} className="text-primary underline">Quick edit type</button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center gap-4 border-t pt-4">
           <Button
@@ -262,11 +381,12 @@ function formatContent(input: string) {
     // Always process YouTube and image URLs, even in HTML content
     let processed = input;
 
-    // YouTube embeds
-    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
-    processed = processed.replace(youtubeRegex, (match, videoId) => {
-      return `<div class="youtube-embed"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
-    });
+// YouTube embeds: render a thumbnail placeholder (data-video-id) and let the client confirm embeddability before inserting iframe
+const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/(?:v|e(?:mbed)?)\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
+processed = processed.replace(youtubeRegex, (match, videoId) => {
+  const thumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  return `<div class="youtube-embed" data-video-id="${videoId}"><div class="youtube-placeholder w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><a href="https://youtu.be/${videoId}" target="_blank" rel="noopener noreferrer" class="block w-full h-full relative"><img src="${thumb}" alt="YouTube thumbnail" class="w-full h-full object-cover" /><span class="absolute inset-0 flex items-center justify-center text-white text-3xl">▶</span></a></div></div>`;
+});
 
     // Image embeds
     const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
@@ -316,9 +436,10 @@ function formatContent(input: string) {
       restored = restored.replace(key, orig);
     });
 
-    // Convert YouTube placeholders to iframe embeds
+    // Convert YouTube placeholders to thumbnail placeholders that the client will swap with an iframe if embeddable
     restored = restored.replace(/__YOUTUBE_EMBED_([a-zA-Z0-9_-]{11})__/g, (match, videoId) => {
-      return `<div class="youtube-embed"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+      const thumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+      return `<div class="youtube-embed" data-video-id="${videoId}"><div class="youtube-placeholder w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><a href="https://youtu.be/${videoId}" target="_blank" rel="noopener noreferrer" class="block w-full h-full relative"><img src="${thumb}" alt="YouTube thumbnail" class="w-full h-full object-cover" /><span class="absolute inset-0 flex items-center justify-center text-white text-3xl">▶</span></a></div></div>`;
     });
 
     // Convert image placeholders to img tags

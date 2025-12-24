@@ -57,15 +57,15 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
         setLoading(false);
         return;
       }
-      const { error: updateError } = await supabase
-        .from('activities')
-        .update({
-          ...formData,
-          activity_date: new Date(formData.activity_date).toISOString(),
-        })
-        .eq('id', activity.id);
-
-      if (updateError) throw updateError;
+      // Use server-side admin update to bypass RLS (requires SUPABASE_SERVICE_ROLE_KEY)
+      const payload = { id: activity.id, ...formData, activity_date: new Date(formData.activity_date).toISOString() };
+      const res = await fetch('/api/admin/update-activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || JSON.stringify(data));
 
       alert("Activity updated successfully!");
       onSuccess();
