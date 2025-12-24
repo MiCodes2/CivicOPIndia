@@ -36,7 +36,27 @@ export async function GET(request: Request) {
     // RPC returns JSONB (may be wrapped); normalize
     const facets = facetsRes && facetsRes.length ? facetsRes[0] : facetsRes || { types: [], tags: [] };
 
-    return NextResponse.json({ results: results || [], total: parsedTotal, page, perPage, facets });
+    // Fallback: if no results and a query is present, try trigram fuzzy search
+    let finalResults = results || [];
+    let fallback = false;
+    if ((finalResults.length === 0 || !finalResults) && q && q.trim()) {
+      try {
+        const { data: trigramRes, error: trigramErr } = await supabase.rpc('search_trigram', { in_query: q, in_limit: perPage, in_offset: offset }) as any;
+        if (!trigramErr && (trigramRes || []).length > 0) {
+          finalResults = trigramRes;
+          fallback = true;
+        }
+      } catch (e) {
+        // ignore trigram fallback errors — we keep returning primary search errors earlier
+      }
+    }
+
+    const response = { results: finalResults || [], total: parsedTotal, page, perPage, facets, fallback };
+
+    // Cache small TTL at CDN/edge to reduce repeated identical queries
+    const headers = { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' };
+
+    return NextResponse.json(response, { status: 200, headers });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
   }
