@@ -151,6 +151,11 @@ export default function Navbar() {
 
           {/* Mobile Search + Menu Buttons */}
           <div className="flex items-center gap-2 md:hidden">
+            {/* Mobile follower badge */}
+            <div className="flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+              <X className="h-4 w-4" />
+              <span>{followers ? `${followers}` : (process.env.NEXT_PUBLIC_X_FOLLOWERS_FALLBACK || '—')}</span>
+            </div>
             <Button
               variant="ghost"
               size="icon"
