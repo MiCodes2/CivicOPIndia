@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import SynonymsManager from '@/components/admin/SynonymsManager';
+import StopwordsManager from '@/components/admin/StopwordsManager';
+import RankingTuner from '@/components/admin/RankingTuner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export default async function AdminSearchPage() {
@@ -49,13 +51,25 @@ export default async function AdminSearchPage() {
           <Card>
             <CardHeader>
               <CardTitle>Stopwords</CardTitle>
-              <CardDescription>Manage stopwords (coming soon)</CardDescription>
+              <CardDescription>Manage stopwords</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Stopwords management UI coming soon. You can add/remove rows in `search_stopwords` via SQL for now.</p>
+              <StopwordsManager />
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Ranking Tuner</CardTitle>
+            <CardDescription>Tweak weights and preview search result ordering</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RankingTuner />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
