@@ -16,5 +16,5 @@ INSERT INTO public.activity_types (name) VALUES
 ('Tree Plantation'),
 ('Other'),
 ('Rally'),
-('Press Conference')
+('News')
 ON CONFLICT (name) DO NOTHING;

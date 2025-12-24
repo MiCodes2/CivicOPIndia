@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Home, Activity, Heart, Menu, X, Shield, LayoutDashboard, LogOut, Info } from "lucide-react";
+import { Home, Activity, Heart, Menu, X, Shield, LayoutDashboard, LogOut, Info, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SearchBar from "@/components/SearchBar";
 import { createClient } from "@/lib/supabase/client";
@@ -14,6 +14,8 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
   const supabase = createClient();
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [followers, setFollowers] = useState<string | null>(null);
 
   useEffect(() => {
     // Check auth state
@@ -27,6 +29,15 @@ export default function Navbar() {
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/x/followers').then(r => r.json()).then((data) => {
+      if (!mounted) return;
+      if (data && data.followers) setFollowers(data.followers);
+    }).catch(() => {});
+    return () => { mounted = false };
   }, []);
 
   const handleSignOut = async () => {
@@ -138,21 +149,46 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
-          </Button>
+          {/* Mobile Search + Menu Buttons */}
+          <div className="flex items-center gap-2 md:hidden">
+            {/* Mobile follower badge */}
+            <div className="flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+              <X className="h-4 w-4" />
+              <span>{followers ? `${followers}` : (process.env.NEXT_PUBLIC_X_FOLLOWERS_FALLBACK || '—')}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowMobileSearch((s) => !s)}
+              aria-label="Toggle search"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className=""
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Search Input (toggled) */}
+        {showMobileSearch && (
+          <div className="md:hidden mt-2 w-full px-2">
+            <div className="w-full">
+              {/* @ts-ignore */}
+              <SearchBar />
+            </div>
+          </div>
+        )}
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
@@ -224,7 +260,8 @@ export default function Navbar() {
                         aria-label={link.label}
                       >
                         <Icon className="h-5 w-5" />
-                        <span>{link.label}</span>
+                          <span>{link.label}</span>
+                          {followers && <span className="ml-2 text-xs text-muted-foreground">{followers} followers</span>}
                       </Link>
                     );
                   })}

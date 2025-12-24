@@ -275,7 +275,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
                     <option value="Campaign">Campaign</option>
                     <option value="Workshop">Workshop</option>
                     <option value="Rally">Rally</option>
-                    <option value="Press Conference">Press Conference</option>
+                    <option value="News">News</option>
                     <option value="Other">Other</option>
                   </>
                 )}

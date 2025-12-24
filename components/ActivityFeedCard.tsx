@@ -16,7 +16,7 @@ const TYPE_BADGE_CLASSES: Record<string, string> = {
   'Drive': 'bg-green-600',
   'Tree Plantation': 'bg-emerald-600',
   'Rally': 'bg-yellow-600',
-  'Press Conference': 'bg-amber-600',
+  'News': 'bg-amber-600',
   'Other': 'bg-gray-600',
 };
 
