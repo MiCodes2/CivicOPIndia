@@ -1,5 +1,6 @@
 
 import Link from "next/link";
+import { pageMetadata } from '@/lib/pageMetadata'
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Archive, Heart, Users, Target, FileText, Megaphone, Shield } from "lucide-react";
@@ -300,3 +301,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+export const metadata = pageMetadata.home

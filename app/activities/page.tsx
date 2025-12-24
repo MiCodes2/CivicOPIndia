@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { pageMetadata } from '@/lib/pageMetadata'
 import { createClient } from "@/lib/supabase/server";
 import { Activity as ActivityIcon, Users, Megaphone, FileText } from "lucide-react";
 import ActivityFeedCard from "@/components/ActivityFeedCard";
@@ -207,3 +208,5 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
     </div>
   );
 }
+
+export const metadata = pageMetadata.activities

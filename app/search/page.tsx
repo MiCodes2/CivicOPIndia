@@ -1,5 +1,8 @@
 import SearchBar from '@/components/SearchBar'
 import { createClient } from '@/lib/supabase/server'
+import { pageMetadata } from '@/lib/pageMetadata'
+
+export const metadata = pageMetadata.search
 
 export default async function Page() {
   const supabase = await createClient()
