@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest", "test:ci": "vitest --run"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
