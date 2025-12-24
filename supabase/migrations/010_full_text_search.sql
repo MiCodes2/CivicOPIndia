@@ -21,7 +21,7 @@ CREATE TRIGGER update_activities_search_vector
 -- GIN index
 CREATE INDEX IF NOT EXISTS activities_search_vector_idx ON activities USING GIN(search_vector);
 
--- Simple RPC to search activities using plainto_tsquery and ranking
+-- RPC to search activities using plainto_tsquery with weighted ranking (title > content)
 CREATE OR REPLACE FUNCTION search_activities(query_text text, limit_rows int DEFAULT 100)
 RETURNS SETOF activities
 AS $$
@@ -30,7 +30,12 @@ BEGIN
   SELECT a.*
   FROM activities a
   WHERE a.search_vector @@ plainto_tsquery('simple', query_text)
-  ORDER BY ts_rank_cd(a.search_vector, plainto_tsquery('simple', query_text)) DESC
+  ORDER BY (
+    ts_rank(
+      setweight(to_tsvector('simple', coalesce(a.title,'')), 'A') || setweight(to_tsvector('simple', coalesce(a.content,'')), 'B'),
+      plainto_tsquery('simple', query_text)
+    )
+  ) DESC
   LIMIT limit_rows;
 END;
 $$ LANGUAGE plpgsql STABLE;

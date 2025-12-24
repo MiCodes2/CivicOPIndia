@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+// Simple in-process cache for trending (short TTL)
+const TREND_CACHE: { ts: number; data: any } | null = null as any
+let TREND_STORE: { ts: number; data: any } | null = null
+const TREND_TTL = 30 * 1000 // 30s
+
 export async function GET() {
   try {
+    const now = Date.now()
+    if (TREND_STORE && now - TREND_STORE.ts < TREND_TTL) {
+      return NextResponse.json({ trending: TREND_STORE.data })
+    }
+
     const supabase = await createClient()
 
     // Pull recent activities with tags (last 30 days)
@@ -31,6 +41,8 @@ export async function GET() {
       .map(([tag, count]) => ({ tag, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 20)
+
+    TREND_STORE = { ts: now, data: trending }
 
     return NextResponse.json({ trending })
   } catch (err: any) {
