@@ -63,16 +63,94 @@ export default function SearchBar({ initial = '' }: { initial?: string }) {
 
       {!loading && results.length > 0 && (
         <ul className="mt-2 space-y-2">
-          {results.slice(0, 10).map((r: any) => (
-            <li key={r.id} className="p-2 border rounded-md">
-              <a href={`/activities#activity-${r.id}`} className="font-semibold">
-                {r.title || 'Untitled'}
-              </a>
-              <div className="text-sm text-muted-foreground">{r.author_name}</div>
-            </li>
-          ))}
+          {results.slice(0, 10).map((r: any) => {
+            const targetId = `${r.id}`.startsWith('activity-') ? r.id : r.id;
+            const href = `/activities#${targetId}`;
+            return (
+              <li key={r.id} className="p-2 border rounded-md">
+                <a
+                  href={href}
+                  className="font-semibold"
+                  onClick={(e) => {
+                    try {
+                      const url = new URL(href, window.location.origin)
+                      // If link is same-page or we can find target element, intercept
+                      const el = document.getElementById(targetId)
+                      if (el) {
+                        e.preventDefault()
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        // highlight matched terms inside element
+                        highlightMatches(el, q)
+                        // update hash without jumping
+                        history.replaceState({}, '', `#${targetId}`)
+                      }
+                      // otherwise allow default navigation
+                    } catch (err) {
+                      // allow default navigation on error
+                    }
+                  }}
+                >
+                  {r.title || 'Untitled'}
+                </a>
+                <div className="text-sm text-muted-foreground">{r.author_name}</div>
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>
   )
+}
+
+function highlightMatches(container: HTMLElement, query: string) {
+  if (!query) return
+  // remove previous highlights
+  const prev = container.querySelectorAll('mark.search-highlight')
+  prev.forEach((m) => {
+    const parent = m.parentNode
+    if (!parent) return
+    parent.replaceChild(document.createTextNode(m.textContent || ''), m)
+  })
+
+  const text = query.trim()
+  if (!text) return
+  const regex = new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig')
+
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null)
+  const nodes: Text[] = []
+  while (walker.nextNode()) nodes.push(walker.currentNode as Text)
+
+  nodes.forEach((node) => {
+    const parent = node.parentElement
+    if (!parent) return
+    const val = node.nodeValue || ''
+    if (!regex.test(val)) return
+    const frag = document.createDocumentFragment()
+    let lastIndex = 0
+    val.replace(regex, (match, offset) => {
+      const before = val.substring(lastIndex, offset)
+      if (before) frag.appendChild(document.createTextNode(before))
+      const mark = document.createElement('mark')
+      mark.className = 'search-highlight'
+      mark.style.background = 'yellow'
+      mark.style.color = 'inherit'
+      mark.textContent = match
+      frag.appendChild(mark)
+      lastIndex = offset + match.length
+      return match
+    })
+    const after = val.substring(lastIndex)
+    if (after) frag.appendChild(document.createTextNode(after))
+    parent.replaceChild(frag, node)
+  })
+
+  // remove highlights after a short delay
+  setTimeout(() => {
+    const marks = container.querySelectorAll('mark.search-highlight')
+    marks.forEach((m) => {
+      const parent = m.parentNode
+      if (!parent) return
+      parent.replaceChild(document.createTextNode(m.textContent || ''), m)
+    })
+  }, 5000)
 }
