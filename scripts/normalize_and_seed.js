@@ -39,7 +39,7 @@ const RULES = [
   { patterns: ['^cleanliness ?drive$','^cleanliness$'], to: 'Cleanliness Drive' },
   { patterns: ['^encroachment.*$','^encroachment clearance$','^encroachment removal$','^encroachment$'], to: 'Encroachment Clearance' },
   { patterns: ['^rally$','^rallies$'], to: 'Rally' },
-  { patterns: ['^press conference$'], to: 'Press Conference' },
+  { patterns: ['^press conference$'], to: 'News' },
   { patterns: ['^other$'], to: 'Other' },
 ];
 

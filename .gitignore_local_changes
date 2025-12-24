@@ -1,0 +1,2 @@
+# placeholder to ensure we don't accidentally commit local service keys
+.env.local
