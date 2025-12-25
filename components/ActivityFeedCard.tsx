@@ -338,8 +338,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-        <div className="-mx-4 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl bg-white border border-gray-200 sm:border-gray-200 shadow-sm">
-        <div className="relative">
+        <div className="-mx-4 sm:mx-auto w-full max-w-3xl bg-red-500 p-0">
+        <div className="relative bg-blue-500 p-0">
         {/* Type badge */}
         {localType && (
           <div className="absolute right-2 md:right-4 top-0 md:top-4 z-10">
@@ -350,7 +350,18 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Header */}
-        <div className="mb-0 flex items-start justify-between py-2 px-2 md:px-4" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
+        <div className="mb-0 flex items-start justify-between py-2 bg-green-500" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
+            <div>
+              <div className="text-sm font-medium">{activity.author_name || 'Unknown'}</div>
+              <div className="text-xs text-muted-foreground">{formatDateShort(activity.activity_date)}</div>
+            </div>
+          </div>
+              <div className="flex items-center gap-2">
+            {/* type badge intentionally rendered at top-right as absolute element to avoid duplication */}
+          </div>
+        </div>
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
