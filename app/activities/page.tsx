@@ -106,7 +106,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
   }
 
   return (
-    <div className="container mx-auto px-0 md:px-4 pt-1 pb-12">
+    <div className="mx-auto px-0 md:px-4 pt-1 pb-12 max-w-7xl">
       <div className="mb-12 px-4 md:px-0">
         <h1 className="text-5xl font-bold tracking-tight">Daily Activities</h1>
         <p className="mt-4 text-xl text-muted-foreground">

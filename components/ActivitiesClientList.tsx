@@ -57,14 +57,14 @@ export default function ActivitiesClientList({ activities, types = [], initialSe
   }, []);
 
   return (
-    <div className="flex flex-col items-center w-full">
+    <div className="w-full">
       {filtered.length === 0 && (
-        <div className="text-sm text-muted-foreground">No activities found.</div>
+        <div className="text-sm text-muted-foreground text-center py-8">No activities found.</div>
       )}
 
-      <div className="flex flex-col items-center w-full">
+      <div className="w-full">
         {visible.map(act => (
-          <div id={`activity-${act.id}`} key={act.id}><ActivityFeedCard activity={act} /></div>
+          <div id={`activity-${act.id}`} key={act.id} className="w-full"><ActivityFeedCard activity={act} /></div>
         ))}
       </div>
 
