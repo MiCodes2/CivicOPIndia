@@ -350,7 +350,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Header */}
-        <div className="mb-0 flex items-start justify-between py-2 px-2 md:px-4">
+        <div className="mb-0 flex items-start justify-between py-2 px-2 md:px-4" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
@@ -419,7 +419,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Post content */}
         <div
-          className="mb-4 px-2 md:px-4 text-muted-foreground prose prose-sm max-w-none"
+          className="mb-4 px-2 md:px-4 text-muted-foreground prose prose-sm max-w-none border-2 border-blue-500"
+          style={{ paddingLeft: '8px', paddingRight: '8px' }}
           onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
           onTouchStart={() => {
             const now = Date.now();
@@ -446,7 +447,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Metadata */}
-        <div className="mb-4 space-y-2 text-sm text-muted-foreground px-2 md:px-4">
+        <div className="mb-4 space-y-2 text-sm text-muted-foreground px-2 md:px-4" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span>{formatDateLong(activity.activity_date)}</span>
@@ -479,7 +480,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Actions */}
-        <div className="mb-4 border-t pt-3 px-2 md:px-4">
+        <div className="mb-4 border-t pt-3 px-2 md:px-4" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button aria-pressed={liked} onClick={() => { handleLike({ optimistic: true, showAnimation: !liked }); setShowHeart(true); setTimeout(()=>setShowHeart(false),800); }} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition">
