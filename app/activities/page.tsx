@@ -107,11 +107,10 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
 
   return (
     <div className="mx-auto px-0 md:px-4 pt-4 pb-4 max-w-7xl">
-      <div className="py-4 px-4 md:px-0">
-        <h1 className="text-5xl font-bold tracking-tight">Daily Activities</h1>
-        <p className="mt-4 text-xl text-muted-foreground">
-          Stay updated with our latest actions, protests, and community initiatives.
-          Join us in building a more accountable democracy.
+        <div className="py-4 px-4 md:px-0">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">Daily Activities</h1>
+        <p className="mt-3 text-base sm:text-lg text-muted-foreground">
+          Stay updated with our latest actions, protests, and community initiatives. Join us in building a more accountable democracy.
         </p>
       </div>
 

@@ -166,19 +166,7 @@ export default function Navbar() {
             >
               <Search className="h-5 w-5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className=""
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </Button>
+
           </div>
         </div>
 
@@ -193,85 +181,27 @@ export default function Navbar() {
         )}
 
         {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="border-t py-4 md:hidden">
-            <div className="flex flex-col space-y-3">
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{link.label}</span>
-                  </Link>
-                );
-              })}
-              
-              {/* Admin Links - Mobile */}
-              {user ? (
-                <>
-                  <Link
-                    href="/admin/dashboard"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-accent"
-                  >
-                    <LayoutDashboard className="h-5 w-5" />
-                    <span>Admin Panel</span>
-                  </Link>
-                  <button
-                    onClick={() => {
-                      handleSignOut();
-                      setIsMenuOpen(false);
-                    }}
-                    className="flex w-full items-center space-x-3 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    <span>Logout</span>
-                  </button>
-                </>
-              ) : (
-                <Link
-                  href="/admin/login"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <Shield className="h-5 w-5" />
-                  <span>Admin Login</span>
+        {/* Mobile icon navigation (compact) */}
+        <div className="md:hidden mt-2 w-full px-4">
+          <div className="flex items-center justify-end gap-4">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link key={link.href} href={link.href} className="text-muted-foreground p-2 rounded-full transition-colors hover:bg-gray-100" aria-label={link.label}>
+                  <Icon className="h-5 w-5" />
                 </Link>
-              )}
-              
-              {/* Social Links in Mobile Menu */}
-              <div className="border-t pt-3">
-                <div className="mb-2 px-3 text-xs font-semibold text-muted-foreground">
-                  Follow Us
-                </div>
-                <div className="flex gap-4 px-3">
-                  {socialLinks.map((link) => {
-                    const Icon = link.icon;
-                    return (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
-                        aria-label={link.label}
-                      >
-                        <Icon className="h-5 w-5" />
-                          <span>{link.label}</span>
-                          {followers && <span className="ml-2 text-xs text-muted-foreground">{followers} followers</span>}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+              );
+            })}
+            {socialLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground p-2 rounded-full transition-colors hover:bg-gray-100" aria-label={link.label}>
+                  <Icon className="h-5 w-5" />
+                </Link>
+              );
+            })}
           </div>
-        )}
+        </div>
       </div>
     </nav>
   );
