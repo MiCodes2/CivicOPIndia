@@ -121,7 +121,7 @@ export default function HomePage() {
           </div>
 
           <div className="mx-auto flex flex-col md:flex-row md:justify-center gap-8 max-w-5xl">
-            <Link href="/team/mithilesh-kumar" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs">
+            <Link href="/team/mithilesh-kumar" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs mb-8 md:mb-0">
               <TeamMemberCard
                 name="Mithilesh Kumar"
                 role="CEO & Founder"
@@ -130,7 +130,7 @@ export default function HomePage() {
                 initials="MK"
               />
             </Link>
-            <Link href="/team/dr-anisha" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs">
+            <Link href="/team/dr-anisha" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs mb-8 md:mb-0">
               <TeamMemberCard
                 name="Dr. Anisha"
                 role="Co-founder"
@@ -139,7 +139,7 @@ export default function HomePage() {
                 initials="DA"
               />
             </Link>
-            <Link href="/team/arif-mudgal" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs">
+            <Link href="/team/arif-mudgal" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs mb-8 md:mb-0">
               <TeamMemberCard
                 name="ARIF MUDGAL"
                 role="Member"
@@ -148,7 +148,7 @@ export default function HomePage() {
                 initials="AM"
               />
             </Link>
-            <Link href="/team/capt-santhosh" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs">
+            <Link href="/team/capt-santhosh" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs mb-8 md:mb-0">
               <TeamMemberCard
                 name="Capt Santhosh Kumar"
                 role="Advisor"
