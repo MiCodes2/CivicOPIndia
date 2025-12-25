@@ -120,8 +120,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="mx-auto flex flex-col md:flex-row md:justify-center gap-8 max-w-5xl">
-            <Link href="/team/mithilesh-kumar" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs mb-8 md:mb-0">
+          <div className="mx-auto flex flex-row flex-wrap justify-center gap-8 max-w-5xl">
+            <Link href="/team/mithilesh-kumar" className="flex-1 min-w-[220px] max-w-xs text-center">
               <TeamMemberCard
                 name="Mithilesh Kumar"
                 role="CEO & Founder"
@@ -130,7 +130,7 @@ export default function HomePage() {
                 initials="MK"
               />
             </Link>
-            <Link href="/team/dr-anisha" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs mb-8 md:mb-0">
+            <Link href="/team/dr-anisha" className="flex-1 min-w-[220px] max-w-xs text-center">
               <TeamMemberCard
                 name="Dr. Anisha"
                 role="Co-founder"
@@ -139,7 +139,7 @@ export default function HomePage() {
                 initials="DA"
               />
             </Link>
-            <Link href="/team/arif-mudgal" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs mb-8 md:mb-0">
+            <Link href="/team/arif-mudgal" className="flex-1 min-w-[220px] max-w-xs text-center">
               <TeamMemberCard
                 name="ARIF MUDGAL"
                 role="Member"
@@ -148,7 +148,7 @@ export default function HomePage() {
                 initials="AM"
               />
             </Link>
-            <Link href="/team/capt-santhosh" className="w-full flex justify-center md:justify-center md:flex-1 min-w-[220px] max-w-xs mb-8 md:mb-0">
+            <Link href="/team/capt-santhosh" className="flex-1 min-w-[220px] max-w-xs text-center">
               <TeamMemberCard
                 name="Capt Santhosh Kumar"
                 role="Advisor"
