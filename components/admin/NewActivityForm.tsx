@@ -20,7 +20,19 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
   const router = useRouter();
   const supabase = createClient();
 
-  const [formData, setFormData] = useState({
+  interface FormState {
+    title: string;
+    content: string;
+    location: string;
+    type: string;
+    activity_date: string;
+    image_url: string;
+    image_urls: string[];
+    likes_count: number;
+    shares_count: number;
+  }
+
+  const [formData, setFormData] = useState<FormState>({
     title: "",
     content: "",
     location: "",
@@ -242,8 +254,9 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     setFormData((fd) => ({ ...fd, ...found.formData }));
     // show any previously uploaded image URLs as previews
     if (found.image_urls && found.image_urls.length > 0) {
-      setImagePreviews(found.image_urls as string[]);
-      setFormData((fd) => ({ ...fd, image_url: found.image_urls![0] || fd.image_url, image_urls: found.image_urls }));
+      const imageUrls = found.image_urls || [];
+      setImagePreviews(imageUrls as string[]);
+      setFormData((fd) => ({ ...fd, image_url: imageUrls[0] || fd.image_url, image_urls: imageUrls }));
     }
     setDraftSavedAt(found.savedAt);
     window.scrollTo({ top: 0, behavior: 'smooth' });
