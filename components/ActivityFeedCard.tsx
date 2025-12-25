@@ -342,7 +342,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         <div className="relative">
         {/* Type badge */}
         {localType && (
-          <div className="absolute right-2 md:right-4 top-0 md:top-4 z-10">
+          <div className="absolute right-2 md:right-4 top-2 md:top-4 z-10">
             <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium text-white shadow transition-transform duration-300 transform hover:scale-105 ${badgeColorForType(localType)}`}>
               {localType}
             </span>
