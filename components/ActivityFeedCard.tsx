@@ -339,7 +339,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-        <Card className="-mx-3 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-6 rounded-xl px-0 md:px-2">
+        <Card className="-mx-4 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-6 rounded-none sm:rounded-xl px-0 md:px-2">
       <CardContent className="p-0 relative bg-white">
         {/* Type badge */}
         {localType && (
@@ -427,7 +427,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Post content */}
         <div
-          className="mb-4 text-muted-foreground prose prose-sm max-w-none"
+          className="mb-4 px-4 text-muted-foreground prose prose-sm max-w-none"
           onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
           onTouchStart={() => {
             const now = Date.now();
