@@ -462,7 +462,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Admin quick-edit */}
         {isAdmin && (
-          <div className="mb-4">
+          <div className="mb-4 px-2 md:px-4">
             {editing ? (
               <div className="flex items-center gap-2">
                 <select className="rounded border px-2 py-1" value={localType} onChange={(e)=>setLocalType(e.target.value)}>
