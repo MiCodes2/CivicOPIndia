@@ -84,6 +84,7 @@ export default function Navbar() {
               {/* @ts-ignore */}
               <SearchBar />
             </div>
+            
             {navLinks.map((link) => {
               const Icon = link.icon;
               return (
@@ -156,6 +157,7 @@ export default function Navbar() {
               <X className="h-4 w-4" />
               <span>{followers ? `${followers}` : (process.env.NEXT_PUBLIC_X_FOLLOWERS_FALLBACK || '—')}</span>
             </div>
+            
             <Button
               variant="ghost"
               size="icon"

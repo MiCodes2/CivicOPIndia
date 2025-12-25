@@ -42,7 +42,7 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
       {/* Hero Section */}
       <section className="border-b bg-gradient-to-br from-primary/10 via-accent/10 to-background py-24">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
               Civic Opposition of India
@@ -65,7 +65,7 @@ export default function HomePage() {
 
       {/* Upcoming Events Section */}
       <section className="border-b py-12">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3">
           <div className="mx-auto max-w-4xl">
             <h2 className="text-3xl font-bold">Upcoming Events</h2>
             <p className="mt-2 text-sm text-muted-foreground">Standard events organized by the community</p>
@@ -79,7 +79,7 @@ export default function HomePage() {
 
       {/* Stats Section */}
       <section className="border-b bg-card py-16">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
@@ -93,7 +93,7 @@ export default function HomePage() {
 
       {/* About Section */}
       <section className="py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-4xl font-bold tracking-tight">Who We Are</h2>
             <p className="mt-6 text-lg text-muted-foreground">
@@ -112,7 +112,7 @@ export default function HomePage() {
 
       {/* Team Section */}
       <section className="border-t py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3">
           <div className="mb-12 text-center">
             <h2 className="text-4xl font-bold tracking-tight">Our Leadership Team</h2>
             <p className="mt-4 text-lg text-muted-foreground">
@@ -163,7 +163,7 @@ export default function HomePage() {
 
       {/* Partners Section */}
       <section className="border-t py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3">
           <div className="mb-12 text-center">
             <h2 className="text-4xl font-bold tracking-tight">Our Partner Organizations</h2>
             <p className="mt-4 text-lg text-muted-foreground">
@@ -213,7 +213,7 @@ export default function HomePage() {
 
       {/* Initiatives Section */}
       <section className="border-t bg-muted/30 py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3">
           <div className="mb-12 text-center">
             <h2 className="text-4xl font-bold tracking-tight">Our Initiatives</h2>
             <p className="mt-4 text-lg text-muted-foreground">
