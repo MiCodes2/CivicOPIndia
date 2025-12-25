@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero Section */}
-      <section className="border-b bg-gradient-to-br from-primary/10 via-accent/10 to-background py-4">
+      <section className="border-b bg-gradient-to-br from-primary/10 via-accent/10 to-background py-16">
         <div className="container mx-auto px-3">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
@@ -64,7 +64,7 @@ export default function HomePage() {
       </section>
 
       {/* Upcoming Events Section */}
-      <section className="border-b py-4">
+      <section className="border-b py-16">
         <div className="container mx-auto px-3">
           <div className="mx-auto max-w-4xl">
             <h2 className="text-3xl font-bold">Upcoming Events</h2>
@@ -78,7 +78,7 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="border-b bg-card py-4">
+      <section className="border-b bg-card py-16">
         <div className="container mx-auto px-3">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             {stats.map((stat, index) => (
@@ -92,7 +92,7 @@ export default function HomePage() {
       </section>
 
       {/* About Section */}
-      <section className="py-4">
+      <section className="py-16">
         <div className="container mx-auto px-3">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-4xl font-bold tracking-tight">Who We Are</h2>
@@ -111,7 +111,7 @@ export default function HomePage() {
       </section>
 
       {/* Team Section */}
-      <section className="border-t py-4">
+      <section className="border-t py-16">
         <div className="container mx-auto px-3">
           <div className="mb-12 text-center">
             <h2 className="text-4xl font-bold tracking-tight">Our Leadership Team</h2>
@@ -162,7 +162,7 @@ export default function HomePage() {
       </section>
 
       {/* Partners Section */}
-      <section className="border-t py-4">
+      <section className="border-t py-16">
         <div className="container mx-auto px-3">
           <div className="mb-12 text-center">
             <h2 className="text-4xl font-bold tracking-tight">Our Partner Organizations</h2>
@@ -212,7 +212,7 @@ export default function HomePage() {
       </section>
 
       {/* Initiatives Section */}
-      <section className="border-t bg-muted/30 py-4">
+      <section className="border-t bg-muted/30 py-16">
         <div className="container mx-auto px-3">
           <div className="mb-12 text-center">
             <h2 className="text-4xl font-bold tracking-tight">Our Initiatives</h2>
@@ -241,7 +241,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-4">
+      <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
             <h2 className="text-4xl font-bold tracking-tight">What We Offer</h2>
@@ -295,7 +295,7 @@ export default function HomePage() {
       </section>
 
       {/* Call to Action */}
-      <section className="border-t bg-gradient-to-br from-primary/20 to-accent/20 py-4">
+      <section className="border-t bg-gradient-to-br from-primary/20 to-accent/20 py-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-4xl font-bold tracking-tight">Ready to Make a Difference?</h2>
