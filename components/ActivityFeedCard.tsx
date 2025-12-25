@@ -343,7 +343,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         <CardContent className="p-0 px-0 relative bg-white">
         {/* Type badge */}
         {localType && (
-          <div className="absolute right-4 top-4 z-10">
+          <div className="absolute right-3 md:right-4 top-3 md:top-4 z-10">
             <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium text-white shadow transition-transform duration-300 transform hover:scale-105 ${badgeColorForType(localType)}`}>
               {localType}
             </span>
@@ -351,7 +351,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Header */}
-        <div className="mb-0 flex items-start justify-between py-4 px-4">
+        <div className="mb-0 flex items-start justify-between py-4 px-3 md:px-4">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
@@ -402,7 +402,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
               )}
 
               {/* Author overlay */}
-              <div className="absolute left-4 bottom-4 bg-black/40 backdrop-blur rounded-full px-3 py-1 flex items-center gap-3">
+              <div className="absolute left-3 md:left-4 bottom-3 md:bottom-4 bg-black/40 backdrop-blur rounded-full px-3 py-1 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-xs font-medium text-white">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
                 <div className="text-sm text-white">{activity.author_name || 'Unknown'}</div>
                 <div className="text-xs text-white/80">· {formatDateShort(activity.activity_date)}</div>
@@ -427,7 +427,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Post content */}
         <div
-          className="mb-4 px-4 text-muted-foreground prose prose-sm max-w-none"
+          className="mb-4 px-3 md:px-4 text-muted-foreground prose prose-sm max-w-none"
           onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
           onTouchStart={() => {
             const now = Date.now();
@@ -454,7 +454,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Metadata */}
-        <div className="mb-4 space-y-2 text-sm text-muted-foreground px-4">
+        <div className="mb-4 space-y-2 text-sm text-muted-foreground px-3 md:px-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span>{formatDateLong(activity.activity_date)}</span>
@@ -487,7 +487,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Actions */}
-        <div className="mb-4 border-t pt-3 px-4">
+        <div className="mb-4 border-t pt-3 px-3 md:px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button aria-pressed={liked} onClick={() => { handleLike({ optimistic: true, showAnimation: !liked }); setShowHeart(true); setTimeout(()=>setShowHeart(false),800); }} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition">
