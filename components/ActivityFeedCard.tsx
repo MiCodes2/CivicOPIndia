@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
-import { Card, CardContent } from "@/components/ui/card";
 import { formatDateShort, formatDateLong } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Heart, Share2, Calendar, MapPin } from "lucide-react";
@@ -339,8 +338,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-        <Card className="-mx-4 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl py-0 gap-0">
-        <CardContent className="p-0 relative bg-white">
+        <div className="-mx-4 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl bg-white border border-gray-200 sm:border-gray-200 shadow-sm">
+        <div className="relative">
         {/* Type badge */}
         {localType && (
           <div className="absolute right-2 md:right-4 top-0 md:top-4 z-10">
@@ -500,8 +499,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        </div>
+    </div>
 
     {/* Image Modal */}
     {modalOpen && modalImage && (
