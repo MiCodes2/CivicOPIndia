@@ -36,7 +36,7 @@ export default function Footer() {
     <footer className="border-t bg-muted/30">
       {/* Social Stats Bar */}
       <div className="border-b bg-primary/5">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-0 md:px-4 py-6">
           <div className="flex flex-col items-center justify-center gap-6 md:flex-row md:gap-12">
             <div className="text-center">
               <div className="mb-1 text-sm font-medium text-muted-foreground">Join Our Community</div>
@@ -69,7 +69,7 @@ export default function Footer() {
       </div>
 
       {/* Main Footer */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-0 md:px-4 py-12">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* About */}
           <div>
@@ -140,7 +140,7 @@ export default function Footer() {
 
       {/* Bottom Bar */}
       <div className="border-t">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-0 md:px-4 py-6">
           <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground md:flex-row">
             <p>© {new Date().getFullYear()} Civic Opposition of India. All rights reserved.</p>
             <div className="flex gap-4">

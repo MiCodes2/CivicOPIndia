@@ -106,8 +106,8 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mb-12">
+    <div className="container mx-auto px-4 md:px-4 py-12">
+      <div className="mb-12 px-4 md:px-0">
         <h1 className="text-5xl font-bold tracking-tight">Daily Activities</h1>
         <p className="mt-4 text-xl text-muted-foreground">
           Stay updated with our latest actions, protests, and community initiatives.
@@ -158,7 +158,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
             </Card>
           </aside>
 
-          <main className="lg:col-span-2">
+          <main className="lg:col-span-2 -mx-4 md:mx-0">
             <ActivitiesClientList activities={activitiesList} types={(typeRows||[]).map((r:any)=>r.name)} initialSelected={selectedType || null} />
           </main>
 
