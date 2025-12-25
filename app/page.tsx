@@ -52,11 +52,11 @@ export default function HomePage() {
               Together, we hold power accountable and create lasting change.
             </p>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
-              <Button asChild size="lg" className="text-lg">
-                <Link href="/activities">View Our Activities</Link>
+              <Button asChild size="lg" className="text-lg w-full sm:w-auto bg-gradient-to-r from-primary to-emerald-500 text-white shadow-lg hover:scale-[1.02] transition-transform">
+                <Link href="/activities">Explore Activities</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="text-lg">
-                <Link href="/donate">Support Our Mission</Link>
+              <Button asChild size="lg" variant="ghost" className="text-lg w-full sm:w-auto">
+                <Link href="/about">Learn More</Link>
               </Button>
             </div>
           </div>
@@ -303,11 +303,8 @@ export default function HomePage() {
               Join thousands of citizens working together for a better, more accountable India
             </p>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
-              <Button asChild size="lg" className="text-lg">
-                <Link href="/activities">Get Started</Link>
-              </Button>
-              <Button asChild size="lg" variant="secondary" className="text-lg">
-                <Link href="/donate">Donate Now</Link>
+              <Button asChild size="lg" className="text-lg w-full sm:w-auto bg-gradient-to-r from-primary to-emerald-500 text-white shadow-lg hover:scale-[1.02] transition-transform">
+                <Link href="/activities">View Activities</Link>
               </Button>
             </div>
           </div>
