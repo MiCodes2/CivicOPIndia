@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateShort, formatDateLong } from '@/lib/utils';
@@ -44,6 +44,14 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [liked, setLiked] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
+  const [modalIndex, setModalIndex] = useState<number>(0);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchDeltaX = useRef<number>(0);
+  const touchStartTime = useRef<number | null>(null);
+  const [transitionDuration, setTransitionDuration] = useState<number>(300);
+  const CAR_POS_KEY = 'activity_carousel_pos_v1';
+  const [shareAnimating, setShareAnimating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showHeart, setShowHeart] = useState(false); // small animation on double-tap
   const doubleTapRef = useRef(false);
@@ -70,9 +78,62 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   }, []);
 
   const openImageModal = (imageUrl: string) => {
+    const idx = images.findIndex((u) => u === imageUrl);
+    setModalIndex(idx >= 0 ? idx : 0);
     setModalImage(imageUrl);
     setModalOpen(true);
   };
+
+  const nextImage = useCallback(() => {
+    setCurrentIndex((i) => Math.min(images.length - 1, i + 1));
+  }, [images.length]);
+
+  const prevImage = useCallback(() => {
+    setCurrentIndex((i) => Math.max(0, i - 1));
+  }, []);
+
+  // touch handlers for swipe carousel
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchDeltaX.current = 0;
+    touchStartTime.current = Date.now();
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current == null) return;
+    touchDeltaX.current = e.touches[0].clientX - touchStartX.current;
+  };
+
+  const onTouchEnd = () => {
+    if (touchStartX.current == null) return;
+    const delta = touchDeltaX.current;
+    const now = Date.now();
+    const dt = touchStartTime.current ? (now - touchStartTime.current) : 1;
+    const velocity = delta / dt; // px per ms
+    // compute transition duration that depends on swipe speed (faster swipe => shorter duration)
+    const dur = Math.max(150, Math.min(600, Math.round(400 - Math.min(300, Math.abs(velocity) * 200))));
+    setTransitionDuration(dur);
+
+    // decide navigation: either by distance or by velocity
+    if (Math.abs(delta) > 50 || Math.abs(velocity) > 0.3) {
+      if (delta < 0) nextImage(); else prevImage();
+    }
+
+    touchStartX.current = null;
+    touchDeltaX.current = 0;
+    touchStartTime.current = null;
+  };
+
+  // keyboard navigation for carousel
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (images.length <= 1) return;
+      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'ArrowRight') nextImage();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [images.length, nextImage, prevImage]);
 
   useEffect(() => {
     let mounted = true;
@@ -95,6 +156,32 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     })();
     return () => { mounted = false };
   }, [supabase]);
+
+  // Load persisted carousel position for this activity
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CAR_POS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw || '{}');
+        const pos = parsed?.[activity.id as any];
+        if (typeof pos === 'number') setCurrentIndex(Math.min(Math.max(0, pos), Math.max(0, images.length - 1)));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [activity.id, images.length]);
+
+  // Persist carousel position when it changes
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CAR_POS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      parsed[activity.id as any] = currentIndex;
+      localStorage.setItem(CAR_POS_KEY, JSON.stringify(parsed));
+    } catch (e) {
+      // ignore
+    }
+  }, [currentIndex, activity.id]);
 
   useEffect(() => { setLocalType(activity.type || 'Other'); }, [activity.type]);
 
@@ -230,6 +317,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   const handleShare = async () => {
     setShares(shares + 1);
+    setShareAnimating(true);
+    setTimeout(() => setShareAnimating(false), 900);
     
     if (navigator.share) {
       try {
@@ -250,21 +339,21 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-    <Card className="mx-auto w-full max-w-4xl overflow-hidden transition-shadow hover:shadow-lg mb-6">
-      <CardContent className="p-6 relative">
+        <Card className="mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-6 rounded-xl px-2">
+      <CardContent className="p-0 relative bg-white">
         {/* Type badge */}
         {localType && (
           <div className="absolute right-4 top-4 z-10">
-            <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium text-white shadow transition-colors duration-300 transform hover:scale-105 ${badgeColorForType(localType)}`}>
+            <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium text-white shadow transition-transform duration-300 transform hover:scale-105 ${badgeColorForType(localType)}`}>
               {localType}
             </span>
           </div>
         )}
 
         {/* Header */}
-        <div className="mb-4 flex items-start justify-between">
+        <div className="mb-0 flex items-start justify-between p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
+            <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
               <div className="text-sm font-medium">{activity.author_name || 'Unknown'}</div>
               <div className="text-xs text-muted-foreground">{formatDateShort(activity.activity_date)}</div>
@@ -277,57 +366,62 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Featured image centered above content */}
         {images && images.length > 0 && (
-          <div className="mb-6 flex justify-center">
-            <div className="w-full flex justify-center">
-              <div className="w-full md:w-2/5 rounded-lg overflow-hidden shadow-lg">
-                <div className="relative">
-                  <img
-                    src={images[0]}
-                    alt="Featured"
-                    className="w-full h-auto object-cover cursor-pointer"
-                    onClick={(e) => {
-                      // Prevent opening modal if this click is part of a double-tap
-                      if (doubleTapRef.current) {
-                        doubleTapRef.current = false;
-                        return;
-                      }
-                      // small delay to allow double click detection
-                      setTimeout(() => {
-                        if (!doubleTapRef.current) {
-                          setModalImage(images[0]);
-                          setModalOpen(true);
-                        }
-                      }, 200);
-                    }}
-                    onDoubleClick={() => {
-                      doubleTapRef.current = true;
-                      handleLike({ optimistic: true, showAnimation: true });
-                    }}
-                    onTouchStart={() => {
-                      const now = Date.now();
-                      if (touchLastTap.current && (now - touchLastTap.current) < 300) {
-                        // double tap
-                        touchLastTap.current = null;
-                        doubleTapRef.current = true;
-                        handleLike({ optimistic: true, showAnimation: true });
-                      } else {
-                        touchLastTap.current = now;
-                      }
-                    }}
-                  />
-                  {showHeart && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="animate-ping-slow text-6xl text-emerald-500 drop-shadow-lg" style={{ textShadow: '0 0 12px rgba(255,255,255,0.95), 0 0 24px rgba(255,255,255,0.6)', WebkitTextStroke: '1px rgba(255,255,255,0.9)' }}>❤</div>
-                    </div>
-                  )}
-                </div>
-                {activity.image_captions && activity.image_captions[0] && (
-                  <div className="mt-2 text-center">
-                    <p className="text-sm text-muted-foreground">{activity.image_captions[0]}</p>
+          <div className="w-full bg-black/5">
+            <div className="w-full h-96 md:h-[520px] relative overflow-hidden bg-black">
+              <div
+                className="w-full h-full flex"
+                style={{ transform: `translateX(-${currentIndex * 100}%)`, transitionProperty: 'transform', transitionDuration: `${transitionDuration}ms` }}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
+                {images.map((src, idx) => (
+                  <div key={idx} className="w-full flex-shrink-0 h-full">
+                    <img
+                      src={src}
+                      alt={`Image ${idx+1}`}
+                      className="w-full h-full object-cover cursor-pointer"
+                      onClick={() => openImageModal(src)}
+                      onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
+                    />
                   </div>
-                )}
+                ))}
+              </div>
+
+              {/* Overlay arrows for desktop */}
+              {images.length > 1 && (
+                <>
+                  <button aria-label="Previous" onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-2 text-white hover:bg-black/60 hidden md:block">◀</button>
+                  <button aria-label="Next" onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-2 text-white hover:bg-black/60 hidden md:block">▶</button>
+                </>
+              )}
+              {showHeart && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="animate-ping-slow text-6xl text-emerald-500 drop-shadow-lg">❤</div>
+                </div>
+              )}
+
+              {/* Author overlay */}
+              <div className="absolute left-4 bottom-4 bg-black/40 backdrop-blur rounded-full px-3 py-1 flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-xs font-medium text-white">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
+                <div className="text-sm text-white">{activity.author_name || 'Unknown'}</div>
+                <div className="text-xs text-white/80">· {formatDateShort(activity.activity_date)}</div>
               </div>
             </div>
+            {activity.image_captions && activity.image_captions[0] && (
+              <div className="mt-2 text-center">
+                <p className="text-sm text-muted-foreground">{activity.image_captions[0]}</p>
+              </div>
+            )}
+
+            {/* Carousel indicators */}
+            {images.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+                {images.map((_, i) => (
+                  <button key={i} onClick={() => setCurrentIndex(i)} className={`h-2 w-2 rounded-full ${i === currentIndex ? 'bg-white' : 'bg-white/50'}`} aria-label={`Go to image ${i+1}`} />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -348,34 +442,19 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         />
 
         {/* Thumbnails / additional images as centered horizontal strip */}
-        {images && images.length > 1 && (
+        {/* indicators only (thumbnails removed for Instagram-style swipe) */}
+        {images.length > 1 && (
           <div className="mb-4 flex justify-center">
-            <div className="flex gap-3 overflow-x-auto px-2">
-              {images.slice(1).map((url, idx) => (
-                <div key={idx} className="flex-shrink-0 w-36">
-                  <button
-                    className="h-24 w-full overflow-hidden rounded-md bg-muted"
-                    onClick={() => {
-                      setModalImage(url);
-                      setModalOpen(true);
-                    }}
-                    aria-label={`Open image ${idx + 2}`}
-                  >
-                    <img src={url} alt={`thumb-${idx}`} className="w-full h-full object-cover" />
-                  </button>
-                  {activity.image_captions && activity.image_captions[idx + 1] && (
-                    <p className="mt-2 text-xs text-center text-muted-foreground">
-                      {activity.image_captions[idx + 1]}
-                    </p>
-                  )}
-                </div>
+            <div className="flex gap-2 items-center">
+              {images.map((_, i) => (
+                <button key={i} onClick={() => setCurrentIndex(i)} className={`h-2 w-2 rounded-full ${i === currentIndex ? 'bg-white' : 'bg-white/50'}`} aria-label={`Go to image ${i+1}`} />
               ))}
             </div>
           </div>
         )}
 
         {/* Metadata */}
-        <div className="mb-4 space-y-2 text-sm text-muted-foreground">
+        <div className="mb-4 space-y-2 text-sm text-muted-foreground px-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span>{formatDateLong(activity.activity_date)}</span>
@@ -408,27 +487,25 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-4 border-t pt-4 justify-between">
-          <Button
-            variant={liked ? "default" : "outline"}
-            size="sm"
-            onClick={() => handleLike({ optimistic: true, showAnimation: !liked })}
-            className={`flex items-center gap-2 ${liked ? 'bg-emerald-100 border border-emerald-200 rounded-md px-2' : ''}`}
-            aria-pressed={liked}
-          >
-            <Heart className={`h-4 w-4 transition-transform duration-200 ${liked ? 'bg-emerald-600 text-white p-1 rounded-full scale-110 animate-pulse ring-2 ring-white/80 shadow-sm' : ''}`} />
-            <span className="text-black font-medium">{likes}</span>
-          </Button>
+        <div className="mb-4 border-t pt-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button aria-pressed={liked} onClick={() => { handleLike({ optimistic: true, showAnimation: !liked }); setShowHeart(true); setTimeout(()=>setShowHeart(false),800); }} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition">
+                <Heart className={`h-5 w-5 transition-transform duration-200 ${liked ? 'text-rose-600 scale-125 animate-pulse' : 'text-gray-700'}`} />
+                <span className={`text-sm font-medium transition-transform duration-200 ${liked ? 'scale-110' : ''}`}>{likes}</span>
+              </button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleShare}
-            className="flex items-center gap-2"
-          >
-            <Share2 className="h-4 w-4" />
-            <span>{shares}</span>
-          </Button>
+              <button onClick={handleShare} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition">
+                <Share2 className={`h-5 w-5 ${shareAnimating ? 'text-emerald-600 animate-pulse' : 'text-gray-700'}`} />
+                <span className="text-sm">{shares}</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="ghost">Comment</Button>
+              {isAdmin && <Button size="sm" variant="outline">Edit</Button>}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -451,6 +528,21 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         </div>
       </div>
     )}
+
+    {/* Mobile floating action bar */}
+    <div className="fixed left-0 right-0 bottom-4 z-40 flex items-center justify-center md:hidden">
+      <div className="bg-white/90 backdrop-blur rounded-full px-3 py-2 shadow-lg flex items-center gap-3">
+        <button onClick={() => { handleLike({ optimistic: true, showAnimation: !liked }); setShowHeart(true); setTimeout(()=>setShowHeart(false),800); }} className="p-2 rounded-full hover:bg-gray-100">
+          <Heart className={`h-5 w-5 ${liked ? 'text-rose-600' : 'text-gray-700'}`} />
+        </button>
+        <button onClick={handleShare} className="p-2 rounded-full hover:bg-gray-100">
+          <Share2 className="h-5 w-5 text-gray-700" />
+        </button>
+        <button onClick={() => openImageModal(images[currentIndex] || images[0])} className="p-2 rounded-full hover:bg-gray-100">
+          <span className="text-sm font-medium">Images</span>
+        </button>
+      </div>
+    </div>
     </>
   );
 }

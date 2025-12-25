@@ -158,35 +158,50 @@ export default function AdminDashboard() {
             <CardContent>
               {activities.length > 0 ? (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {activities.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className="rounded-lg border p-3 text-sm"
-                    >
-                      <div className="font-medium">{activity.title}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {formatDateShort(activity.activity_date)}
-                      </div>
-                      <div className="mt-2 flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingActivity(activity)}
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(activity.id)}
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                  {/* Group activities by month for easier management */}
+                  {(() => {
+                    const groups: Record<string, typeof activities> = {};
+                    for (const a of activities) {
+                      const d = new Date(a.activity_date || a.created_at || '');
+                      if (isNaN(d.getTime())) continue;
+                      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                      if (!groups[key]) groups[key] = [];
+                      groups[key].push(a);
+                    }
+                    const keys = Object.keys(groups).sort((a,b)=> b.localeCompare(a));
+                    return keys.map((k) => {
+                      const [yr, mo] = k.split('-');
+                      const label = new Date(Number(yr), Number(mo)-1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+                      return (
+                        <div key={k} className="mb-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <div className="text-sm font-medium">{label}</div>
+                              <div className="text-xs text-muted-foreground">{groups[k].length} post{groups[k].length !== 1 ? 's' : ''}</div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {groups[k].map((activity) => (
+                              <div key={activity.id} className="rounded-lg border p-3 text-sm">
+                                <div className="font-medium">{activity.title}</div>
+                                <div className="mt-1 text-xs text-muted-foreground">{formatDateShort(activity.activity_date)}</div>
+                                <div className="mt-2 flex gap-2">
+                                  <Button size="sm" variant="outline" onClick={() => setEditingActivity(activity)}>
+                                    <Edit className="h-3 w-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleDelete(activity.id)}>
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">

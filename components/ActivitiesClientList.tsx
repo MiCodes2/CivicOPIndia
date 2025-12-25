@@ -12,6 +12,7 @@ interface Props {
 
 export default function ActivitiesClientList({ activities, types = [], initialSelected = null }: Props) {
   const [selected, setSelected] = useState<string | null>(initialSelected || null);
+  const [visibleCount, setVisibleCount] = useState<number>(10);
 
   const counts = useMemo(() => {
     const map: Record<string, number> = {};
@@ -26,6 +27,9 @@ export default function ActivitiesClientList({ activities, types = [], initialSe
     if (!selected) return activities;
     return activities.filter(a => (a.type || 'Other') === selected);
   }, [activities, selected]);
+
+  // visibleCount controls how many posts to show; supports 'Load more' pagination
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
   const displayTypes = types && types.length ? types : Array.from(new Set(activities.map(a=> (a.type||'Other').toString())));
 
@@ -53,12 +57,22 @@ export default function ActivitiesClientList({ activities, types = [], initialSe
   }, []);
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center w-full">
+      {filtered.length === 0 && (
+        <div className="text-sm text-muted-foreground">No activities found.</div>
+      )}
+
       <div className="flex flex-col items-center w-full">
-        {filtered.map(act => (
+        {visible.map(act => (
           <div id={`activity-${act.id}`} key={act.id} className="w-full px-4 mb-4"><div className="mx-auto w-full max-w-4xl"><ActivityFeedCard activity={act} /></div></div>
         ))}
       </div>
+
+      {filtered.length > visibleCount && (
+        <div className="my-6">
+          <button className="rounded bg-primary px-4 py-2 text-white" onClick={() => setVisibleCount((c) => c + 10)}>Load more</button>
+        </div>
+      )}
     </div>
   );
 }

@@ -53,4 +53,7 @@ Next.js 16, TypeScript, Tailwind CSS, Supabase, Shadcn UI
 
 ---
 
+### Fixes
+- Mobile image uploads: infer missing file extensions from MIME types and allow re-uploading images when editing an activity. This resolves issues where images selected from some mobile devices did not display correctly in posts.
+
 Built with ❤️ for transparency and accountability

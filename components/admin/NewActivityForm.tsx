@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,8 +32,28 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     shares_count: 0,
   });
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const DRAFT_KEY = 'activity_draft_v1';
+  const DRAFTS_KEY = 'activity_drafts_v1';
+
+  interface SavedDraft {
+    id: string;
+    title: string;
+    formData: {
+      title?: string;
+      content?: string;
+      location?: string;
+      type?: string;
+      activity_date?: string;
+      image_url?: string;
+    };
+    image_urls?: string[];
+    savedAt: number;
+  }
+
+  const [drafts, setDrafts] = useState<SavedDraft[]>([]);
 
   const isValidImageUrl = (val: string) => {
     if (!val) return true;
@@ -48,16 +68,269 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    // limit to 4 images
+    const limited = files.slice(0, 4);
+    setImageFiles(limited);
+    // generate previews
+    Promise.all(limited.map((f) => new Promise<string>((res) => {
+      const r = new FileReader();
+      r.onloadend = () => res(r.result as string);
+      r.readAsDataURL(f);
+    }))).then((previews) => setImagePreviews(previews));
+  };
+
+  const addInputRef = useRef<HTMLInputElement | null>(null);
+
+
+  // Append new images (called by the '+' hidden input)
+  const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    // combine existing files with new ones, limit to 4 total
+    const combinedFiles = [...imageFiles, ...files].slice(0, 4);
+
+    // generate previews for combinedFiles; reuse existing previews when possible
+    Promise.all(combinedFiles.map((f, i) => {
+      // if we already have a preview for this index, reuse it
+      if (imagePreviews[i]) return Promise.resolve(imagePreviews[i]);
+      return new Promise<string>((res) => {
+        const r = new FileReader();
+        r.onloadend = () => res(r.result as string);
+        r.readAsDataURL(f);
+      });
+    })).then((previews) => {
+      setImageFiles(combinedFiles);
+      setImagePreviews(previews.slice(0, 4));
+    });
+
+    // clear the input so same file can be re-selected later
+    if (e.target) e.target.value = '';
+  };
+
+  // Prompt to add an external image URL and append up to 4
+  const addImageUrlPrompt = () => {
+    // Use modal UI instead of prompt (handled below)
+    setShowImageUrlModal(true);
+  };
+
+  // Image URL modal state
+  const [showImageUrlModal, setShowImageUrlModal] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+
+  const submitImageUrl = () => {
+    try {
+      const trimmed = imageUrlInput.trim();
+      if (!trimmed) return setShowImageUrlModal(false);
+      if (!isValidImageUrl(trimmed)) {
+        alert('Invalid URL');
+        return;
+      }
+      setFormData((fd) => {
+        const arr = (fd.image_urls || []).slice();
+        if (arr.length >= 4) {
+          alert('Maximum 4 images allowed');
+          return fd;
+        }
+        arr.push(trimmed);
+        return { ...fd, image_urls: arr, image_url: fd.image_url || trimmed };
+      });
+      setImagePreviews((prev) => (prev.length < 4 ? [...prev, trimmed] : prev));
+      setImageUrlInput('');
+      setShowImageUrlModal(false);
+    } catch (e) {
+      console.error('Failed to add image URL', e);
+      setShowImageUrlModal(false);
     }
   };
+
+  const setPrimaryFromPreview = (idx: number) => {
+    const p = imagePreviews[idx];
+    if (!p) return;
+    setFormData((fd) => ({ ...fd, image_url: p }));
+  };
+
+  const setPrimaryFromRemote = (idx: number) => {
+    const arr = formData.image_urls || [];
+    const u = arr[idx];
+    if (!u) return;
+    setFormData((fd) => ({ ...fd, image_url: u }));
+  };
+
+  const removePreview = (idx: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== idx));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+    setFormData((fd) => {
+      const remaining = (fd.image_urls || []).slice();
+      // if primary points to a data URL that was removed, clear it
+      if (fd.image_url && fd.image_url.startsWith('data:')) {
+        const wasPreview = imagePreviews[idx] === fd.image_url;
+        if (wasPreview) remaining;
+      }
+      return { ...fd, image_urls: remaining };
+    });
+  };
+
+  const removeRemoteImage = (idx: number) => {
+    setFormData((fd) => {
+      const arr = (fd.image_urls || []).slice();
+      const removed = arr.splice(idx, 1);
+      // if primary was this URL, clear or set to first
+      let primary = fd.image_url;
+      if (primary && removed[0] && primary === removed[0]) {
+        primary = arr[0] || '';
+      }
+      return { ...fd, image_urls: arr, image_url: primary };
+    });
+  };
+
+  const movePreview = (idx: number, dir: number) => {
+    setImagePreviews((prev) => {
+      const copy = prev.slice();
+      const to = idx + dir;
+      if (to < 0 || to >= copy.length) return prev;
+      const tmp = copy[to];
+      copy[to] = copy[idx];
+      copy[idx] = tmp;
+      return copy;
+    });
+    setImageFiles((prev) => {
+      const copy = prev.slice();
+      const to = idx + dir;
+      if (to < 0 || to >= copy.length) return prev;
+      const tmp = copy[to];
+      copy[to] = copy[idx];
+      copy[idx] = tmp;
+      return copy;
+    });
+  };
+
+  // Save current form as a named draft (user prompted for a title)
+  const saveCurrentAsDraft = () => {
+    try {
+      const titlePrompt = window.prompt('Draft title', formData.title || 'Untitled draft');
+      const title = titlePrompt ? titlePrompt.trim() : (formData.title || `Draft ${new Date().toLocaleString()}`);
+      const draft: SavedDraft = {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+        title,
+        formData: {
+          title: formData.title,
+          content: formData.content,
+          location: formData.location,
+          type: formData.type,
+          activity_date: formData.activity_date,
+          image_url: formData.image_url,
+        },
+        image_urls: formData.image_urls || [],
+        savedAt: Date.now(),
+      };
+      const next = [draft, ...drafts];
+      localStorage.setItem(DRAFTS_KEY, JSON.stringify(next));
+      setDrafts(next);
+      setDraftSavedAt(draft.savedAt);
+      alert('Draft saved');
+    } catch (e) {
+      console.error('Could not save draft', e);
+      alert('Failed to save draft');
+    }
+  };
+
+  const loadDraft = (id: string) => {
+    const found = drafts.find(d => d.id === id);
+    if (!found) return;
+    setFormData((fd) => ({ ...fd, ...found.formData }));
+    // show any previously uploaded image URLs as previews
+    if (found.image_urls && found.image_urls.length > 0) {
+      setImagePreviews(found.image_urls as string[]);
+      setFormData((fd) => ({ ...fd, image_url: found.image_urls![0] || fd.image_url, image_urls: found.image_urls }));
+    }
+    setDraftSavedAt(found.savedAt);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteDraft = (id: string) => {
+    const next = drafts.filter(d => d.id !== id);
+    try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(next)); } catch {}
+    setDrafts(next);
+  };
+
+  const publishDraft = async (id: string) => {
+    const found = drafts.find(d => d.id === id);
+    if (!found) return;
+    loadDraft(id);
+    // call handleSubmit with a fake event object that has preventDefault
+    try {
+      // @ts-ignore - synthetic event with preventDefault
+      await handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+      // if publish succeeded, remove draft
+      deleteDraft(id);
+    } catch (e) {
+      console.error('Publish draft failed', e);
+      alert('Publish failed: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
+  // Autosave draft to localStorage (like blogspot)
+  useEffect(() => {
+    // Restore draft on mount
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          setFormData((fd) => ({ ...fd, ...parsed.formData }));
+          if (parsed.image_urls && Array.isArray(parsed.image_urls)) {
+            // image URLs from previous uploads
+            setFormData((fd) => ({ ...fd, image_url: parsed.image_urls[0] || fd.image_url }));
+          }
+          if (parsed.savedAt) setDraftSavedAt(parsed.savedAt);
+        }
+      }
+      // load saved drafts list
+      const rawList = localStorage.getItem(DRAFTS_KEY);
+      if (rawList) {
+        try {
+          const parsedList = JSON.parse(rawList);
+          if (Array.isArray(parsedList)) setDrafts(parsedList);
+        } catch {}
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    const save = () => {
+      try {
+        const payload = {
+          formData: {
+            title: formData.title,
+            content: formData.content,
+            location: formData.location,
+            type: formData.type,
+            activity_date: formData.activity_date,
+            image_url: formData.image_url,
+          },
+          image_urls: formData.image_urls || [],
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+        setDraftSavedAt(payload.savedAt);
+      } catch (e) {}
+    };
+
+    const id = setTimeout(save, 1000);
+    return () => clearTimeout(id);
+  }, [formData.title, formData.content, formData.location, formData.type, formData.activity_date, formData.image_url, formData.image_urls]);
+
+  function formatDraftAge(ts: number) {
+    const diff = Date.now() - ts;
+    if (diff < 5000) return 'just now';
+    if (diff < 60000) return `${Math.round(diff / 1000)}s ago`;
+    if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`;
+    return `${Math.round(diff / 3600000)}h ago`;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,39 +349,45 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         throw new Error("You must be logged in to create activities");
       }
 
-      const imageUrls = [];
+      const imageUrls: string[] = [];
 
-      // Handle file upload if a file was selected
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', imageFile);
-
+      // Handle multiple file uploads if files were selected (limit to 4)
+      if (imageFiles && imageFiles.length > 0) {
+        const filesToUpload = imageFiles.slice(0, 4);
         try {
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formDataUpload,
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            imageUrls.push(data.url);
-          } else {
-            imageUrls.push(`/uploads/${fileName}`);
-          }
+          const uploads = await Promise.all(filesToUpload.map(async (file) => {
+            const fd = new FormData();
+            fd.append('file', file);
+            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+            if (!res.ok) {
+              // fallback URL construction
+              let ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : (file.type ? file.type.split('/')[1] : 'jpg');
+              if (ext === 'jpeg') ext = 'jpg';
+              return `/uploads/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+            }
+            const d = await res.json();
+            return d.url;
+          }));
+          imageUrls.push(...uploads.filter(Boolean));
         } catch (uploadError) {
           console.error('Upload error:', uploadError);
         }
       }
 
+
       // Build payload matching the current `activities` table schema
       const tags = extractHashtags(formData.content);
 
+      // If multiple images uploaded, embed secondary images in content so feed shows them.
+      let contentToInsert = formData.content || null;
+      if (imageUrls.length > 1) {
+        const extras = imageUrls.slice(1).map((u) => `\n\n${u}`);
+        contentToInsert = (contentToInsert || '') + extras.join('');
+      }
+
       const payload = {
         title: formData.title || null,
-        content: formData.content || null,
+        content: contentToInsert || formData.content || null,
         location: formData.location || null,
         type: canonicalizeType(formData.type) || null,
         activity_date: new Date(formData.activity_date).toISOString(),
@@ -163,8 +442,9 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         likes_count: 0,
         shares_count: 0,
       });
-      setImageFile(null);
-      setImagePreview("");
+      setImageFiles([]);
+      setImagePreviews([]);
+      try { localStorage.removeItem(DRAFT_KEY); setDraftSavedAt(null); } catch (e) {}
 
       alert("Activity posted successfully!");
       if (onSuccess) onSuccess();
@@ -306,11 +586,80 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
               type="file"
               // include .jfif explicitly while still allowing any image/*
               accept=".jfif,image/*"
+              multiple
               onChange={handleImageChange}
             />
-            {imagePreview && (
-              <div className="mt-2">
-                <img src={imagePreview} alt="Preview" className="h-32 w-auto rounded-md object-cover" />
+            {/* Hidden input used by the + button to append images */}
+            <input
+              ref={addInputRef}
+              type="file"
+              accept=".jfif,image/*"
+              multiple
+              style={{ display: 'none' }}
+              onChange={handleAddImages}
+            />
+            <div className="mt-2">
+              <button
+                type="button"
+                className="rounded bg-primary/10 px-3 py-1 text-sm"
+                onClick={() => addInputRef.current?.click()}
+              >
+                + Add Images
+              </button>
+            </div>
+            <div className="mt-2">
+              <button
+                type="button"
+                className="ml-2 rounded bg-secondary/10 px-3 py-1 text-sm"
+                onClick={addImageUrlPrompt}
+              >
+                + Add Image URL
+              </button>
+              <span className="ml-3 text-xs text-muted-foreground">{(formData.image_urls?.length || 0) + imagePreviews.length} / 4</span>
+            </div>
+
+            {/* Inline modal for adding image URL */}
+            {showImageUrlModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="bg-white rounded-md p-4 w-full max-w-md">
+                  <h3 className="text-lg font-medium mb-2">Add image URL</h3>
+                  <input value={imageUrlInput} onChange={(e)=>setImageUrlInput(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full rounded border px-3 py-2" />
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button onClick={()=>{ setShowImageUrlModal(false); setImageUrlInput(''); }} className="rounded px-3 py-1">Cancel</button>
+                    <button onClick={submitImageUrl} className="rounded bg-primary px-3 py-1 text-white">Add</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Remote uploaded images (from previous saves) */}
+            {formData.image_urls && formData.image_urls.length > 0 && (
+              <div className="mt-2 flex gap-2">
+                {formData.image_urls.map((u, idx) => (
+                  <div key={`remote-${idx}`} className="relative flex flex-col items-start">
+                    <img src={u} alt={`Image ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
+                    <div className="mt-1 flex gap-1">
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => setPrimaryFromRemote(idx)}>Set Primary</button>
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => removeRemoteImage(idx)}>Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Local file previews */}
+            {imagePreviews && imagePreviews.length > 0 && (
+              <div className="mt-2 flex gap-2">
+                {imagePreviews.map((p, idx) => (
+                  <div key={`local-${idx}`} className="relative flex flex-col items-start">
+                    <img src={p} alt={`Preview ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
+                    <div className="mt-1 flex gap-1">
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => setPrimaryFromPreview(idx)}>Set Primary</button>
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => movePreview(idx, -1)}>&larr;</button>
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => movePreview(idx, 1)}>&rarr;</button>
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => removePreview(idx)}>Remove</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             <p className="text-xs text-muted-foreground">
@@ -363,6 +712,36 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              {draftSavedAt && (
+                <div className="text-xs text-muted-foreground">Draft saved {formatDraftAge(draftSavedAt)}</div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" onClick={saveCurrentAsDraft} disabled={loading}>Save Draft</Button>
+            </div>
+          </div>
+
+          {/* Drafts list */}
+          {drafts && drafts.length > 0 && (
+            <div className="mt-3 space-y-2 rounded-md border p-3">
+              <div className="text-sm font-medium">Saved Drafts</div>
+              {drafts.map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-2">
+                  <div className="text-sm">
+                    <div className="font-medium">{d.title}</div>
+                    <div className="text-xs text-muted-foreground">{formatDraftAge(d.savedAt)}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" onClick={() => loadDraft(d.id)}>Load</Button>
+                    <Button type="button" onClick={() => publishDraft(d.id)}>Publish</Button>
+                    <Button type="button" onClick={() => deleteDraft(d.id)}>Delete</Button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

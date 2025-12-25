@@ -23,6 +23,10 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
   const router = useRouter();
   const supabase = createClient();
 
+  // Support re-uploading images during edit (multiple)
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>(activity.image_url ? [activity.image_url] : []);
+
   const [formData, setFormData] = useState({
     title: activity.title,
     content: activity.content || "",
@@ -47,20 +51,68 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const limited = files.slice(0, 4);
+    setImageFiles(limited);
+    Promise.all(limited.map((f) => new Promise<string>((res) => {
+      const r = new FileReader();
+      r.onloadend = () => res(r.result as string);
+      r.readAsDataURL(f);
+    }))).then((previews) => setImagePreviews(previews));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      if (!isValidImageUrl(formData.image_url)) {
+      // If user selected new files, upload them first and use the returned URLs
+      let imageUrlToUse = formData.image_url;
+      const imageUrls: string[] = [];
+      if (imageFiles && imageFiles.length > 0) {
+        const filesToUpload = imageFiles.slice(0, 4);
+        try {
+          const uploads = await Promise.all(filesToUpload.map(async (file) => {
+            const fd = new FormData();
+            fd.append('file', file);
+            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+            if (!res.ok) {
+              let ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : (file.type ? file.type.split('/')[1] : 'jpg');
+              if (ext === 'jpeg') ext = 'jpg';
+              return `/uploads/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+            }
+            const d = await res.json();
+            return d.url;
+          }));
+          imageUrls.push(...uploads.filter(Boolean));
+          if (imageUrls.length > 0) imageUrlToUse = imageUrls[0];
+        } catch (uploadErr) {
+          console.error('Upload error:', uploadErr);
+          setError('Image upload failed');
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (!isValidImageUrl(imageUrlToUse)) {
         setError('Image must be a valid absolute URL (https://...) or a local path beginning with /uploads/');
         setLoading(false);
         return;
       }
+
+      // If multiple images uploaded, embed secondary images in content so feed shows them
+      let contentToUse = formData.content || '';
+      if (imageUrls.length > 1) {
+        const extras = imageUrls.slice(1).map((u) => `\n\n${u}`);
+        contentToUse = (contentToUse || '') + extras.join('');
+      }
+
       // Use server-side admin update to bypass RLS (requires SUPABASE_SERVICE_ROLE_KEY)
-      const tags = extractHashtags(formData.content);
-      const payload = { id: activity.id, ...formData, activity_date: new Date(formData.activity_date).toISOString(), tags };
+      const tags = extractHashtags(contentToUse);
+      const payload = { id: activity.id, ...formData, image_url: imageUrlToUse, content: contentToUse, activity_date: new Date(formData.activity_date).toISOString(), tags };
       const res = await fetch('/api/admin/update-activity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,6 +122,8 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
       if (!res.ok) throw new Error(data?.error || JSON.stringify(data));
 
       alert("Activity updated successfully!");
+      setImageFiles([]);
+      setImagePreviews([]);
       onSuccess();
       router.refresh();
     } catch (err) {
@@ -176,6 +230,28 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
               value={formData.image_url}
               onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="image" className="text-sm font-medium">
+              <ImageIcon className="mr-2 inline h-4 w-4" />
+              Re-upload Image
+            </label>
+            <Input
+              id="image"
+              type="file"
+              accept=".jfif,image/*"
+              multiple
+              onChange={handleImageChange}
+            />
+            {imagePreviews && imagePreviews.length > 0 && (
+              <div className="mt-2 flex gap-2">
+                {imagePreviews.map((p, idx) => (
+                  <img key={idx} src={p} alt={`Preview ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Or paste image URL above</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
