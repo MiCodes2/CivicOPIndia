@@ -366,7 +366,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Featured image centered above content */}
         {images && images.length > 0 && (
-          <div className="w-full bg-black/5">
+          <div className="-mx-4 sm:mx-0 w-full bg-black/5">
             <div className="w-full h-96 md:h-[520px] relative overflow-hidden bg-black">
               <div
                 className="w-full h-full flex"
@@ -376,11 +376,11 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                 onTouchEnd={onTouchEnd}
               >
                 {images.map((src, idx) => (
-                  <div key={idx} className="w-full flex-shrink-0 h-full">
+                  <div key={idx} className="sm:w-full w-screen flex-shrink-0 h-full">
                     <img
                       src={src}
                       alt={`Image ${idx+1}`}
-                      className="w-full h-full object-cover cursor-pointer"
+                      className="sm:w-full w-screen h-full object-cover cursor-pointer"
                       onClick={() => openImageModal(src)}
                       onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
                     />
@@ -529,20 +529,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       </div>
     )}
 
-    {/* Mobile floating action bar */}
-    <div className="fixed left-0 right-0 bottom-4 z-40 flex items-center justify-center md:hidden">
-      <div className="bg-white/90 backdrop-blur rounded-full px-3 py-2 shadow-lg flex items-center gap-3">
-        <button onClick={() => { handleLike({ optimistic: true, showAnimation: !liked }); setShowHeart(true); setTimeout(()=>setShowHeart(false),800); }} className="p-2 rounded-full hover:bg-gray-100">
-          <Heart className={`h-5 w-5 ${liked ? 'text-rose-600' : 'text-gray-700'}`} />
-        </button>
-        <button onClick={handleShare} className="p-2 rounded-full hover:bg-gray-100">
-          <Share2 className="h-5 w-5 text-gray-700" />
-        </button>
-        <button onClick={() => openImageModal(images[currentIndex] || images[0])} className="p-2 rounded-full hover:bg-gray-100">
-          <span className="text-sm font-medium">Images</span>
-        </button>
-      </div>
-    </div>
+    {/* Mobile floating action bar removed per UX request */}
     </>
   );
 }
