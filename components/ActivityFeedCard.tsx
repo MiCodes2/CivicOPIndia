@@ -339,8 +339,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-        <Card className="-mx-4 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl px-0 md:px-2">
-        <CardContent className="p-0 px-0 relative bg-white">
+        <Card className="-mx-4 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl py-0 gap-0">
+        <CardContent className="p-0 relative bg-white">
         {/* Type badge */}
         {localType && (
           <div className="absolute right-2 md:right-4 top-0 md:top-4 z-10">
