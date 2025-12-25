@@ -339,7 +339,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-        <Card className="mx-3 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-6 rounded-xl px-0 md:px-2">
+        <Card className="-mx-3 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-6 rounded-xl px-0 md:px-2">
       <CardContent className="p-0 relative bg-white">
         {/* Type badge */}
         {localType && (
@@ -351,7 +351,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Header */}
-        <div className="mb-0 flex items-start justify-between p-4">
+        <div className="mb-0 flex items-start justify-between py-4 px-4">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
