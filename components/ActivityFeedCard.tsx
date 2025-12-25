@@ -339,7 +339,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-        <Card className="-mx-4 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-6 rounded-none sm:rounded-xl px-0 md:px-2">
+        <Card className="-mx-4 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl px-0 md:px-2">
         <CardContent className="p-0 px-0 relative bg-white">
         {/* Type badge */}
         {localType && (
@@ -351,7 +351,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Header */}
-        <div className="mb-0 flex items-start justify-between py-4 px-3 md:px-4">
+        <div className="mb-0 flex items-start justify-between py-2 px-3 md:px-4">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
@@ -400,13 +400,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                   <div className="animate-ping-slow text-6xl text-emerald-500 drop-shadow-lg">❤</div>
                 </div>
               )}
-
-              {/* Author overlay */}
-              <div className="absolute left-3 md:left-4 bottom-3 md:bottom-4 bg-black/40 backdrop-blur rounded-full px-3 py-1 flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-xs font-medium text-white">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
-                <div className="text-sm text-white">{activity.author_name || 'Unknown'}</div>
-                <div className="text-xs text-white/80">· {formatDateShort(activity.activity_date)}</div>
-              </div>
             </div>
             {activity.image_captions && activity.image_captions[0] && (
               <div className="mt-2 text-center">
