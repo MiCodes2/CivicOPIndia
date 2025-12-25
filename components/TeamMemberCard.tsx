@@ -22,9 +22,9 @@ export default function TeamMemberCard({
   const [imageError, setImageError] = useState(false);
 
   return (
-    <Card className="mx-auto text-center transition-shadow hover:shadow-lg" style={{ maxWidth: '20rem' }}>
+    <Card className="text-center transition-shadow hover:shadow-lg" style={{ maxWidth: '20rem' }}>
       <CardContent className="pt-6">
-        <div className="mx-auto mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-accent/20">
+        <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-accent/20">
           {!imageError ? (
             <Image
               src={imageSrc}
