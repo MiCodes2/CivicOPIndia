@@ -64,7 +64,7 @@ export default function ActivitiesClientList({ activities, types = [], initialSe
 
       <div className="flex flex-col items-center w-full">
         {visible.map(act => (
-          <div id={`activity-${act.id}`} key={act.id} className="w-full"><div className="mx-auto w-full"><ActivityFeedCard activity={act} /></div></div>
+          <div id={`activity-${act.id}`} key={act.id}><ActivityFeedCard activity={act} /></div>
         ))}
       </div>
 
