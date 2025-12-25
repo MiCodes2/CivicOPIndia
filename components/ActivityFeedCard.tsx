@@ -338,7 +338,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-        <div className="-mx-4 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl bg-white border border-gray-200 sm:border-gray-200 shadow-sm">
+        <div className="mx-0 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl bg-white border border-gray-200 sm:border-gray-200 shadow-sm">
         <div className="relative">
         {/* Type badge */}
         {localType && (
@@ -350,7 +350,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Header */}
-        <div className="mb-0 flex items-start justify-between py-2" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
+        <div className="mb-0 flex items-start justify-between py-2 px-4">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
@@ -364,7 +364,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Featured image centered above content */}
         {images && images.length > 0 && (
-          <div className="-mx-4 sm:mx-0 w-full bg-black/5">
+          <div className="w-full bg-black/5">
             <div className="w-full h-96 md:h-[520px] relative overflow-hidden bg-black">
               <div
                 className="w-full h-full flex"
@@ -374,11 +374,11 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                 onTouchEnd={onTouchEnd}
               >
                 {images.map((src, idx) => (
-                  <div key={idx} className="sm:w-full w-screen flex-shrink-0 h-full">
+                  <div key={idx} className="w-full flex-shrink-0 h-full">
                     <img
                       src={src}
                       alt={`Image ${idx+1}`}
-                      className="sm:w-full w-screen h-full object-cover cursor-pointer"
+                      className="w-full h-full object-cover cursor-pointer"
                       onClick={() => openImageModal(src)}
                       onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
                     />
@@ -418,8 +418,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Post content */}
         <div
-          className="mb-4 px-2 md:px-4 text-muted-foreground prose prose-sm max-w-none"
-          style={{ paddingLeft: '8px', paddingRight: '8px' }}
+          className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none"
           onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
           onTouchStart={() => {
             const now = Date.now();
@@ -446,7 +445,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Metadata */}
-        <div className="mb-4 space-y-2 text-sm text-muted-foreground px-2 md:px-4" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
+        <div className="mb-4 space-y-2 text-sm text-muted-foreground px-4 md:px-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span>{formatDateLong(activity.activity_date)}</span>
@@ -461,7 +460,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Admin quick-edit */}
         {isAdmin && (
-          <div className="mb-4 px-2 md:px-4">
+          <div className="mb-4 px-4 md:px-4">
             {editing ? (
               <div className="flex items-center gap-2">
                 <select className="rounded border px-2 py-1" value={localType} onChange={(e)=>setLocalType(e.target.value)}>
@@ -479,7 +478,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Actions */}
-        <div className="mb-4 border-t pt-3 px-2 md:px-4" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
+        <div className="mb-4 border-t pt-3 px-4 md:px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button aria-pressed={liked} onClick={() => { handleLike({ optimistic: true, showAnimation: !liked }); setShowHeart(true); setTimeout(()=>setShowHeart(false),800); }} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition">
