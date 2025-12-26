@@ -159,11 +159,26 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [editing, setEditing] = useState(false);
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [localType, setLocalType] = useState(activity.type || 'Other');
-  const images = (activity.image_urls && activity.image_urls.length > 0)
-    ? activity.image_urls
-    : activity.image_url
-      ? [activity.image_url]
-      : [];
+  // Build images list: prefer explicit `image_urls` or `image_url`,
+  // but also include any image URLs embedded in `activity.content`.
+  const extractImageUrlsFromContent = (content?: string) => {
+    if (!content) return [] as string[];
+    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
+    const matches = Array.from((content || '').matchAll(imageRegex)).map(m => m[0]);
+    return matches;
+  };
+
+  const primaryImages: string[] = (activity.image_urls && activity.image_urls.length > 0)
+    ? activity.image_urls.slice()
+    : (activity.image_url ? [activity.image_url] : []);
+
+  const inlineImages = extractImageUrlsFromContent(activity.content || '');
+
+  // Merge while preserving order and deduplicating
+  const images = [...primaryImages];
+  for (const u of inlineImages) {
+    if (!images.includes(u)) images.push(u);
+  }
   const [likes, setLikes] = useState(activity.likes_count);
   const [shares, setShares] = useState(activity.shares_count);
   const [liked, setLiked] = useState(false);
