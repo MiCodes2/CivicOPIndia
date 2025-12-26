@@ -150,26 +150,8 @@ export default function Navbar() {
             })}
           </div>
 
-
-        </div>
-
-        {/* Mobile Search Input (toggled) */}
-        {showMobileSearch && (
-          <div className="md:hidden mt-2 w-full px-2">
-            <div className="w-full">
-              {/* @ts-ignore */}
-              <SearchBar />
-            </div>
-          </div>
-        )}
-
-        {/* Mobile Navigation */}
-        {/* Mobile icon navigation (compact) */}
-        <div className="md:hidden mt-2 w-full px-4">
-          <div className="flex items-center justify-center gap-4">
-            <button onClick={() => setShowMobileSearch((s) => !s)} aria-label="Search" className="text-muted-foreground p-2 rounded-full transition-colors hover:bg-gray-100">
-              <Search className="h-5 w-5" />
-            </button>
+          {/* Mobile icons inline (compact) - aligned with logo */}
+          <div className="flex items-center gap-4 md:hidden">
             {navLinks.map((link) => {
               const Icon = link.icon;
               return (
@@ -186,8 +168,26 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            <button onClick={() => setShowMobileSearch((s) => !s)} aria-label="Search" className="text-muted-foreground p-2 rounded-full transition-colors hover:bg-gray-100">
+              <Search className="h-5 w-5" />
+            </button>
           </div>
+
+
         </div>
+
+        {/* Mobile Search Input (toggled) */}
+        {showMobileSearch && (
+          <div className="md:hidden mt-2 w-full px-2">
+            <div className="w-full">
+              {/* @ts-ignore */}
+              <SearchBar />
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Navigation */}
+
       </div>
     </nav>
   );
