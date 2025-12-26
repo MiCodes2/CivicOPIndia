@@ -1,6 +1,37 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+
+// Collapsible content component to mimic social media 'See more' behavior
+function CollapsibleContent({ contentHtml, onDoubleClick }: { contentHtml: string; onDoubleClick?: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const contentText = contentHtml.replace(/<[^>]*>/g, '');
+  const shouldTruncate = contentText.trim().length > 300;
+
+  return (
+    <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
+      <div
+        onDoubleClick={onDoubleClick}
+        className={`transition-all ${!expanded && shouldTruncate ? 'overflow-hidden' : ''}`}
+        style={(!expanded && shouldTruncate) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
+        dangerouslySetInnerHTML={{ __html: contentHtml }}
+      />
+
+      {shouldTruncate && (
+        <div className="mt-2">
+          <button
+            className="text-sm text-primary underline"
+            onClick={() => setExpanded((s) => !s)}
+            aria-expanded={expanded}
+          >
+            {expanded ? 'Show less' : 'Show more'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { formatDateShort, formatDateLong } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
@@ -416,21 +447,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
-        {/* Post content */}
-        <div
-          className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none"
-          onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
-          onTouchStart={() => {
-            const now = Date.now();
-            if (touchLastTap.current && (now - touchLastTap.current) < 300) {
-              touchLastTap.current = null;
-              handleLike({ optimistic: true, showAnimation: true });
-            } else {
-              touchLastTap.current = now;
-            }
-          }}
-          dangerouslySetInnerHTML={{ __html: formatContent(activity.content || '') }}
-        />
+        {/* Post content with collapsible 'More' like social feeds */}
+        <CollapsibleContent contentHtml={formatContent(activity.content || '')} onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })} onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })} />
 
         {/* Thumbnails / additional images as centered horizontal strip */}
         {/* indicators only (thumbnails removed for Instagram-style swipe) */}

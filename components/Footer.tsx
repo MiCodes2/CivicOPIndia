@@ -103,6 +103,11 @@ export default function Footer() {
                   Donate
                 </Link>
               </li>
+              <li>
+                <Link href="/admin/login" className="text-muted-foreground transition-colors hover:text-primary">
+                  Admin Login
+                </Link>
+              </li>
             </ul>
           </div>
 

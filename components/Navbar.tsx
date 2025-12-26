@@ -174,6 +174,11 @@ export default function Navbar() {
                 <Search className="h-5 w-5" />
               </button>
 
+              {/* Admin login icon for mobile (before X) */}
+              <Link href={adminLink.href} aria-label="Admin login" className="text-muted-foreground p-1.5 rounded-full transition-colors hover:bg-gray-100">
+                <Shield className="h-5 w-5" />
+              </Link>
+
               {(() => {
                 const x = socialLinks.find(s => s.label === 'X');
                 if (!x) return null;
