@@ -5,10 +5,27 @@ import path from 'path';
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+
+    // Try common field name first, otherwise iterate to find any File
+    let file = formData.get('file') as File | null;
+
+    // If not provided as 'file', look through entries for a File
+    if (!file) {
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          file = value as File;
+          console.log('Found file under form field:', key, 'original name:', file.name, 'type:', file.type);
+          break;
+        }
+      }
+    }
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      // Log available fields for debugging
+      const keys = Array.from(formData.keys());
+      console.warn('Upload received with no file. FormData keys:', keys);
+      console.warn('Upload content-type:', request.headers.get('content-type'));
+      return NextResponse.json({ error: 'No file provided', fields: keys }, { status: 400 });
     }
 
     // Log incoming file metadata for debugging mobile uploads
@@ -16,6 +33,24 @@ export async function POST(request: NextRequest) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+
+    // Basic validation: reject overly large files and non-image uploads
+    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+    if (buffer.length > MAX_BYTES) {
+      console.warn('Upload rejected: file too large', buffer.length);
+      return NextResponse.json({ error: 'File too large. Max 10MB' }, { status: 413 });
+    }
+
+    const allowedImagePrefixes = ['image/'];
+    const safeExts = new Set(['jpg','jpeg','png','gif','webp','svg','bmp','ico','jfif','heic','heif']);
+    const hasImageMime = !!(file.type && allowedImagePrefixes.some(p => file.type.startsWith(p)));
+    if (!hasImageMime) {
+      const extCandidate = (file.name && file.name.includes('.')) ? (file.name.split('.').pop() || '').toLowerCase() : '';
+      if (!safeExts.has(extCandidate)) {
+        console.warn('Upload rejected: unsupported media type', file.type, extCandidate);
+        return NextResponse.json({ error: 'Unsupported media type' }, { status: 415 });
+      }
+    }
 
     // Ensure uploads directory exists
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
@@ -49,20 +84,18 @@ export async function POST(request: NextRequest) {
     if (!fileExt) fileExt = 'jpg';
 
     const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = path.join(uploadsDir, fileName);
 
-    // Write file to public/uploads
-    await writeFile(filePath, buffer);
-
-    console.log('Upload saved to:', filePath);
-
-    // Return the public URL and metadata for debugging
-    return NextResponse.json({ 
-      url: `/uploads/${fileName}`,
-      fileName,
-      type: file.type || null,
-      success: true 
-    });
+    // Use pluggable storage backends (local by default, supabase, s3, etc.)
+    try {
+      // dynamic import of storage helper to keep code split
+      const { uploadBuffer } = await import('@/lib/storage');
+      const res = await uploadBuffer(buffer, file.type || undefined, fileName);
+      console.log('Upload saved via backend, result:', res);
+      return NextResponse.json({ url: res.url, fileName: res.fileName, type: file.type || null, success: true });
+    } catch (e:any) {
+      console.error('Upload error:', e);
+      return NextResponse.json({ error: 'Failed to upload file', detail: e?.message || String(e) }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('Upload error:', error);

@@ -56,4 +56,8 @@ Next.js 16, TypeScript, Tailwind CSS, Supabase, Shadcn UI
 ### Fixes
 - Mobile image uploads: infer missing file extensions from MIME types and allow re-uploading images when editing an activity. This resolves issues where images selected from some mobile devices did not display correctly in posts.
 
+Uploads backend: This project supports pluggable upload backends. For production on serverless platforms (e.g., Vercel) you should set `UPLOAD_BACKEND=supabase` (or S3 if you prefer). See `docs/UPLOAD_BACKEND.md` for details and required environment variables.
+
+After switching to the Supabase backend, ensure `SUPABASE_SERVICE_ROLE_KEY` is present in your deployment environment and set `UPLOAD_BACKEND=supabase`.
+
 Built with ❤️ for transparency and accountability

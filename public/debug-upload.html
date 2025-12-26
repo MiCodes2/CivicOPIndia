@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Upload Debug Page</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; padding: 24px; }
+      .btn { background:#0369a1;color:white;padding:8px 12px;border:none;border-radius:6px; }
+      pre { background:#111827;color:#e5e7eb;padding:12px;border-radius:6px; }
+      .muted { color:#6b7280 }
+    </style>
+  </head>
+  <body>
+    <h1>Upload Debug (static)</h1>
+    <p class="muted">Use this page on your phone to upload an image and see the exact HTTP status and response body from <code>/api/upload</code>. This file is served from <code>/debug-upload.html</code> and works even if Next.js app routes are unavailable.</p>
+
+    <form id="f">
+      <input id="file" type="file" accept="image/*" />
+      <button class="btn" id="btn">Upload</button>
+    </form>
+
+    <h3>Status: <span id="status">-</span></h3>
+    <h4>Response:</h4>
+    <pre id="resp">-</pre>
+
+    <script>
+      const form = document.getElementById('f');
+      const fileEl = document.getElementById('file');
+      const st = document.getElementById('status');
+      const resp = document.getElementById('resp');
+      const btn = document.getElementById('btn');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        resp.textContent = '-'; st.textContent = '-';
+        const file = fileEl.files && fileEl.files[0];
+        if (!file) { resp.textContent = 'No file selected'; return; }
+        btn.disabled = true; btn.textContent = 'Uploading...';
+        try {
+          const fd = new FormData();
+          fd.append('file', file);
+          // also try common alternate names to help capture mobile quirks
+          // fd.append('image', file);
+          // fd.append('files[]', file);
+          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+          const text = await res.text();
+          let parsed = null;
+          try { parsed = JSON.parse(text); } catch (e) { parsed = text; }
+          st.textContent = res.status;
+          resp.textContent = typeof parsed === 'string' ? parsed : JSON.stringify(parsed, null, 2);
+        } catch (e) {
+          resp.textContent = 'Network error: ' + String(e);
+        } finally {
+          btn.disabled = false; btn.textContent = 'Upload';
+        }
+      });
+    </script>
+  </body>
+</html>

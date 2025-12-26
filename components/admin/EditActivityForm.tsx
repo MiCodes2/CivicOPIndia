@@ -242,9 +242,9 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
           if (imageUrls.length > 0) imageUrlToUse = imageUrls[0];
         } catch (uploadErr) {
           console.error('Upload error:', uploadErr);
-          setError('Image upload failed');
-          setLoading(false);
-          return;
+          // Surface the concrete error message instead of a generic one
+          // and abort submission so no activity is created pointing to a non-existent file
+          throw uploadErr;
         }
       }
 
