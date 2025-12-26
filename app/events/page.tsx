@@ -23,12 +23,12 @@ export default async function EventsPage() {
         ) : (
           <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {events.map(ev => (
-              <Card key={ev.id} className="flex flex-col text-sm !py-2">
+              <Card key={ev.id} className="flex flex-col text-sm py-1 gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {ev.image_url && (
-                  <img src={ev.image_url} alt={ev.title} className="h-28 w-full object-cover rounded-t-md" />
+                  <img src={ev.image_url} alt={ev.title} className="h-24 w-full object-cover rounded-t-md" />
                 )}
-                <CardContent className="px-3 py-2">
+                <CardContent className="px-3 py-1">
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-base line-clamp-2 mb-0">{ev.title}</CardTitle>
                     <div className="text-xs text-muted-foreground">{ev.type}</div>

@@ -64,11 +64,13 @@ export default function HomePage() {
       </section>
 
       {/* Upcoming Events Section */}
-      <section className="border-b py-16">
+      <section className="border-b py-12">
         <div className="container mx-auto px-3">
           <div className="mx-auto max-w-4xl">
+          <div className="text-center mx-auto max-w-2xl">
             <h2 className="text-3xl font-bold">On-ground Events</h2>
             <p className="mt-2 text-sm text-muted-foreground">Standard events organized by the community</p>
+          </div>
             {/* Server-rendered event list will be hydrated on client; fetch via /api/events or render minimal placeholder here. */}
             <div id="events-list" className="mt-6">
               <EventsList />
