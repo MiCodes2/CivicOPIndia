@@ -374,17 +374,21 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
             fd.append('file', file);
             const res = await fetch('/api/upload', { method: 'POST', body: fd });
             if (!res.ok) {
-              // fallback URL construction
-              let ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : (file.type ? file.type.split('/')[1] : 'jpg');
-              if (ext === 'jpeg') ext = 'jpg';
-              return `/uploads/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+              // surface server response and abort instead of fabricating a URL
+              const bodyText = await res.text().catch(() => null);
+              console.error('Upload failed for file', file.name, 'status', res.status, bodyText);
+              throw new Error(`Upload failed (${res.status})${bodyText ? ': ' + bodyText : ''}`);
             }
             const d = await res.json();
+            console.log('Upload response:', d);
+            if (!d?.url) throw new Error('Upload did not return a URL');
             return d.url;
           }));
           imageUrls.push(...uploads.filter(Boolean));
         } catch (uploadError) {
           console.error('Upload error:', uploadError);
+          // abort submission when uploads fail so we don't create activities pointing to non-existent files
+          throw uploadError;
         }
       }
 
