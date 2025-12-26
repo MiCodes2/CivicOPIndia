@@ -1,4 +1,4 @@
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 
@@ -11,8 +11,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    // Log incoming file metadata for debugging mobile uploads
+    console.log('Upload request - file name:', file.name, 'type:', file.type);
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+
+    // Ensure uploads directory exists
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+    await mkdir(uploadsDir, { recursive: true });
 
     // Create unique filename
     // Determine a safe file extension. Prefer the name-based extension when present; otherwise derive
@@ -29,10 +36,12 @@ export async function POST(request: NextRequest) {
       const mimeParts = file.type.split('/');
       if (mimeParts.length === 2) {
         fileExt = mimeParts[1].toLowerCase();
-        // Some MIME subtypes like 'jpeg' should be normalized to 'jpg'
+        // Normalize common types
         if (fileExt === 'jpeg') fileExt = 'jpg';
         if (fileExt === 'pjpeg') fileExt = 'jpg';
         if (fileExt === 'jfif') fileExt = 'jpg';
+        // Mobile formats that may appear on iOS/Android
+        if (fileExt === 'heic' || fileExt === 'x-heic' || fileExt === 'heif' || fileExt === 'x-heif') fileExt = 'jpg';
       }
     }
 
@@ -40,21 +49,26 @@ export async function POST(request: NextRequest) {
     if (!fileExt) fileExt = 'jpg';
 
     const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
+    const filePath = path.join(uploadsDir, fileName);
 
     // Write file to public/uploads
     await writeFile(filePath, buffer);
 
-    // Return the public URL
+    console.log('Upload saved to:', filePath);
+
+    // Return the public URL and metadata for debugging
     return NextResponse.json({ 
       url: `/uploads/${fileName}`,
+      fileName,
+      type: file.type || null,
       success: true 
     });
 
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json({ 
-      error: 'Failed to upload file' 
+      error: 'Failed to upload file',
+      detail: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }
