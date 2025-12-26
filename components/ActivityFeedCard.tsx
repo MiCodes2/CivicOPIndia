@@ -569,22 +569,30 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                 ))}
               </div>
 
-              {/* Overlay arrows for desktop + prominent mobile buttons */}
+              {/* Prominent side buttons (Instagram-style) visible on all screen sizes */}
               {images.length > 1 && (
                 <>
-                  {/* Desktop arrows (unchanged) */}
-                  <button aria-label="Previous" onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-2 text-white hover:bg-black/60 hidden md:block">◀</button>
-                  <button aria-label="Next" onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-2 text-white hover:bg-black/60 hidden md:block">▶</button>
+                  <button
+                    aria-label="Previous"
+                    aria-disabled={currentIndex === 0}
+                    title={currentIndex === 0 ? 'No previous image' : 'Previous image'}
+                    onClick={prevImage}
+                    disabled={currentIndex === 0}
+                    className={`absolute left-3 top-1/2 -translate-y-1/2 z-30 rounded-full shadow-lg p-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${currentIndex === 0 ? 'bg-white/90 text-gray-400 cursor-not-allowed opacity-80' : 'bg-primary/50 text-white hover:bg-primary/60'}`}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
 
-                  {/* Mobile: prominent floating buttons aligned with theme */}
-                  <div className="md:hidden absolute right-4 bottom-4 z-30 flex gap-3 items-center">
-                    <button aria-label="Previous" onClick={prevImage} className="rounded-full shadow-lg bg-white/95 p-3 text-gray-700 hover:bg-white"> 
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <button aria-label="Next" onClick={nextImage} className="rounded-full shadow-lg bg-primary p-3 text-white hover:bg-primary/90"> 
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </div>
+                  <button
+                    aria-label="Next"
+                    aria-disabled={currentIndex === (images.length - 1)}
+                    title={currentIndex === (images.length - 1) ? 'No next image' : 'Next image'}
+                    onClick={nextImage}
+                    disabled={currentIndex === (images.length - 1)}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 z-30 rounded-full shadow-lg p-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${currentIndex === (images.length - 1) ? 'bg-white/90 text-gray-400 cursor-not-allowed opacity-80' : 'bg-primary/50 text-white hover:bg-primary/60'}`}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
                 </>
               )}
               {showHeart && (
