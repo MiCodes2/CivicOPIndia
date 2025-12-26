@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
+import ImagePicker from "@/components/admin/ImagePicker";
 
 interface NewActivityFormProps {
   onSuccess?: () => void;
@@ -589,94 +590,17 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="image" className="text-sm font-medium">
-              <ImageIcon className="mr-2 inline h-4 w-4" />
-              Upload Image
-            </label>
-            <Input
-              id="image"
-              type="file"
-              // include .jfif explicitly while still allowing any image/*
-              accept=".jfif,image/*"
-              multiple
-              onChange={handleImageChange}
+            <ImagePicker
+              max={4}
+              initialFiles={imageFiles}
+              initialPreviews={imagePreviews}
+              initialUrls={formData.image_urls}
+              onChange={(files, previews, urls, captions) => {
+                setImageFiles(files);
+                setImagePreviews(previews);
+                setFormData((fd) => ({ ...fd, image_urls: urls, image_url: fd.image_url || urls[0] || previews[0] || '' }));
+              }}
             />
-            {/* Hidden input used by the + button to append images */}
-            <input
-              ref={addInputRef}
-              type="file"
-              accept=".jfif,image/*"
-              multiple
-              style={{ display: 'none' }}
-              onChange={handleAddImages}
-            />
-            <div className="mt-2">
-              <button
-                type="button"
-                className="rounded bg-primary/10 px-3 py-1 text-sm"
-                onClick={() => addInputRef.current?.click()}
-              >
-                + Add Images
-              </button>
-            </div>
-            <div className="mt-2">
-              <button
-                type="button"
-                className="ml-2 rounded bg-secondary/10 px-3 py-1 text-sm"
-                onClick={addImageUrlPrompt}
-              >
-                + Add Image URL
-              </button>
-              <span className="ml-3 text-xs text-muted-foreground">{(formData.image_urls?.length || 0) + imagePreviews.length} / 4</span>
-            </div>
-
-            {/* Inline modal for adding image URL */}
-            {showImageUrlModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="bg-white rounded-md p-4 w-full max-w-md">
-                  <h3 className="text-lg font-medium mb-2">Add image URL</h3>
-                  <input value={imageUrlInput} onChange={(e)=>setImageUrlInput(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full rounded border px-3 py-2" />
-                  <div className="mt-3 flex justify-end gap-2">
-                    <button onClick={()=>{ setShowImageUrlModal(false); setImageUrlInput(''); }} className="rounded px-3 py-1">Cancel</button>
-                    <button onClick={submitImageUrl} className="rounded bg-primary px-3 py-1 text-white">Add</button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {/* Remote uploaded images (from previous saves) */}
-            {formData.image_urls && formData.image_urls.length > 0 && (
-              <div className="mt-2 flex gap-2">
-                {formData.image_urls.map((u, idx) => (
-                  <div key={`remote-${idx}`} className="relative flex flex-col items-start">
-                    <img src={u} alt={`Image ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
-                    <div className="mt-1 flex gap-1">
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => setPrimaryFromRemote(idx)}>Set Primary</button>
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => removeRemoteImage(idx)}>Remove</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Local file previews */}
-            {imagePreviews && imagePreviews.length > 0 && (
-              <div className="mt-2 flex gap-2">
-                {imagePreviews.map((p, idx) => (
-                  <div key={`local-${idx}`} className="relative flex flex-col items-start">
-                    <img src={p} alt={`Preview ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
-                    <div className="mt-1 flex gap-1">
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => setPrimaryFromPreview(idx)}>Set Primary</button>
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => movePreview(idx, -1)}>&larr;</button>
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => movePreview(idx, 1)}>&rarr;</button>
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => removePreview(idx)}>Remove</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Or paste image URL below
-            </p>
           </div>
 
           <div className="space-y-2">

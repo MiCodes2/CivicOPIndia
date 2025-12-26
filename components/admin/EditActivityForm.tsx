@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import type { Activity } from "@/lib/types/database";
 import RichTextEditor from "@/components/RichTextEditor";
+import ImagePicker from "@/components/admin/ImagePicker";
 
 interface EditActivityFormProps {
   activity: Activity;
@@ -26,6 +27,8 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
   // Support re-uploading images during edit (multiple)
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>(activity.image_url ? [activity.image_url] : []);
+  const [deletedFiles, setDeletedFiles] = useState<string[]>([]);
+  const initialRemoteUrlsRef = useRef<string[]>([]);
 
   const [formData, setFormData] = useState({
     title: activity.title,
@@ -64,8 +67,39 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
     }))).then((previews) => setImagePreviews(previews));
   };
 
+  // On mount, also populate previews from any image URLs embedded in the activity content
+  useEffect(() => {
+    try {
+      const content = activity.content || '';
+      const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
+      const matches = Array.from(content.matchAll(imageRegex)).map(m => m[0]);
+      const initialImages: string[] = [];
+      if (activity.image_url) initialImages.push(activity.image_url);
+      for (const m of matches) {
+        if (!initialImages.includes(m)) initialImages.push(m);
+      }
+      if (initialImages.length > 0) {
+        setImagePreviews(initialImages.slice(0, 4));
+        setFormData((fd) => ({ ...fd, image_urls: initialImages.slice(0, 4), image_url: fd.image_url || initialImages[0] }));
+        initialRemoteUrlsRef.current = initialImages.slice(0, 4);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [activity.content, activity.image_url]);
+
   // Hidden input used by the + Add Images button to append images
   const addInputRef = useRef<HTMLInputElement | null>(null);
+
+  const normalizeUrl = (u: string) => {
+    if (!u) return u;
+    try {
+      const parsed = new URL(u);
+      return parsed.pathname;
+    } catch {
+      return u;
+    }
+  };
 
   // Append new images (called by the '+' hidden input)
   const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,16 +252,35 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
         return;
       }
 
-      // If multiple images uploaded, embed secondary images in content so feed shows them
+      // Remove any image URLs from the content that the user removed in the editor
       let contentToUse = formData.content || '';
+      try {
+        const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
+        contentToUse = (contentToUse || '').replace(imageRegex, (match) => {
+          return imageUrls.some((v) => normalizeUrl(v) === normalizeUrl(match)) ? match : '';
+        }).replace(/\n{2,}/g, '\n\n').trim();
+      } catch (e) {
+        // ignore
+      }
+
+      // If multiple images uploaded or left, embed secondary images in content so feed shows them
       if (imageUrls.length > 1) {
         const extras = imageUrls.slice(1).map((u) => `\n\n${u}`);
-        contentToUse = (contentToUse || '') + extras.join('');
+        contentToUse = (contentToUse || '') + '\n\n' + extras.join('');
       }
 
       // Use server-side admin update to bypass RLS (requires SUPABASE_SERVICE_ROLE_KEY)
       const tags = extractHashtags(contentToUse);
-      const payload = { id: activity.id, ...formData, image_url: imageUrlToUse, content: contentToUse, activity_date: new Date(formData.activity_date).toISOString(), tags };
+      const payload = { id: activity.id, ...formData, image_url: imageUrlToUse, content: contentToUse, activity_date: new Date(formData.activity_date).toISOString(), tags, delete_files: deletedFiles };
+      // If user marked files for deletion, confirm before proceeding
+      if (deletedFiles && deletedFiles.length > 0) {
+        const ok = window.confirm(`This will permanently delete ${deletedFiles.length} image(s) from the server. Continue?`);
+        if (!ok) {
+          setLoading(false);
+          return;
+        }
+      }
+
       const res = await fetch('/api/admin/update-activity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -239,6 +292,7 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
       alert("Activity updated successfully!");
       setImageFiles([]);
       setImagePreviews([]);
+      setDeletedFiles([]);
       onSuccess();
       router.refresh();
     } catch (err) {
@@ -351,88 +405,37 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
               <ImageIcon className="mr-2 inline h-4 w-4" />
               Re-upload Image
             </label>
-            <Input
-              id="image"
-              type="file"
-              accept=".jfif,image/*"
-              multiple
-              onChange={handleImageChange}
+            <ImagePicker
+              max={4}
+              initialFiles={imageFiles}
+              initialPreviews={imagePreviews}
+              initialUrls={formData.image_urls}
+              onChange={(files, previews, urls, captions) => {                // Track remote URLs that were removed so we can delete them from storage
+                const removed = initialRemoteUrlsRef.current.filter((u) => !urls.some((v) => normalizeUrl(u) === normalizeUrl(v)));
+                // If user re-added a previously deleted file, remove it from deletedFiles
+                setDeletedFiles((prev) => {
+                  const filtered = prev.filter((u) => !urls.some((v) => normalizeUrl(u) === normalizeUrl(v)));
+                  return Array.from(new Set([...filtered, ...removed]));
+                });
+                initialRemoteUrlsRef.current = urls.slice();
+                setImageFiles(files);
+                setImagePreviews(previews);
+                setFormData((fd) => ({ ...fd, image_urls: urls, image_url: fd.image_url || urls[0] || previews[0] || '' }));
+              }}
             />
-            {/* Hidden input used by the + Add Images button to append images */}
-            <input
-              ref={addInputRef}
-              type="file"
-              accept=".jfif,image/*"
-              multiple
-              style={{ display: 'none' }}
-              onChange={handleAddImages}
-            />
-            <div className="mt-2">
-              <button
-                type="button"
-                className="rounded bg-primary/10 px-3 py-1 text-sm"
-                onClick={() => addInputRef.current?.click()}
-              >
-                + Add Images
-              </button>
-            </div>
-            <div className="mt-2">
-              <button
-                type="button"
-                className="ml-2 rounded bg-secondary/10 px-3 py-1 text-sm"
-                onClick={addImageUrlPrompt}
-              >
-                + Add Image URL
-              </button>
-              <span className="ml-3 text-xs text-muted-foreground">{(formData.image_urls?.length || 0) + imagePreviews.length} / 4</span>
-            </div>
-
-            {/* Inline modal for adding image URL */}
-            {showImageUrlModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="bg-white rounded-md p-4 w-full max-w-md">
-                  <h3 className="text-lg font-medium mb-2">Add image URL</h3>
-                  <input value={imageUrlInput} onChange={(e)=>setImageUrlInput(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full rounded border px-3 py-2" />
-                  <div className="mt-3 flex justify-end gap-2">
-                    <button onClick={()=>{ setShowImageUrlModal(false); setImageUrlInput(''); }} className="rounded px-3 py-1">Cancel</button>
-                    <button onClick={submitImageUrl} className="rounded bg-primary px-3 py-1 text-white">Add</button>
-                  </div>
-                </div>
+            {deletedFiles && deletedFiles.length > 0 && (
+              <div className="mt-2 rounded-md border p-2 bg-yellow-50 text-sm">
+                <div className="font-medium">Images marked for deletion ({deletedFiles.length})</div>
+                <ul className="list-disc ml-4 mt-1">
+                  {deletedFiles.map((u, i) => (
+                    <li key={i} className="flex items-center justify-between gap-2">
+                      <span className="truncate">{u}</span>
+                      <button type="button" className="text-xs text-primary underline" onClick={() => setDeletedFiles((prev) => prev.filter(x => x !== u))}>Undo</button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
-
-            {/* Remote uploaded images (from previous saves) */}
-            {formData.image_urls && formData.image_urls.length > 0 && (
-              <div className="mt-2 flex gap-2">
-                {formData.image_urls.map((u, idx) => (
-                  <div key={`remote-${idx}`} className="relative flex flex-col items-start">
-                    <img src={u} alt={`Image ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
-                    <div className="mt-1 flex gap-1">
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => setPrimaryFromRemote(idx)}>Set Primary</button>
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => removeRemoteImage(idx)}>Remove</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Local file previews */}
-            {imagePreviews && imagePreviews.length > 0 && (
-              <div className="mt-2 flex gap-2">
-                {imagePreviews.map((p, idx) => (
-                  <div key={`local-${idx}`} className="relative flex flex-col items-start">
-                    <img src={p} alt={`Preview ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
-                    <div className="mt-1 flex gap-1">
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => setPrimaryFromPreview(idx)}>Set Primary</button>
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => movePreview(idx, -1)}>&larr;</button>
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => movePreview(idx, 1)}>&rarr;</button>
-                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => removePreview(idx)}>Remove</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Or paste image URL above</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
