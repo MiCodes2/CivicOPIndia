@@ -127,14 +127,14 @@ export default function AdminDashboard() {
             Logged in as {user.email}
           </p>
         </div>
-        <div className="flex gap-4">
-          <Button asChild variant="outline">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/activities">
               <ActivityIcon className="mr-2 h-4 w-4" />
-              View Public Feed
+              Public Feed
             </Link>
           </Button>
-          <Button onClick={handleSignOut} variant="outline">
+          <Button onClick={handleSignOut} variant="outline" className="w-full sm:w-auto">
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </Button>

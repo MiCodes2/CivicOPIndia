@@ -49,7 +49,7 @@ export default function EventsList() {
   const sortedEvents = [...events].sort((a,b) => new Date(b.event_date ?? b.activity_date ?? '').getTime() - new Date(a.event_date ?? a.activity_date ?? '').getTime());
 
   return (
-    <div className="mt-6 mb-6">
+    <div className="mt-6 mb-5">
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
         {sortedEvents.map(ev => (
           <Card key={ev.id} className="flex flex-col text-sm !py-2">
@@ -73,7 +73,7 @@ export default function EventsList() {
         ))}
       </div>
 
-      <div className="mt-4 flex justify-end mb-6">
+      <div className="mt-4 flex justify-end mb-5">
         <Button asChild size="sm" variant="ghost"><Link href="/events">..more</Link></Button>
       </div>
     </div>

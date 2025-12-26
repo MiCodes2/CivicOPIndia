@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,147 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
 
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  const DRAFT_KEY = 'event_draft_v1';
+  const DRAFTS_KEY = 'event_drafts_v1';
+
+  interface SavedDraft {
+    id: string;
+    title: string;
+    formData: {
+      title?: string;
+      content?: string;
+      location?: string;
+      type?: string;
+      event_date?: string;
+      image_url?: string;
+    };
+    image_urls?: string[];
+    savedAt: number;
+  }
+
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const [drafts, setDrafts] = useState<SavedDraft[]>([]);
+
+  function formatDraftAge(ts: number) {
+    const diff = Date.now() - ts;
+    if (diff < 5000) return 'just now';
+    if (diff < 60000) return `${Math.round(diff / 1000)}s ago`;
+    if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`;
+    return `${Math.round(diff / 3600000)}h ago`;
+  }
+
+  useEffect(() => {
+    // Restore autosaved draft and saved drafts list on mount
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          setFormData((fd) => ({ ...fd, ...parsed.formData }));
+          if (parsed.image_urls && Array.isArray(parsed.image_urls)) {
+            setFormData((fd) => ({ ...fd, image_url: parsed.image_urls[0] || fd.image_url }));
+          }
+          if (parsed.savedAt) setDraftSavedAt(parsed.savedAt);
+        }
+      }
+      const rawList = localStorage.getItem(DRAFTS_KEY);
+      if (rawList) {
+        try {
+          const parsedList = JSON.parse(rawList);
+          if (Array.isArray(parsedList)) setDrafts(parsedList);
+        } catch {}
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const saveCurrentAsDraft = () => {
+    try {
+      const titlePrompt = window.prompt('Draft title', formData.title || 'Untitled draft');
+      const title = titlePrompt ? titlePrompt.trim() : (formData.title || `Draft ${new Date().toLocaleString()}`);
+      const draft: SavedDraft = {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+        title,
+        formData: {
+          title: formData.title,
+          content: formData.content,
+          location: formData.location,
+          type: formData.type,
+          event_date: formData.event_date,
+          image_url: formData.image_url,
+        },
+        image_urls: formData.image_urls || [],
+        savedAt: Date.now(),
+      };
+      const next = [draft, ...drafts];
+      localStorage.setItem(DRAFTS_KEY, JSON.stringify(next));
+      setDrafts(next);
+      setDraftSavedAt(draft.savedAt);
+      alert('Draft saved');
+    } catch (e) {
+      console.error('Could not save draft', e);
+      alert('Failed to save draft');
+    }
+  };
+
+  const loadDraft = (id: string) => {
+    const found = drafts.find(d => d.id === id);
+    if (!found) return;
+    setFormData((fd) => ({ ...fd, ...found.formData }));
+    if (found.image_urls && found.image_urls.length > 0) {
+      const imageUrls = found.image_urls || [];
+      setImagePreviews(imageUrls as string[]);
+      setFormData((fd) => ({ ...fd, image_url: imageUrls[0] || fd.image_url, image_urls: imageUrls }));
+    }
+    setDraftSavedAt(found.savedAt);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteDraft = (id: string) => {
+    const next = drafts.filter(d => d.id !== id);
+    try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(next)); } catch {}
+    setDrafts(next);
+  };
+
+  const publishDraft = async (id: string) => {
+    const found = drafts.find(d => d.id === id);
+    if (!found) return;
+    loadDraft(id);
+    try {
+      // @ts-ignore
+      await handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+      deleteDraft(id);
+    } catch (e) {
+      console.error('Publish draft failed', e);
+      alert('Publish failed: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
+  useEffect(() => {
+    const save = () => {
+      try {
+        const payload = {
+          formData: {
+            title: formData.title,
+            content: formData.content,
+            location: formData.location,
+            type: formData.type,
+            event_date: formData.event_date,
+            image_url: formData.image_url,
+          },
+          image_urls: formData.image_urls || [],
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+        setDraftSavedAt(payload.savedAt);
+      } catch (e) {}
+    };
+
+    const id = setTimeout(save, 1000);
+    return () => clearTimeout(id);
+  }, [formData.title, formData.content, formData.location, formData.type, formData.event_date, formData.image_url, formData.image_urls]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,6 +304,37 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
           </div>
 
           {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              {draftSavedAt && (
+                <div className="text-xs text-muted-foreground">Draft saved {formatDraftAge(draftSavedAt)}</div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" onClick={saveCurrentAsDraft} disabled={loading}>Save Draft</Button>
+            </div>
+          </div>
+
+          {/* Drafts list */}
+          {drafts && drafts.length > 0 && (
+            <div className="mt-3 space-y-2 rounded-md border p-3">
+              <div className="text-sm font-medium">Saved Drafts</div>
+              {drafts.map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-2">
+                  <div className="text-sm">
+                    <div className="font-medium">{d.title}</div>
+                    <div className="text-xs text-muted-foreground">{formatDraftAge(d.savedAt)}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" onClick={() => loadDraft(d.id)}>Load</Button>
+                    <Button type="button" onClick={() => publishDraft(d.id)}>Publish</Button>
+                    <Button type="button" onClick={() => deleteDraft(d.id)}>Delete</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Creating...' : 'Create Event'}</Button>
         </form>
