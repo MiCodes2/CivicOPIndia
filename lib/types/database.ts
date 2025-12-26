@@ -24,7 +24,7 @@ export type Activity = {
   tags: string[] | null;
   likes_count: number;
   shares_count: number;
-  type: string | null; // e.g., 'Meeting', 'Protest', 'Campaign', 'Workshop'
+  type: string | null; // e.g., 'Meeting', 'Protest', 'Campaign', 'Plantation'
 };
 
 export type Archive = {

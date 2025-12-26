@@ -197,8 +197,7 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
                 <option value="Meeting">Meeting</option>
                 <option value="Protest">Protest</option>
                 <option value="Campaign">Campaign</option>
-                <option value="Workshop">Workshop</option>
-                <option value="Rally">Rally</option>
+                <option value="Plantation">Plantation</option>
                 <option value="News">News</option>
                 <option value="Other">Other</option>
               </select>

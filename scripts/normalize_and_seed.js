@@ -34,11 +34,9 @@ const RULES = [
   { patterns: ['^meeting$','^meetings$'], to: 'Meetings' },
   { patterns: ['^campaign$','^campaigns$'], to: 'Campaigns' },
   { patterns: ['^protest$','^protests$'], to: 'Protests' },
-  { patterns: ['^workshop$','^workshops$'], to: 'Workshops' },
-  { patterns: ['^tree ?plantation$','^treeplantation$','^tree-plantation$'], to: 'Tree Plantation' },
+  { patterns: ['^tree ?plantation$','^treeplantation$','^tree-plantation$','^plantation$'], to: 'Plantation' },
   { patterns: ['^cleanliness ?drive$','^cleanliness$'], to: 'Cleanliness Drive' },
   { patterns: ['^encroachment.*$','^encroachment clearance$','^encroachment removal$','^encroachment$'], to: 'Encroachment Clearance' },
-  { patterns: ['^rally$','^rallies$'], to: 'Rally' },
   { patterns: ['^press conference$'], to: 'News' },
   { patterns: ['^other$'], to: 'Other' },
 ];

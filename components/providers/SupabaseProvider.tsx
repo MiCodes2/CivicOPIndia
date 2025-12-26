@@ -22,21 +22,47 @@ export default function SupabaseProvider({
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
+    let mounted = true;
 
-    // Listen for auth changes
+    // Get initial session (handle errors like invalid/expired refresh token)
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+      })
+      .catch((err: any) => {
+        console.warn('Supabase getSession error:', err?.message ?? err);
+        // If refresh token is invalid or missing, attempt to recover by clearing local session
+        const msg = (err?.message || '').toLowerCase();
+        if (msg.includes('refresh') || msg.includes('invalid refresh')) {
+          try { supabase.auth.signOut(); } catch (e) {}
+          try { localStorage.removeItem('civic-op-auth'); } catch (e) {}
+          setSession(null);
+          setUser(null);
+        }
+      });
+
+    // Listen for auth changes and handle token refresh failures explicitly
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // Some Supabase events indicate refresh issues (names may vary by client version).
+      // Be defensive: if the event mentions token/refresh/fail, clear local session and sign out.
+      if (typeof event === 'string' && /token.*refresh.*failed|refresh_token_not_found|invalid refresh token/i.test(event)) {
+        console.warn('Auth state indicates token refresh failure:', event);
+        try { supabase.auth.signOut(); } catch (e) {}
+        try { localStorage.removeItem('civic-op-auth'); } catch (e) {}
+        setSession(null);
+        setUser(null);
+        return;
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => { mounted = false; subscription.unsubscribe(); };
   }, [supabase]);
 
   return (

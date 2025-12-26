@@ -15,7 +15,7 @@ interface NewEventFormProps {
 
 const EVENT_TYPES = [
   "Protest",
-  "Tree Plantation",
+  "Plantation",
   "Cleanliness Drive",
   "Fundraiser",
   "Meeting",
@@ -78,7 +78,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
     <Card>
       <CardHeader>
         <CardTitle>Create Event</CardTitle>
-        <CardDescription>Standard events like Protest, Tree Plantation, Cleanliness Drive</CardDescription>
+        <CardDescription>Standard events like Protest, Plantation, Cleanliness Drive</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

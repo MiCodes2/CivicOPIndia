@@ -11,9 +11,8 @@ const CANONICAL = [
   'Meetings',
   'Campaigns',
   'Protests',
-  'Workshops',
   'Drive',
-  'Tree Plantation',
+  'Plantation',
   'Other',
 ];
 

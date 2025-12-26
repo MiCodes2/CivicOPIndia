@@ -75,10 +75,10 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
     countsByType[key] = (countsByType[key] || 0) + 1;
   });
 
-  // Suggested grouping: Drive (cleanliness + encroachment variants), Tree Plantation
+  // Suggested grouping: Drive (cleanliness + encroachment variants), Plantation
   const normalize = (s?: string) => (s || '').toLowerCase().trim();
   const driveKeys = new Set(['cleanliness drive', 'encroachment clearance', 'encroachment removal', 'encroachment']);
-  const treeKeys = new Set(['tree plantation', 'treeplantation', 'tree-plantation']);
+  const treeKeys = new Set(['plantation','tree plantation', 'treeplantation', 'tree-plantation']);
 
   let driveCount = 0;
   let treeCount = 0;
@@ -109,7 +109,18 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
     <div className="mx-auto px-0 md:px-4 pt-1 pb-3 max-w-7xl">
         <div className="py-2 px-4 md:px-0">
         <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight">Daily Activities</h1>
-        <p className="mt-2 text-base sm:text-lg text-muted-foreground">
+
+        {/* Mobile: type filter buttons replacing description */}
+        <div className="mt-2 md:hidden">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <Link href="/activities" aria-current={!selectedType ? 'true' : undefined} className={`px-3 py-1 rounded ${!selectedType ? 'bg-primary text-white' : 'bg-gray-100'}`}>All ({activitiesList.length})</Link>
+            {((typeRows||[]).map((r:any)=>r.name)).map((t:any) => (
+              <Link key={t} href={`/activities?type=${encodeURIComponent(t)}`} aria-current={selectedType === t ? 'true' : undefined} className={`px-3 py-1 rounded ${selectedType === t ? 'bg-primary text-white' : 'bg-gray-100'}`}>{t}</Link>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-2 text-base sm:text-lg text-muted-foreground hidden md:block">
           Stay updated with our latest actions, protests, and community initiatives. Join us in building a more accountable democracy.
         </p>
       </div>

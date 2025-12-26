@@ -11,10 +11,8 @@ INSERT INTO public.activity_types (name) VALUES
 ('Meetings'),
 ('Campaigns'),
 ('Protests'),
-('Workshops'),
 ('Drive'),
-('Tree Plantation'),
+('Plantation'),
 ('Other'),
-('Rally'),
 ('News')
 ON CONFLICT (name) DO NOTHING;

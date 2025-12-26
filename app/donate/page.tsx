@@ -15,7 +15,7 @@ export default function DonatePage() {
   const usageBreakdown = [
     { category: "Field Operations", percentage: "40%", description: "On-ground activities, protests, and community organizing" },
     { category: "Legal Support", percentage: "25%", description: "Filing RTIs, court cases, and legal assistance" },
-    { category: "Awareness Campaigns", percentage: "20%", description: "Media outreach, educational materials, and workshops" },
+    { category: "Awareness Campaigns", percentage: "20%", description: "Media outreach, educational materials, and events" },
     { category: "Administrative", percentage: "10%", description: "Office operations, website, and technology" },
     { category: "Emergency Fund", percentage: "5%", description: "Reserved for urgent civic action needs" },
   ];

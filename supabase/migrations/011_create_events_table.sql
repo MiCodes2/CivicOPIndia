@@ -1,4 +1,4 @@
--- Create events table for standard events (protest, tree plantation, etc.)
+-- Create events table for standard events (protest, plantation, etc.)
 -- Run this migration using your supabase migration tooling or psql
 
 CREATE TABLE IF NOT EXISTS public.events (

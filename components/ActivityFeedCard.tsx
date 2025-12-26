@@ -139,10 +139,8 @@ const TYPE_BADGE_CLASSES: Record<string, string> = {
   'Meetings': 'bg-sky-600',
   'Campaigns': 'bg-rose-600',
   'Protests': 'bg-red-600',
-  'Workshops': 'bg-indigo-600',
   'Drive': 'bg-green-600',
-  'Tree Plantation': 'bg-emerald-600',
-  'Rally': 'bg-yellow-600',
+  'Plantation': 'bg-emerald-600',
   'News': 'bg-amber-600',
   'Other': 'bg-gray-600',
 };

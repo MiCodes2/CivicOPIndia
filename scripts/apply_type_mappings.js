@@ -16,7 +16,7 @@ const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession:
 // Define mappings: each entry has `to` and array of `patterns` (ilike patterns)
 const MAPPINGS = [
   { to: 'Drive', patterns: ['cleanliness drive', 'cleanliness', 'encroachment clearance', 'encroachment removal', 'encroachment'] },
-  { to: 'Tree Plantation', patterns: ['tree plantation', 'treeplantation', 'tree-plantation'] },
+  { to: 'Plantation', patterns: ['plantation','tree plantation', 'treeplantation', 'tree-plantation'] },
   { to: 'Campaigns', patterns: ['campaign', 'campaigns'] },
 ];
 
