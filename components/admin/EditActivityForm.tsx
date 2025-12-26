@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +34,7 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
     type: activity.type || "",
     activity_date: new Date(activity.activity_date).toISOString().split('T')[0],
     image_url: activity.image_url || "",
+    image_urls: activity.image_url ? [activity.image_url] : [],
     likes_count: activity.likes_count,
     shares_count: activity.shares_count,
   });
@@ -63,15 +64,129 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
     }))).then((previews) => setImagePreviews(previews));
   };
 
+  // Hidden input used by the + Add Images button to append images
+  const addInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Append new images (called by the '+' hidden input)
+  const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const combinedFiles = [...imageFiles, ...files].slice(0, 4);
+    Promise.all(combinedFiles.map((f, i) => {
+      if (imagePreviews[i]) return Promise.resolve(imagePreviews[i]);
+      return new Promise<string>((res) => {
+        const r = new FileReader();
+        r.onloadend = () => res(r.result as string);
+        r.readAsDataURL(f);
+      });
+    })).then((previews) => {
+      setImageFiles(combinedFiles);
+      setImagePreviews(previews.slice(0, 4));
+    });
+    if (e.target) e.target.value = '';
+  };
+
+  const [showImageUrlModal, setShowImageUrlModal] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+
+  const addImageUrlPrompt = () => {
+    setShowImageUrlModal(true);
+  };
+
+  const submitImageUrl = () => {
+    try {
+      const trimmed = imageUrlInput.trim();
+      if (!trimmed) return setShowImageUrlModal(false);
+      if (!isValidImageUrl(trimmed)) {
+        alert('Invalid URL');
+        return;
+      }
+      setFormData((fd) => {
+        const arr = (fd.image_urls || []).slice();
+        if (arr.length >= 4) {
+          alert('Maximum 4 images allowed');
+          return fd;
+        }
+        arr.push(trimmed);
+        return { ...fd, image_urls: arr, image_url: fd.image_url || trimmed };
+      });
+      setImagePreviews((prev) => (prev.length < 4 ? [...prev, trimmed] : prev));
+      setImageUrlInput('');
+      setShowImageUrlModal(false);
+    } catch (e) {
+      console.error('Failed to add image URL', e);
+      setShowImageUrlModal(false);
+    }
+  };
+
+  const setPrimaryFromPreview = (idx: number) => {
+    const p = imagePreviews[idx];
+    if (!p) return;
+    setFormData((fd) => ({ ...fd, image_url: p }));
+  };
+
+  const setPrimaryFromRemote = (idx: number) => {
+    const arr = formData.image_urls || [];
+    const u = arr[idx];
+    if (!u) return;
+    setFormData((fd) => ({ ...fd, image_url: u }));
+  };
+
+  const removePreview = (idx: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== idx));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+    setFormData((fd) => {
+      const remaining = (fd.image_urls || []).slice();
+      if (fd.image_url && fd.image_url.startsWith('data:')) {
+        const wasPreview = imagePreviews[idx] === fd.image_url;
+        if (wasPreview) remaining;
+      }
+      return { ...fd, image_urls: remaining };
+    });
+  };
+
+  const removeRemoteImage = (idx: number) => {
+    setFormData((fd) => {
+      const arr = (fd.image_urls || []).slice();
+      const removed = arr.splice(idx, 1);
+      let primary = fd.image_url;
+      if (primary && removed[0] && primary === removed[0]) {
+        primary = arr[0] || '';
+      }
+      return { ...fd, image_urls: arr, image_url: primary };
+    });
+  };
+
+  const movePreview = (idx: number, dir: number) => {
+    setImagePreviews((prev) => {
+      const copy = prev.slice();
+      const to = idx + dir;
+      if (to < 0 || to >= copy.length) return prev;
+      const tmp = copy[to];
+      copy[to] = copy[idx];
+      copy[idx] = tmp;
+      return copy;
+    });
+    setImageFiles((prev) => {
+      const copy = prev.slice();
+      const to = idx + dir;
+      if (to < 0 || to >= copy.length) return prev;
+      const tmp = copy[to];
+      copy[to] = copy[idx];
+      copy[idx] = tmp;
+      return copy;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      // If user selected new files, upload them first and use the returned URLs
-      let imageUrlToUse = formData.image_url;
-      const imageUrls: string[] = [];
+      // Start with any existing remote image URLs and then append newly uploaded files
+      const imageUrls: string[] = (formData.image_urls || []).slice();
+      let imageUrlToUse = formData.image_url || imageUrls[0] || '';
       if (imageFiles && imageFiles.length > 0) {
         const filesToUpload = imageFiles.slice(0, 4);
         try {
@@ -243,10 +358,77 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
               multiple
               onChange={handleImageChange}
             />
+            {/* Hidden input used by the + Add Images button to append images */}
+            <input
+              ref={addInputRef}
+              type="file"
+              accept=".jfif,image/*"
+              multiple
+              style={{ display: 'none' }}
+              onChange={handleAddImages}
+            />
+            <div className="mt-2">
+              <button
+                type="button"
+                className="rounded bg-primary/10 px-3 py-1 text-sm"
+                onClick={() => addInputRef.current?.click()}
+              >
+                + Add Images
+              </button>
+            </div>
+            <div className="mt-2">
+              <button
+                type="button"
+                className="ml-2 rounded bg-secondary/10 px-3 py-1 text-sm"
+                onClick={addImageUrlPrompt}
+              >
+                + Add Image URL
+              </button>
+              <span className="ml-3 text-xs text-muted-foreground">{(formData.image_urls?.length || 0) + imagePreviews.length} / 4</span>
+            </div>
+
+            {/* Inline modal for adding image URL */}
+            {showImageUrlModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="bg-white rounded-md p-4 w-full max-w-md">
+                  <h3 className="text-lg font-medium mb-2">Add image URL</h3>
+                  <input value={imageUrlInput} onChange={(e)=>setImageUrlInput(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full rounded border px-3 py-2" />
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button onClick={()=>{ setShowImageUrlModal(false); setImageUrlInput(''); }} className="rounded px-3 py-1">Cancel</button>
+                    <button onClick={submitImageUrl} className="rounded bg-primary px-3 py-1 text-white">Add</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Remote uploaded images (from previous saves) */}
+            {formData.image_urls && formData.image_urls.length > 0 && (
+              <div className="mt-2 flex gap-2">
+                {formData.image_urls.map((u, idx) => (
+                  <div key={`remote-${idx}`} className="relative flex flex-col items-start">
+                    <img src={u} alt={`Image ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
+                    <div className="mt-1 flex gap-1">
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => setPrimaryFromRemote(idx)}>Set Primary</button>
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => removeRemoteImage(idx)}>Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Local file previews */}
             {imagePreviews && imagePreviews.length > 0 && (
               <div className="mt-2 flex gap-2">
                 {imagePreviews.map((p, idx) => (
-                  <img key={idx} src={p} alt={`Preview ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
+                  <div key={`local-${idx}`} className="relative flex flex-col items-start">
+                    <img src={p} alt={`Preview ${idx+1}`} className="h-24 w-auto rounded-md object-cover" />
+                    <div className="mt-1 flex gap-1">
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => setPrimaryFromPreview(idx)}>Set Primary</button>
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => movePreview(idx, -1)}>&larr;</button>
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => movePreview(idx, 1)}>&rarr;</button>
+                      <button type="button" className="rounded bg-gray-100 px-2 py-1 text-xs" onClick={() => removePreview(idx)}>Remove</button>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
