@@ -132,7 +132,7 @@ import Link from 'next/link';
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { formatPostTime } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
-import { Heart, Share2, MapPin, LayoutDashboard } from "lucide-react";
+import { Heart, Share2, MapPin, LayoutDashboard, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Activity } from "@/lib/types/database";
 
 const TYPE_BADGE_CLASSES: Record<string, string> = {
@@ -569,11 +569,22 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                 ))}
               </div>
 
-              {/* Overlay arrows for desktop */}
+              {/* Overlay arrows for desktop + prominent mobile buttons */}
               {images.length > 1 && (
                 <>
+                  {/* Desktop arrows (unchanged) */}
                   <button aria-label="Previous" onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-2 text-white hover:bg-black/60 hidden md:block">◀</button>
                   <button aria-label="Next" onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 p-2 text-white hover:bg-black/60 hidden md:block">▶</button>
+
+                  {/* Mobile: prominent floating buttons aligned with theme */}
+                  <div className="md:hidden absolute right-4 bottom-4 z-30 flex gap-3 items-center">
+                    <button aria-label="Previous" onClick={prevImage} className="rounded-full shadow-lg bg-white/95 p-3 text-gray-700 hover:bg-white"> 
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button aria-label="Next" onClick={nextImage} className="rounded-full shadow-lg bg-primary p-3 text-white hover:bg-primary/90"> 
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </div>
                 </>
               )}
               {showHeart && (
