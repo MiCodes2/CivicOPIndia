@@ -218,10 +218,24 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   }, []);
 
   const openImageModal = (imageUrl: string) => {
-    const idx = images.findIndex((u) => u === imageUrl);
+    const resolved = resolveUrl(imageUrl);
+    const idx = images.findIndex((u) => resolveUrl(u) === resolved);
     setModalIndex(idx >= 0 ? idx : 0);
-    setModalImage(imageUrl);
+    setModalImage(resolved);
     setModalOpen(true);
+  };
+
+  const resolveUrl = (u: string) => {
+    if (!u) return u;
+    try {
+      // absolute URL already
+      new URL(u);
+      return u;
+    } catch {
+      // relative path - prefix origin (client-only)
+      if (u.startsWith('/')) return `${window.location.origin}${u}`;
+      return u;
+    }
   };
 
   const nextImage = useCallback(() => {
