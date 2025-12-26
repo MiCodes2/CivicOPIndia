@@ -161,7 +161,7 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              {socialLinks.map((link) => {
+              {socialLinks.filter(s => s.label !== 'X').map((link) => {
                 const Icon = link.icon;
                 return (
                   <Link key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground p-1.5 rounded-full transition-colors hover:bg-gray-100" aria-label={link.label}>
@@ -173,6 +173,17 @@ export default function Navbar() {
               <button onClick={() => setShowMobileSearch((s) => !s)} aria-label="Search" className="text-muted-foreground p-1.5 rounded-full transition-colors hover:bg-gray-100">
                 <Search className="h-5 w-5" />
               </button>
+
+              {(() => {
+                const x = socialLinks.find(s => s.label === 'X');
+                if (!x) return null;
+                const Icon = x.icon;
+                return (
+                  <Link key={x.href} href={x.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground p-1.5 rounded-full transition-colors hover:bg-gray-100 ml-1" aria-label={x.label}>
+                    <Icon className="h-5 w-5" />
+                  </Link>
+                );
+              })()}
             </div>
           </div>
 
