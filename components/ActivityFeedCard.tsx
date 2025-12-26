@@ -159,6 +159,18 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [editing, setEditing] = useState(false);
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [localType, setLocalType] = useState(activity.type || 'Other');
+  // Resolve relative/absolute URLs so images load correctly in carousel and modal
+  const resolveUrl = (u: string) => {
+    if (!u) return u;
+    try {
+      new URL(u);
+      return u;
+    } catch {
+      if (u.startsWith('/')) return `${typeof window !== 'undefined' ? window.location.origin : ''}${u}`;
+      return u;
+    }
+  };
+
   // Build images list: prefer explicit `image_urls` or `image_url`,
   // but also include any image URLs embedded in `activity.content`.
   const extractImageUrlsFromContent = (content?: string) => {
@@ -179,6 +191,20 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   for (const u of inlineImages) {
     if (!images.includes(u)) images.push(u);
   }
+
+  const [clientResolvedImages, setClientResolvedImages] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    // Resolve URLs only on the client to avoid SSR hydration mismatch
+    try {
+      if (typeof window !== 'undefined') {
+        setClientResolvedImages(images.map(resolveUrl));
+      }
+    } catch (e) {
+      // ignore
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [likes, setLikes] = useState(activity.likes_count);
   const [shares, setShares] = useState(activity.shares_count);
   const [liked, setLiked] = useState(false);
@@ -225,18 +251,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     setModalOpen(true);
   };
 
-  const resolveUrl = (u: string) => {
-    if (!u) return u;
-    try {
-      // absolute URL already
-      new URL(u);
-      return u;
-    } catch {
-      // relative path - prefix origin (client-only)
-      if (u.startsWith('/')) return `${window.location.origin}${u}`;
-      return u;
-    }
-  };
 
   const nextImage = useCallback(() => {
     setCurrentIndex((i) => Math.min(images.length - 1, i + 1));
@@ -534,7 +548,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         {/* Featured image centered above content */}
         {images && images.length > 0 && (
           <div className="w-full bg-black/5">
-            <div className="w-full h-96 md:h-[520px] relative overflow-hidden bg-black">
+            <div className="w-full h-96 md:h-[520px] relative overflow-hidden bg-white">
               <div
                 className="w-full h-full flex"
                 style={{ transform: `translateX(-${currentIndex * 100}%)`, transitionProperty: 'transform', transitionDuration: `${transitionDuration}ms` }}
@@ -542,13 +556,13 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
               >
-                {images.map((src, idx) => (
+                {(clientResolvedImages ?? images).map((src, idx) => (
                   <div key={idx} className="w-full flex-shrink-0 h-full">
                     <img
                       src={src}
                       alt={`Image ${idx+1}`}
-                      className="w-full h-full object-cover cursor-pointer"
-                      onClick={() => openImageModal(src)}
+                      className="w-full h-full object-cover cursor-pointer bg-white"
+                      onClick={() => openImageModal(images[idx])}
                       onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
                     />
                   </div>
@@ -587,7 +601,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Post content with collapsible 'More' like social feeds */}
         <CollapsibleContent
-          contentHtml={formatContent(activity.content || '')}
+          contentHtml={formatContent(activity.content || '', images)}
           onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
           onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })}
           isTextOnly={images.length === 0}
@@ -665,7 +679,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           >
             Close
           </button>
-          <img src={modalImage} alt="Full image" className="max-h-[90vh] max-w-[90vw] object-contain rounded-md" />
+          <img src={modalImage} alt="Full image" className="max-h-[90vh] max-w-[90vw] object-contain rounded-md bg-white" />
         </div>
       </div>
     )}
@@ -675,7 +689,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   );
 }
 
-function formatContent(input: string) {
+function formatContent(input: string, exclude?: string[]) {
   // If it already contains block-level HTML, assume it's already formatted
   const hasBlockTags = /<(p|div|ul|ol|li|br|h[1-6]|blockquote|iframe)\b[^>]*>/i.test(input);
   if (hasBlockTags) {
@@ -691,7 +705,9 @@ processed = processed.replace(youtubeRegex, (match, videoId) => {
 
     // Image embeds
     const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
+    const excludeSet = new Set(exclude || []);
     processed = processed.replace(imageRegex, (match) => {
+      if (excludeSet.has(match)) return '';
       return `<div class="inline-image"><img src="${match}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${match.replace(/'/g, '\\\'')}')" /></div>`;
     });
 
@@ -744,8 +760,10 @@ processed = processed.replace(youtubeRegex, (match, videoId) => {
     });
 
     // Convert image placeholders to img tags
+    const excludeSet = new Set(exclude || []);
     restored = restored.replace(/__IMAGE_EMBED_([^_]+)__/g, (match, encodedUrl) => {
       const imageUrl = atob(encodedUrl);
+      if (excludeSet.has(imageUrl)) return '';
       return `<div class="inline-image"><img src="${imageUrl}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${imageUrl.replace(/'/g, '\\\'')}')" /></div>`;
     });
 
