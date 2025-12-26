@@ -23,7 +23,9 @@ export async function uploadToSupabase(buffer: Buffer, mimeType: string, fileNam
     throw new Error(error.message || 'Failed to upload to Supabase Storage');
   }
 
-  const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(path);
+  // getPublicUrl returns an object with a `data` property that contains `publicUrl`
+  const publicRes = await supabase.storage.from(bucket).getPublicUrl(path);
+  const publicUrl = (publicRes as any)?.data?.publicUrl;
   if (!publicUrl) throw new Error('Could not retrieve public URL from Supabase Storage');
 
   return { url: publicUrl, fileName };
