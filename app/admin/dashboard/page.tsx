@@ -28,13 +28,21 @@ export default function AdminDashboard() {
   }, []);
 
   const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/admin/login");
+      } else {
+        setUser(user);
+      }
+    } catch (err:any) {
+      console.warn('Supabase getUser failed in admin dashboard:', err?.message || err);
+      try { await supabase.auth.signOut(); } catch (e) {}
+      try { localStorage.removeItem('civic-op-auth'); } catch (e) {}
       router.push("/admin/login");
-    } else {
-      setUser(user);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const loadActivities = async () => {

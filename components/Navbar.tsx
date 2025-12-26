@@ -18,10 +18,17 @@ export default function Navbar() {
   const [followers, setFollowers] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check auth state
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
+    // Check auth state (handle errors like invalid/missing refresh token)
+    supabase.auth.getUser()
+      .then(({ data: { user } }) => {
+        setUser(user);
+      })
+      .catch((err:any) => {
+        console.warn('Supabase getUser failed:', err?.message || err);
+        try { supabase.auth.signOut(); } catch (e) {}
+        try { localStorage.removeItem('civic-op-auth'); } catch (e) {}
+        setUser(null);
+      });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
