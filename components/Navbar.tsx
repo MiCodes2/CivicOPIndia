@@ -77,113 +77,103 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden items-center space-x-6 md:flex">
-            <div className="w-64">
-              {/* Search in desktop nav */}
-              {/* @ts-ignore */}
-              <SearchBar />
-            </div>
-            
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              return (
+          <div className="flex items-center gap-4">
+            {/* Desktop Navigation */}
+            <div className="hidden items-center space-x-6 md:flex">
+              <div className="w-64">
+                {/* Search in desktop nav */}
+                {/* @ts-ignore */}
+                <SearchBar />
+              </div>
+              
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="flex items-center space-x-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{link.label}</span>
+                  </Link>
+                );
+              })}
+              
+              {/* Admin Links - Desktop */}
+              {user ? (
+                <>
+                  <Link
+                    href="/admin/dashboard"
+                    className="flex items-center space-x-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>Admin Panel</span>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSignOut}
+                    className="flex items-center space-x-2 text-sm font-medium"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </Button>
+                </>
+              ) : (
                 <Link
-                  key={link.href}
-                  href={link.href}
+                  href={adminLink.href}
                   className="flex items-center space-x-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                 >
-                  <Icon className="h-4 w-4" />
-                  <span>{link.label}</span>
+                  <Shield className="h-4 w-4" />
+                  <span>{adminLink.label}</span>
                 </Link>
-              );
-            })}
-            
-            {/* Admin Links - Desktop */}
-            {user ? (
-              <>
-                <Link
-                  href="/admin/dashboard"
-                  className="flex items-center space-x-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span>Admin Panel</span>
-                </Link>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSignOut}
-                  className="flex items-center space-x-2 text-sm font-medium"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Logout</span>
-                </Button>
-              </>
-            ) : (
-              <Link
-                href={adminLink.href}
-                className="flex items-center space-x-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                <Shield className="h-4 w-4" />
-                <span>{adminLink.label}</span>
-              </Link>
-            )}
-            
-            {/* Social Links Divider */}
-            <div className="h-6 w-px bg-border" />
-            
-            {/* Social Media Links */}
-            {socialLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground transition-colors hover:text-primary"
-                  aria-label={link.label}
-                >
-                  <Icon className="h-5 w-5" />
-                </Link>
-              );
-            })}
-          </div>
+              )}
+              
+              {/* Social Links Divider */}
+              <div className="h-6 w-px bg-border" />
+              
+              {/* Social Media Links */}
+              {socialLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground transition-colors hover:text-primary"
+                    aria-label={link.label}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </Link>
+                );
+              })}
+            </div>
 
-          {/* Mobile icons inline (compact) - aligned with logo */}
-          <div className="flex items-center gap-4 md:hidden">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link key={link.href} href={link.href} className="text-muted-foreground p-2 rounded-full transition-colors hover:bg-gray-100" aria-label={link.label}>
-                  <Icon className="h-5 w-5" />
-                </Link>
-              );
-            })}
-            {socialLinks.filter(s => s.label !== 'X').map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground p-2 rounded-full transition-colors hover:bg-gray-100" aria-label={link.label}>
-                  <Icon className="h-5 w-5" />
-                </Link>
-              );
-            })}
+            {/* Mobile icons inline (compact) - aligned with logo */}
+            <div className="flex items-center gap-2 md:hidden">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <Link key={link.href} href={link.href} className="text-muted-foreground p-1.5 rounded-full transition-colors hover:bg-gray-100" aria-label={link.label}>
+                    <Icon className="h-5 w-5" />
+                  </Link>
+                );
+              })}
+              {socialLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <Link key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground p-1.5 rounded-full transition-colors hover:bg-gray-100" aria-label={link.label}>
+                    <Icon className="h-5 w-5" />
+                  </Link>
+                );
+              })}
 
-            {/* Prominent X button (rightmost) */}
-            {(() => {
-              const x = socialLinks.find(s => s.label === 'X');
-              if (!x) return null;
-              const Icon = x.icon;
-              return (
-                <a href={x.href} target="_blank" rel="noopener noreferrer" aria-label="Follow us on X" className="ml-2 inline-flex items-center justify-center rounded-full bg-black text-white p-2 shadow-md hover:opacity-90">
-                  <Icon className="h-6 w-6" />
-                </a>
-              );
-            })()}
-
-            <button onClick={() => setShowMobileSearch((s) => !s)} aria-label="Search" className="text-muted-foreground p-2 rounded-full transition-colors hover:bg-gray-100">
-              <Search className="h-5 w-5" />
-            </button>
+              <button onClick={() => setShowMobileSearch((s) => !s)} aria-label="Search" className="text-muted-foreground p-1.5 rounded-full transition-colors hover:bg-gray-100">
+                <Search className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
 
