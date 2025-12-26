@@ -29,7 +29,17 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
   const router = useRouter();
   const supabase = createClient();
 
-  const [formData, setFormData] = useState({
+  interface NewEventFormState {
+    title: string;
+    content: string;
+    location: string;
+    event_date: string;
+    image_url: string;
+    image_urls: string[];
+    type: string;
+  }
+
+  const [formData, setFormData] = useState<NewEventFormState>({
     title: "",
     content: "",
     location: "",
@@ -149,7 +159,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
 
           <div className="space-y-2">
             <label className="text-sm font-medium"><ImageIcon className="mr-2 inline h-4 w-4"/> Images (optional)</label>
-            <ImagePicker max={4} initialFiles={[]} initialPreviews={imagePreviews} initialUrls={formData.image_urls} onChange={(files, previews, urls)=>{ setImageFiles(files); setImagePreviews(previews); setFormData(fd=>({ ...fd, image_urls: urls, image_url: fd.image_url || urls[0] || '' })); }} />
+            <ImagePicker max={4} initialFiles={[]} initialPreviews={imagePreviews} initialUrls={formData.image_urls} onChange={(files: File[], previews: string[], urls: string[]) => { setImageFiles(files); setImagePreviews(previews); setFormData(fd => ({ ...fd, image_urls: urls, image_url: fd.image_url || (urls && urls[0]) || '' })); }} />
           </div>
 
           {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
