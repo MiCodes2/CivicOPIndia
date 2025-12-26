@@ -3,28 +3,63 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // Collapsible content component to mimic social media 'See more' behavior
-function CollapsibleContent({ contentHtml, onDoubleClick }: { contentHtml: string; onDoubleClick?: () => void }) {
+function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const contentText = contentHtml.replace(/<[^>]*>/g, '');
-  const shouldTruncate = contentText.trim().length > 300;
+  // quick prefilter by length to avoid measuring tiny content
+  const shouldAttemptTruncate = contentText.trim().length > 150;
+  const [needsTruncate, setNeedsTruncate] = useState(false);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
+  // Measure the content to see if it actually overflows 3 lines when clamped
+  useEffect(() => {
+    if (!shouldAttemptTruncate) {
+      setNeedsTruncate(false);
+      return;
+    }
+
+    const el = contentRef.current;
+    if (!el) return;
+
+    // Temporarily apply clamp styles to measure overflow
+    const origDisplay = el.style.display;
+    const origClamp = (el.style as any).WebkitLineClamp;
+    const origBoxOrient = (el.style as any).WebkitBoxOrient;
+
+    el.style.display = '-webkit-box';
+    (el.style as any).WebkitLineClamp = '3';
+    (el.style as any).WebkitBoxOrient = 'vertical';
+
+    requestAnimationFrame(() => {
+      const isOverflowing = el.scrollHeight > el.clientHeight + 1;
+      setNeedsTruncate(isOverflowing);
+
+      // restore original inline styles (render will apply clamp when needed)
+      el.style.display = origDisplay;
+      (el.style as any).WebkitLineClamp = origClamp;
+      (el.style as any).WebkitBoxOrient = origBoxOrient;
+    });
+  }, [contentHtml, shouldAttemptTruncate]);
 
   return (
     <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
       <div
+        ref={contentRef}
         onDoubleClick={onDoubleClick}
-        className={`transition-all ${!expanded && shouldTruncate ? 'overflow-hidden' : ''}`}
-        style={(!expanded && shouldTruncate) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
+        className={`transition-all ${!expanded && needsTruncate ? 'overflow-hidden' : ''}`}
+        style={(!expanded && needsTruncate) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
         dangerouslySetInnerHTML={{ __html: contentHtml }}
       />
 
-      {shouldTruncate && (
-        <div className="mt-2">
+      {needsTruncate && (
+        <div className="mt-1">
           <button
-            className="text-sm text-primary underline"
+            className="text-sm text-muted-foreground"
             onClick={() => setExpanded((s) => !s)}
             aria-expanded={expanded}
+            style={{ background: 'transparent', border: 'none', padding: 0 }}
           >
-            {expanded ? 'Show less' : 'Show more'}
+            {!expanded ? '...more' : ' less'}
           </button>
         </div>
       )}

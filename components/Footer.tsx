@@ -104,7 +104,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/admin/login" className="text-muted-foreground transition-colors hover:text-primary">
+                <Link href="/admin/login" className="text-muted-foreground transition-colors hover:text-primary" aria-label="Admin (login)" title="Admin (login)">
                   Admin Login
                 </Link>
               </li>
