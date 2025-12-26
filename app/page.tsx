@@ -67,7 +67,7 @@ export default function HomePage() {
       <section className="border-b py-16">
         <div className="container mx-auto px-3">
           <div className="mx-auto max-w-4xl">
-            <h2 className="text-3xl font-bold">Upcoming Events</h2>
+            <h2 className="text-3xl font-bold">On-ground Events</h2>
             <p className="mt-2 text-sm text-muted-foreground">Standard events organized by the community</p>
             {/* Server-rendered event list will be hydrated on client; fetch via /api/events or render minimal placeholder here. */}
             <div id="events-list" className="mt-6">

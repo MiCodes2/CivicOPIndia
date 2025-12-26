@@ -44,11 +44,11 @@ export default function Footer() {
                 <div className="group flex items-center gap-3">
                   <div className="flex items-center gap-2 rounded-lg bg-background px-4 py-2 shadow-sm">
                     <div className="text-left">
-                      <div className="text-xs text-muted-foreground">X</div>
                       <div className="flex items-center gap-3">
+                        <div className="text-xs text-muted-foreground">X</div>
                         <a
                           href="https://x.com/CivicOp_india"
-                          className="twitter-follow-button"
+                          className="twitter-follow-button text-sm"
                           data-show-count="true"
                           data-show-screen-name="true"
                         >

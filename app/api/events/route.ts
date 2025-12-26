@@ -9,8 +9,8 @@ export async function GET() {
       .from('events')
       .select('id,title,event_date,type,location,image_url,content')
       .eq('published', true)
-      .order('event_date', { ascending: true })
-      .limit(6)
+      .order('event_date', { ascending: false })
+      .limit(4)
 
     if (error) {
       console.error('Error fetching events:', error)

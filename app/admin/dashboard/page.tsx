@@ -9,15 +9,18 @@ import { formatDateShort } from '@/lib/utils';
 import NewActivityForm from "@/components/admin/NewActivityForm";
 import NewEventForm from "@/components/admin/NewEventForm";
 import EditActivityForm from "@/components/admin/EditActivityForm";
+import EditEventForm from "@/components/admin/EditEventForm";
 import { LogOut, Activity as ActivityIcon, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
-import RefreshButton from "@/components/admin/RefreshButton";
+
 import type { Activity } from "@/lib/types/database";
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
@@ -25,6 +28,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     checkUser();
     loadActivities();
+    loadEvents();
   }, []);
 
   const checkUser = async () => {
@@ -56,6 +60,14 @@ export default function AdminDashboard() {
     }
   };
 
+  const loadEvents = async () => {
+    const { data } = await supabase
+      .from('events')
+      .select('*')
+      .order('event_date', { ascending: false });
+    if (data) setEvents(data);
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/admin/login");
@@ -77,6 +89,23 @@ export default function AdminDashboard() {
       loadActivities();
     } catch (e:any) {
       alert('Failed to delete activity: ' + (e.message || String(e)));
+    }
+  };
+
+  const handleDeleteEvent = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this event?")) return;
+    try {
+      const res = await fetch('/api/admin/delete-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || JSON.stringify(data));
+      alert('Event deleted successfully!');
+      loadEvents();
+    } catch (e:any) {
+      alert('Failed to delete event: ' + (e.message || String(e)));
     }
   };
 
@@ -112,9 +141,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="mb-6">
-        <RefreshButton />
-      </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Post/Edit Form */}
@@ -128,11 +154,17 @@ export default function AdminDashboard() {
                 loadActivities();
               }}
             />
+          ) : editingEvent ? (
+            <EditEventForm
+              event={editingEvent}
+              onCancel={() => setEditingEvent(null)}
+              onSuccess={() => { setEditingEvent(null); loadEvents(); }}
+            />
           ) : (
             <>
               <NewActivityForm onSuccess={loadActivities} />
               <div className="mt-6">
-                <NewEventForm onSuccess={loadActivities} />
+                <NewEventForm onSuccess={loadEvents} />
               </div>
             </>
           )}
@@ -149,6 +181,10 @@ export default function AdminDashboard() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Activities</span>
                 <span className="font-bold">{activities.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Events</span>
+                <span className="font-bold">{events.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Account</span>
@@ -215,6 +251,65 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground">
                   No activities yet. Create your first post!
                 </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* All Events */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All Events</CardTitle>
+              <CardDescription>Manage events (create, edit, delete)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {events.length > 0 ? (
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {(() => {
+                    const groups: Record<string, typeof events> = {};
+                    for (const e of events) {
+                      const d = new Date(e.event_date || e.created_at || '');
+                      if (isNaN(d.getTime())) continue;
+                      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                      if (!groups[key]) groups[key] = [];
+                      groups[key].push(e);
+                    }
+                    const keys = Object.keys(groups).sort((a,b)=> b.localeCompare(a));
+                    return keys.map((k) => {
+                      const [yr, mo] = k.split('-');
+                      const label = new Date(Number(yr), Number(mo)-1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+                      return (
+                        <div key={k} className="mb-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <div className="text-sm font-medium">{label}</div>
+                              <div className="text-xs text-muted-foreground">{groups[k].length} event{groups[k].length !== 1 ? 's' : ''}</div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {groups[k].map((ev) => (
+                              <div key={ev.id} className="rounded-lg border p-3 text-sm">
+                                <div className="font-medium">{ev.title}</div>
+                                <div className="mt-1 text-xs text-muted-foreground">{formatDateShort(ev.event_date)}</div>
+                                <div className="mt-2 flex gap-2">
+                                  <Button size="sm" variant="outline" onClick={() => setEditingEvent(ev)}>
+                                    <Edit className="h-3 w-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleDeleteEvent(ev.id)}>
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No events yet. Create your first event!</p>
               )}
             </CardContent>
           </Card>

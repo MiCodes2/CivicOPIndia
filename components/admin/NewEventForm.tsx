@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
+import ImagePicker from "@/components/admin/ImagePicker";
 
 interface NewEventFormProps {
   onSuccess?: () => void;
@@ -34,8 +35,13 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
     location: "",
     event_date: new Date().toISOString().split("T")[0],
     image_url: "",
+    image_urls: [],
     type: EVENT_TYPES[0],
   });
+
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,12 +64,42 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
         published: true,
       };
 
+      // If files were selected via ImagePicker, upload them first (limit to 4)
+      const imageUrls: string[] = [];
+      if (imageFiles && imageFiles.length > 0) {
+        const filesToUpload = imageFiles.slice(0, 4);
+        try {
+          const uploads = await Promise.all(filesToUpload.map(async (file) => {
+            const fd = new FormData();
+            fd.append('file', file);
+            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+            if (!res.ok) {
+              const bodyText = await res.text().catch(() => null);
+              throw new Error(`Upload failed (${res.status})${bodyText ? ': ' + bodyText : ''}`);
+            }
+            const d = await res.json();
+            if (!d?.url) throw new Error('Upload did not return a URL');
+            return d.url;
+          }));
+          imageUrls.push(...uploads.filter(Boolean));
+        } catch (uploadErr) {
+          throw uploadErr;
+        }
+      }
+
+      // Merge any image URLs added via ImagePicker's URL input
+      const finalImageUrls = [...(formData.image_urls || []), ...imageUrls].slice(0, 4);
+      if (finalImageUrls.length > 0 && !payload.image_url) payload.image_url = finalImageUrls[0];
+      if (finalImageUrls.length > 0) (payload as any).image_urls = finalImageUrls;
+
       // Insert into the dedicated `events` table
       const insertResult = await supabase.from('events').insert([payload]).select();
       const insertError = (insertResult as any).error || (Array.isArray(insertResult) && insertResult[1]) || null;
       if (insertError) throw insertError;
 
-      setFormData({ title: "", content: "", location: "", event_date: new Date().toISOString().split('T')[0], image_url: "", type: EVENT_TYPES[0] });
+      setFormData({ title: "", content: "", location: "", event_date: new Date().toISOString().split('T')[0], image_url: "", type: EVENT_TYPES[0], image_urls: [] });
+      setImageFiles([]);
+      setImagePreviews([]);
       if (onSuccess) onSuccess();
       router.refresh();
       alert('Event created')
@@ -112,8 +148,8 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium"><ImageIcon className="mr-2 inline h-4 w-4"/> Image URL (optional)</label>
-            <Input value={formData.image_url} onChange={(e)=>setFormData({...formData, image_url: e.target.value})} />
+            <label className="text-sm font-medium"><ImageIcon className="mr-2 inline h-4 w-4"/> Images (optional)</label>
+            <ImagePicker max={4} initialFiles={[]} initialPreviews={imagePreviews} initialUrls={formData.image_urls} onChange={(files, previews, urls)=>{ setImageFiles(files); setImagePreviews(previews); setFormData(fd=>({ ...fd, image_urls: urls, image_url: fd.image_url || urls[0] || '' })); }} />
           </div>
 
           {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}

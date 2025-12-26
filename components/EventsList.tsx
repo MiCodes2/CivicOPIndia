@@ -46,28 +46,36 @@ export default function EventsList() {
     return text.length > n ? text.slice(0, n).trim() + '…' : text;
   }
 
+  const sortedEvents = [...events].sort((a,b) => new Date(b.event_date ?? b.activity_date ?? '').getTime() - new Date(a.event_date ?? a.activity_date ?? '').getTime());
+
   return (
-    <div className="mt-6 grid gap-4 md:grid-cols-2">
-      {events.map(ev => (
-        <Card key={ev.id} className="flex flex-col">
-          {ev.image_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={ev.image_url} alt={ev.title} className="h-40 w-full object-cover rounded-t-md" />
-          )}
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">{ev.title}</CardTitle>
-              <div className="text-sm text-muted-foreground">{ev.type}</div>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">{new Date(ev.event_date ?? ev.activity_date ?? '').toLocaleDateString()}</div>
-            <div className="mt-3 text-sm text-muted-foreground">{ev.location}</div>
-            <div className="mt-3 text-sm">{excerpt(ev.content)}</div>
-            <div className="mt-4">
-              <Button asChild size="sm"><Link href={`/events/${ev.id}`}>View Details</Link></Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="mt-6 mb-6">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+        {sortedEvents.map(ev => (
+          <Card key={ev.id} className="flex flex-col text-sm !py-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {ev.image_url && (
+              <img src={ev.image_url} alt={ev.title} className="h-16 w-full object-cover rounded-t-md" />
+            )}
+            <CardContent className="px-3 py-2">
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-sm line-clamp-2 mb-0">{ev.title}</CardTitle>
+                <div className="text-xs text-muted-foreground">{ev.type}</div>
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">{new Date(ev.event_date ?? ev.activity_date ?? '').toLocaleDateString()}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{ev.location}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{excerpt(ev.content, 50)}</div>
+              <div className="mt-2">
+                <Button asChild size="sm"><Link href={`/events/${ev.id}`}>View</Link></Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="mt-4 flex justify-end mb-6">
+        <Button asChild size="sm" variant="ghost"><Link href="/events">..more</Link></Button>
+      </div>
     </div>
   )
 }
