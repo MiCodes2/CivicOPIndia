@@ -33,6 +33,32 @@ export function formatDateLong(date?: string | Date) {
   }
 }
 
+export function formatPostTime(date?: string | Date) {
+  if (!date) return "";
+  const d = new Date(date);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.round(diffMs / 60000);
+  if (diffMins < 1) return 'now';
+  if (diffMins < 60) return `${diffMins}m`;
+  const diffHours = Math.round(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const isOlderThanYear = diffDays > 365;
+
+  try {
+    if (isOlderThanYear) {
+      return new Intl.DateTimeFormat('en-GB', { month: 'short', day: '2-digit', year: 'numeric' }).format(d);
+    }
+    return new Intl.DateTimeFormat('en-GB', { month: 'short', day: '2-digit' }).format(d);
+  } catch (e) {
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    if (isOlderThanYear) return `${monthNames[d.getMonth()]} ${String(d.getDate()).padStart(2,'0')}, ${d.getFullYear()}`;
+    return `${monthNames[d.getMonth()]} ${String(d.getDate()).padStart(2,'0')}`;
+  }
+}
+
 export function extractHashtags(content?: string) {
   if (!content) return [] as string[];
   // strip HTML tags

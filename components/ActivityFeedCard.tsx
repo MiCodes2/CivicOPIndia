@@ -3,55 +3,116 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // Collapsible content component to mimic social media 'See more' behavior
-function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void }) {
+function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
   const [expanded, setExpanded] = useState(false);
   const contentText = contentHtml.replace(/<[^>]*>/g, '');
   // quick prefilter by length to avoid measuring tiny content
   const shouldAttemptTruncate = contentText.trim().length > 150;
   const [needsTruncate, setNeedsTruncate] = useState(false);
+  const [measuring, setMeasuring] = useState<boolean>(shouldAttemptTruncate);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   // Measure the content to see if it actually overflows 3 lines when clamped
+  // and ensure text-only posts are only toggled if they exceed `minLinesForToggle` lines
   useEffect(() => {
     if (!shouldAttemptTruncate) {
       setNeedsTruncate(false);
+      setMeasuring(false);
       return;
     }
 
     const el = contentRef.current;
-    if (!el) return;
+    if (!el) {
+      setMeasuring(false);
+      return;
+    }
 
-    // Temporarily apply clamp styles to measure overflow
     const origDisplay = el.style.display;
     const origClamp = (el.style as any).WebkitLineClamp;
     const origBoxOrient = (el.style as any).WebkitBoxOrient;
 
-    el.style.display = '-webkit-box';
-    (el.style as any).WebkitLineClamp = '3';
-    (el.style as any).WebkitBoxOrient = 'vertical';
+    try {
+      // Measure full content height without clamp
+      el.style.display = 'block';
+      (el.style as any).WebkitLineClamp = '';
+      (el.style as any).WebkitBoxOrient = '';
 
-    requestAnimationFrame(() => {
-      const isOverflowing = el.scrollHeight > el.clientHeight + 1;
-      setNeedsTruncate(isOverflowing);
+      requestAnimationFrame(() => {
+        const fullHeight = el.scrollHeight;
 
-      // restore original inline styles (render will apply clamp when needed)
-      el.style.display = origDisplay;
-      (el.style as any).WebkitLineClamp = origClamp;
-      (el.style as any).WebkitBoxOrient = origBoxOrient;
-    });
-  }, [contentHtml, shouldAttemptTruncate]);
+        // Measure a reliable line height by inserting a hidden span
+        let lineHeight = 0;
+        try {
+          const span = document.createElement('span');
+          span.textContent = 'A';
+          span.style.visibility = 'hidden';
+          span.style.position = 'absolute';
+          span.style.whiteSpace = 'nowrap';
+          el.appendChild(span);
+          const rect = span.getBoundingClientRect();
+          lineHeight = rect.height || 0;
+          el.removeChild(span);
+        } catch (err) {
+          // ignore and fallback
+        }
+
+        // Fallback if measurement failed
+        if (!lineHeight) {
+          const cs = window.getComputedStyle(el);
+          const fontSize = parseFloat(cs.fontSize || '16') || 16;
+          lineHeight = Math.round(fontSize * 1.4);
+        }
+
+        const fullLines = Math.round(fullHeight / lineHeight);
+        const exceedsMin = fullLines >= minLinesForToggle;
+
+        // Now clamp to 3 lines to see if content will overflow the collapsed view
+        el.style.display = '-webkit-box';
+        (el.style as any).WebkitLineClamp = '3';
+        (el.style as any).WebkitBoxOrient = 'vertical';
+
+        requestAnimationFrame(() => {
+          const isOverflowing = el.scrollHeight > el.clientHeight + 1;
+
+          // For text-only posts, only show toggle when content exceeds minLinesForToggle
+          const willShow = isOverflowing && (!isTextOnly || (isTextOnly && exceedsMin));
+          setNeedsTruncate(willShow);
+          setMeasuring(false);
+
+          // restore original inline styles
+          el.style.display = origDisplay;
+          (el.style as any).WebkitLineClamp = origClamp;
+          (el.style as any).WebkitBoxOrient = origBoxOrient;
+        });
+      });
+    } catch (e) {
+      // Fallback: simple overflow check with 3-line clamp
+      el.style.display = '-webkit-box';
+      (el.style as any).WebkitLineClamp = '3';
+      (el.style as any).WebkitBoxOrient = 'vertical';
+      requestAnimationFrame(() => {
+        const isOverflowing = el.scrollHeight > el.clientHeight + 1;
+        setNeedsTruncate(isOverflowing);
+        setMeasuring(false);
+
+        el.style.display = origDisplay;
+        (el.style as any).WebkitLineClamp = origClamp;
+        (el.style as any).WebkitBoxOrient = origBoxOrient;
+      });
+    }
+  }, [contentHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
 
   return (
     <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
-        className={`transition-all ${!expanded && needsTruncate ? 'overflow-hidden' : ''}`}
-        style={(!expanded && needsTruncate) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
+        className={`transition-all ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
+        style={!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
         dangerouslySetInnerHTML={{ __html: contentHtml }}
       />
 
-      {needsTruncate && (
+      {(!measuring && needsTruncate) && (
         <div className="mt-1">
           <button
             className="text-sm text-muted-foreground"
@@ -67,10 +128,11 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike }: { c
   );
 }
 
+import Link from 'next/link';
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
-import { formatDateShort, formatDateLong } from '@/lib/utils';
+import { formatPostTime } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
-import { Heart, Share2, Calendar, MapPin } from "lucide-react";
+import { Heart, Share2, MapPin, LayoutDashboard } from "lucide-react";
 import type { Activity } from "@/lib/types/database";
 
 const TYPE_BADGE_CLASSES: Record<string, string> = {
@@ -420,11 +482,25 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
-              <div className="text-sm font-medium">{activity.author_name || 'Unknown'}</div>
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-medium">{activity.author_name || 'Unknown'}</div>
+                <div className="text-xs text-muted-foreground">{formatPostTime(activity.activity_date)}</div>
+              </div>
+              {activity.location && (
+                <div className="mt-0 text-xs text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  <span>{activity.location}</span>
+                </div>
+              )}
             </div>
           </div>
-              <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             {/* type badge intentionally rendered at top-right as absolute element to avoid duplication */}
+            {isAdmin && (
+              <Link href="/admin/dashboard" title="Admin Panel" className="text-muted-foreground p-1.5 rounded-full hover:bg-gray-100">
+                <LayoutDashboard className="h-4 w-4" />
+              </Link>
+            )}
           </div>
         </div>
 
@@ -483,7 +559,13 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Post content with collapsible 'More' like social feeds */}
-        <CollapsibleContent contentHtml={formatContent(activity.content || '')} onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })} onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })} />
+        <CollapsibleContent
+          contentHtml={formatContent(activity.content || '')}
+          onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
+          onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })}
+          isTextOnly={images.length === 0}
+          minLinesForToggle={6}
+        />
 
         {/* Thumbnails / additional images as centered horizontal strip */}
         {/* indicators only (thumbnails removed for Instagram-style swipe) */}
@@ -497,19 +579,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
-        {/* Metadata */}
-        <div className="mb-4 space-y-2 text-sm text-muted-foreground px-4 md:px-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span>{formatDateLong(activity.activity_date)}</span>
-          </div>
-          {activity.location && (
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              <span>{activity.location}</span>
-            </div>
-          )}
-        </div>
+
 
         {/* Admin quick-edit */}
         {isAdmin && (
