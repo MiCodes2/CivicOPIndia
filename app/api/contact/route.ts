@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: "citizens.east.blr@gmail.com",
-      subject: `Contact Form: ${subject}`,
+      subject: `Contact Form [Civic Opposition of India]: ${subject}`,
       html: `
         <h2>New Contact Form Submission</h2>
         <table style="border-collapse: collapse; width: 100%;">

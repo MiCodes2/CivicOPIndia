@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: "citizens.east.blr@gmail.com",
-      subject: `New Citizen Issue: ${issueName}`,
+      subject: `New Citizen Issue [Civic Opposition of India]: ${issueName}`,
       html: `
         <h2>New Citizen Issue Report</h2>
         <table style="border-collapse: collapse; width: 100%;">

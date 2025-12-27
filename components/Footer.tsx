@@ -93,6 +93,11 @@ export default function Footer() {
                   Activities
                 </Link>
               </li>
+              <li>
+                <Link href="/citizens-issue" className="text-muted-foreground transition-colors hover:text-primary">
+                  Report Issue
+                </Link>
+              </li>
                 <li>
                   <Link href="/about" className="text-muted-foreground transition-colors hover:text-primary">
                     About
