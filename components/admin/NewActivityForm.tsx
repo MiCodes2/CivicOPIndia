@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
 import ImagePicker from "@/components/admin/ImagePicker";
+import ImageLightbox from '@/components/admin/ImageLightbox';
 
 interface NewActivityFormProps {
   onSuccess?: () => void;
@@ -48,6 +49,8 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const DRAFT_KEY = 'activity_draft_v1';
   const DRAFTS_KEY = 'activity_drafts_v1';
 
@@ -363,18 +366,18 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         throw new Error("You must be logged in to create activities");
       }
 
-      const imageUrls: string[] = [];
+      // Start with any image URLs already present (pasted or added via ImagePicker)
+      const imageUrls: string[] = (formData.image_urls || []).slice();
 
       // Handle multiple file uploads if files were selected (limit to 4)
       if (imageFiles && imageFiles.length > 0) {
-        const filesToUpload = imageFiles.slice(0, 4);
+        const filesToUpload = imageFiles.slice(0, 4 - imageUrls.length);
         try {
           const uploads = await Promise.all(filesToUpload.map(async (file) => {
             const fd = new FormData();
             fd.append('file', file);
             const res = await fetch('/api/upload', { method: 'POST', body: fd });
             if (!res.ok) {
-              // surface server response and abort instead of fabricating a URL
               const bodyText = await res.text().catch(() => null);
               console.error('Upload failed for file', file.name, 'status', res.status, bodyText);
               throw new Error(`Upload failed (${res.status})${bodyText ? ': ' + bodyText : ''}`);
@@ -387,7 +390,6 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
           imageUrls.push(...uploads.filter(Boolean));
         } catch (uploadError) {
           console.error('Upload error:', uploadError);
-          // abort submission when uploads fail so we don't create activities pointing to non-existent files
           throw uploadError;
         }
       }
@@ -417,6 +419,10 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         author_id: user.id,
         author_name: 'Civic Admin',
       };
+
+      // Preserve the full array of image URLs on the activity when present
+      const finalImageUrls = [...(formData.image_urls || []), ...imageUrls].slice(0, 4);
+      if (finalImageUrls.length > 0) (payload as any).image_urls = finalImageUrls;
 
       console.log('Insert Payload:', payload);
 
@@ -599,12 +605,72 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
               initialFiles={imageFiles}
               initialPreviews={imagePreviews}
               initialUrls={formData.image_urls}
+              showPreviews={false}
               onChange={(files, previews, urls, captions) => {
                 setImageFiles(files);
                 setImagePreviews(previews);
                 setFormData((fd) => ({ ...fd, image_urls: urls, image_url: fd.image_url || urls[0] || previews[0] || '' }));
               }}
             />
+
+            {/* Gallery preview: show all selected and embedded images */}
+            {((imagePreviews || []).length > 0 || (formData.image_urls || []).length > 0) && (() => {
+              const all = Array.from(new Set([...(imagePreviews || []), ...(formData.image_urls || [])]));
+              const count = all.length;
+              return (
+                <div className="mt-3">
+                  <div className="text-xs text-muted-foreground mb-2">Images in this post</div>
+
+                  {count === 3 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="col-span-1 row-span-2 relative overflow-hidden rounded-md">
+                        <img src={all[0]} alt="img-0" className="w-full h-full object-cover cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} />
+                        {formData.image_url === all[0] && <span className="absolute top-2 left-2 bg-white/80 text-xs px-2 py-0.5 rounded">Primary</span>}
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          <button type="button" onClick={() => setFormData(fd => ({ ...fd, image_url: all[0] }))} className="bg-white/80 px-2 py-0.5 text-xs rounded">Primary</button>
+                          <button type="button" onClick={() => setFormData(fd => ({ ...fd, image_urls: (fd.image_urls || []).filter(u => u !== all[0]) }))} className="bg-white/80 px-2 py-0.5 text-xs rounded">Remove</button>
+                        </div>
+                      </div>
+                      <div className="col-span-1 grid grid-rows-2 gap-2">
+                        <div className="relative overflow-hidden rounded-md">
+                          <img src={all[1]} alt="img-1" className="w-full h-full object-cover cursor-pointer" onClick={() => { setLightboxIndex(1); setLightboxOpen(true); }} />
+                          {formData.image_url === all[1] && <span className="absolute top-2 left-2 bg-white/80 text-xs px-2 py-0.5 rounded">Primary</span>}
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <button type="button" onClick={() => setFormData(fd => ({ ...fd, image_url: all[1] }))} className="bg-white/80 px-2 py-0.5 text-xs rounded">Primary</button>
+                            <button type="button" onClick={() => setFormData(fd => ({ ...fd, image_urls: (fd.image_urls || []).filter(u => u !== all[1]) }))} className="bg-white/80 px-2 py-0.5 text-xs rounded">Remove</button>
+                          </div>
+                        </div>
+                        <div className="relative overflow-hidden rounded-md">
+                          <img src={all[2]} alt="img-2" className="w-full h-full object-cover cursor-pointer" onClick={() => { setLightboxIndex(2); setLightboxOpen(true); }} />
+                          {formData.image_url === all[2] && <span className="absolute top-2 left-2 bg-white/80 text-xs px-2 py-0.5 rounded">Primary</span>}
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <button type="button" onClick={() => setFormData(fd => ({ ...fd, image_url: all[2] }))} className="bg-white/80 px-2 py-0.5 text-xs rounded">Primary</button>
+                            <button type="button" onClick={() => setFormData(fd => ({ ...fd, image_urls: (fd.image_urls || []).filter(u => u !== all[2]) }))} className="bg-white/80 px-2 py-0.5 text-xs rounded">Remove</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`grid gap-2 ${count === 1 ? 'grid-cols-1' : count === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                      {all.map((src, idx) => (
+                        <div key={idx} className="relative rounded overflow-hidden bg-gray-50">
+                          <img src={src} alt={`preview-${idx}`} className="w-full h-32 object-cover cursor-pointer" onClick={() => { setLightboxIndex(idx); setLightboxOpen(true); }} />
+                          <div className="absolute top-1 right-1 flex gap-1">
+                            <button type="button" onClick={() => setFormData(fd => ({ ...fd, image_url: src }))} className="bg-white/80 px-2 py-0.5 text-xs rounded">Primary</button>
+                            <button type="button" onClick={() => setFormData(fd => ({ ...fd, image_urls: (fd.image_urls || []).filter(u => u !== src) }))} className="bg-white/80 px-2 py-0.5 text-xs rounded">Remove</button>
+                          </div>
+                          {formData.image_url === src && <span className="absolute top-2 left-2 bg-white/80 text-xs px-2 py-0.5 rounded">Primary</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {lightboxOpen && <ImageLightbox images={all} index={lightboxIndex} onClose={() => setLightboxOpen(false)} onPrev={() => setLightboxIndex(i => Math.max(0, i-1))} onNext={() => setLightboxIndex(i => Math.min(all.length-1, i+1))} />}
+
+                </div>
+              );
+            })()}
+
           </div>
 
           <div className="space-y-2">

@@ -13,6 +13,7 @@ import EditEventForm from "@/components/admin/EditEventForm";
 import MetricsChart from '@/components/admin/MetricsChart';
 import { LogOut, Activity as ActivityIcon, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { decodeHtmlEntities } from '@/lib/formatContent';
 
 import type { Activity } from "@/lib/types/database";
 
@@ -220,7 +221,7 @@ export default function AdminDashboard() {
                           <div className="space-y-2">
                             {groups[k].map((activity) => (
                               <div key={activity.id} className="rounded-lg border p-3 text-sm">
-                                <div className="font-medium">{activity.title}</div>
+                                <div className="font-medium">{decodeHtmlEntities(activity.title)}</div>
                                 <div className="mt-1 text-xs text-muted-foreground">{formatDateShort(activity.activity_date)}</div>
                                 <div className="mt-2 flex gap-2">
                                   <Button size="sm" variant="outline" onClick={() => setEditingActivity(activity)}>
@@ -271,7 +272,7 @@ export default function AdminDashboard() {
                             <div className="space-y-2">
                               {groups[k].map((ev) => (
                                 <div key={ev.id} className="rounded-lg border p-3 text-sm">
-                                  <div className="font-medium">{ev.title}</div>
+                                  <div className="font-medium">{decodeHtmlEntities(ev.title)}</div>
                                   <div className="mt-1 text-xs text-muted-foreground">{formatDateShort(ev.event_date)}</div>
                                   <div className="mt-2 flex gap-2">
                                     <Button size="sm" variant="outline" onClick={() => setEditingEvent(ev)}>

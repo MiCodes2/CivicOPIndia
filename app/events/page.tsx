@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { decodeHtmlEntities } from '@/lib/formatContent'
 
 export const metadata = { title: 'Events' }
 
@@ -30,7 +31,7 @@ export default async function EventsPage() {
                 )}
                 <CardContent className="px-3 py-1">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base line-clamp-2 mb-0">{ev.title}</CardTitle>
+                    <CardTitle className="text-base line-clamp-2 mb-0">{decodeHtmlEntities(ev.title)}</CardTitle>
                     <div className="text-xs text-muted-foreground">{ev.type}</div>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">{new Date(ev.event_date ?? '').toLocaleDateString()}</div>

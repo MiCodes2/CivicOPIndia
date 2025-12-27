@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import ImageLightbox from '@/components/admin/ImageLightbox';
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,6 +123,8 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
 
   const [showImageUrlModal, setShowImageUrlModal] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState('');
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const addImageUrlPrompt = () => {
     setShowImageUrlModal(true);
@@ -167,28 +170,31 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
   };
 
   const removePreview = (idx: number) => {
+    const removedPreview = imagePreviews[idx];
     setImageFiles((prev) => prev.filter((_, i) => i !== idx));
     setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
     setFormData((fd) => {
       const remaining = (fd.image_urls || []).slice();
-      if (fd.image_url && fd.image_url.startsWith('data:')) {
-        const wasPreview = imagePreviews[idx] === fd.image_url;
-        if (wasPreview) remaining;
-      }
       return { ...fd, image_urls: remaining };
     });
+    // If the preview corresponds to a remote url, mark it for deletion
+    if (removedPreview && (formData.image_urls || []).some(u => normalizeUrl(u) === normalizeUrl(removedPreview))) {
+      setDeletedFiles((prev) => Array.from(new Set([...prev, removedPreview])));
+    }
   };
 
   const removeRemoteImage = (idx: number) => {
+    const removedUrl = (formData.image_urls || [])[idx];
     setFormData((fd) => {
       const arr = (fd.image_urls || []).slice();
-      const removed = arr.splice(idx, 1);
+      arr.splice(idx, 1);
       let primary = fd.image_url;
-      if (primary && removed[0] && primary === removed[0]) {
+      if (primary && removedUrl && primary === removedUrl) {
         primary = arr[0] || '';
       }
       return { ...fd, image_urls: arr, image_url: primary };
     });
+    if (removedUrl) setDeletedFiles((prev) => Array.from(new Set([...prev, removedUrl])));
   };
 
   const movePreview = (idx: number, dir: number) => {
@@ -336,6 +342,67 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
               onChange={(content) => setFormData({ ...formData, content })}
               placeholder="Describe the activity in detail... Use the toolbar to format text and add links."
             />
+
+            {/* Gallery preview for all images (image_urls + embedded images) */}
+            {((imagePreviews || []).length > 0 || (formData.image_urls || []).length > 0) && (() => {
+              const all = Array.from(new Set([...(imagePreviews || []), ...(formData.image_urls || [])]));
+              const count = all.length;
+              return (
+                <div className="mt-3">
+                  <div className="text-xs text-muted-foreground mb-2">Images in this post</div>
+
+                  {/* 3-image special layout */}
+                  {count === 3 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="col-span-1 row-span-2 relative overflow-hidden rounded-md">
+                        <img src={all[0]} alt="img-0" className="w-full h-full object-cover" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} />
+                        {formData.image_url === all[0] && <span className="absolute top-2 left-2 bg-white/80 text-xs px-2 py-0.5 rounded">Primary</span>}
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          <button type="button" onClick={() => setPrimaryFromPreview(0)} className="bg-white/80 px-2 py-0.5 text-xs rounded">Primary</button>
+                          <button type="button" onClick={() => { const pIndex = (imagePreviews || []).indexOf(all[0]); if (pIndex>=0) removePreview(pIndex); else { const rIndex=(formData.image_urls||[]).indexOf(all[0]); if(rIndex>=0) removeRemoteImage(rIndex);} }} className="bg-white/80 px-2 py-0.5 text-xs rounded">Remove</button>
+                        </div>
+                      </div>
+                      <div className="col-span-1 grid grid-rows-2 gap-2">
+                        <div className="relative overflow-hidden rounded-md">
+                          <img src={all[1]} alt="img-1" className="w-full h-full object-cover" onClick={() => { setLightboxIndex(1); setLightboxOpen(true); }} />
+                          {formData.image_url === all[1] && <span className="absolute top-2 left-2 bg-white/80 text-xs px-2 py-0.5 rounded">Primary</span>}
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <button type="button" onClick={() => setPrimaryFromRemote(0)} className="bg-white/80 px-2 py-0.5 text-xs rounded">Primary</button>
+                            <button type="button" onClick={() => { const pIndex = (imagePreviews || []).indexOf(all[1]); if (pIndex>=0) removePreview(pIndex); else { const rIndex=(formData.image_urls||[]).indexOf(all[1]); if(rIndex>=0) removeRemoteImage(rIndex);} }} className="bg-white/80 px-2 py-0.5 text-xs rounded">Remove</button>
+                          </div>
+                        </div>
+                        <div className="relative overflow-hidden rounded-md">
+                          <img src={all[2]} alt="img-2" className="w-full h-full object-cover" onClick={() => { setLightboxIndex(2); setLightboxOpen(true); }} />
+                          {formData.image_url === all[2] && <span className="absolute top-2 left-2 bg-white/80 text-xs px-2 py-0.5 rounded">Primary</span>}
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <button type="button" onClick={() => setPrimaryFromRemote(1)} className="bg-white/80 px-2 py-0.5 text-xs rounded">Primary</button>
+                            <button type="button" onClick={() => { const pIndex = (imagePreviews || []).indexOf(all[2]); if (pIndex>=0) removePreview(pIndex); else { const rIndex=(formData.image_urls||[]).indexOf(all[2]); if(rIndex>=0) removeRemoteImage(rIndex);} }} className="bg-white/80 px-2 py-0.5 text-xs rounded">Remove</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`grid gap-2 ${count === 1 ? 'grid-cols-1' : count === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                      {all.map((src, idx) => (
+                        <div key={idx} className="relative rounded overflow-hidden bg-gray-50">
+                          <img src={src} alt={`preview-${idx}`} className="w-full h-32 object-cover cursor-pointer" onClick={() => { setLightboxIndex(idx); setLightboxOpen(true); }} />
+                          <div className="absolute top-1 right-1 flex gap-1">
+                            <button type="button" onClick={() => setPrimaryFromPreview(idx)} className="bg-white/80 px-2 py-0.5 text-xs rounded">Primary</button>
+                            <button type="button" onClick={() => { const pIndex = (imagePreviews || []).indexOf(src); if (pIndex>=0) removePreview(pIndex); else { const rIndex=(formData.image_urls||[]).indexOf(src); if(rIndex>=0) removeRemoteImage(rIndex);} }} className="bg-white/80 px-2 py-0.5 text-xs rounded">Remove</button>
+                          </div>
+                          {formData.image_url === src && <span className="absolute top-2 left-2 bg-white/80 text-xs px-2 py-0.5 rounded">Primary</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Lightbox */}
+                  {lightboxOpen && <ImageLightbox images={all} index={lightboxIndex} onClose={() => setLightboxOpen(false)} onPrev={() => setLightboxIndex(i => Math.max(0, i-1))} onNext={() => setLightboxIndex(i => Math.min(all.length-1, i+1))} />}
+
+                </div>
+              );
+            })()}
+
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -412,13 +479,11 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
               initialFiles={imageFiles}
               initialPreviews={imagePreviews}
               initialUrls={formData.image_urls}
-              onChange={(files, previews, urls, captions) => {                // Track remote URLs that were removed so we can delete them from storage
-                const removed = initialRemoteUrlsRef.current.filter((u) => !urls.some((v) => normalizeUrl(u) === normalizeUrl(v)));
-                // If user re-added a previously deleted file, remove it from deletedFiles
-                setDeletedFiles((prev) => {
-                  const filtered = prev.filter((u) => !urls.some((v) => normalizeUrl(u) === normalizeUrl(v)));
-                  return Array.from(new Set([...filtered, ...removed]));
-                });
+              showPreviews={false}
+              onChange={(files, previews, urls, captions) => {
+                // Update local state - do not auto-mark images as deleted on change. Deletion is explicit via Remove.
+                // If a previously-deleted remote URL is re-added, undo deletion.
+                setDeletedFiles((prev) => prev.filter((u) => urls.some((v) => normalizeUrl(u) === normalizeUrl(v))));
                 initialRemoteUrlsRef.current = urls.slice();
                 setImageFiles(files);
                 setImagePreviews(previews);

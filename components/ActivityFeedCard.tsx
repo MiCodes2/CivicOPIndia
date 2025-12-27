@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { formatContent, decodeHtmlEntities } from '@/lib/formatContent';
 
 // Collapsible content component to mimic social media 'See more' behavior
 function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
@@ -179,7 +180,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   // but also include any image URLs embedded in `activity.content`.
   const extractImageUrlsFromContent = (content?: string) => {
     if (!content) return [] as string[];
-    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
+    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
     const matches = Array.from((content || '').matchAll(imageRegex)).map(m => m[0]);
     return matches;
   };
@@ -769,7 +770,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         {/* Post title (renders after the image, or above content when no image) */}
         {activity.title && activity.title.trim() !== '' && (
           <div className="px-4 md:px-4 mt-3 mb-4">
-            <h2 className="text-lg md:text-xl font-semibold leading-tight">{activity.title}</h2>
+            <h2 className="text-lg md:text-xl font-semibold leading-tight">{decodeHtmlEntities(activity.title)}</h2>
           </div>
         )}
 
@@ -889,7 +890,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   );
 }
 
-function formatContent(input: string, exclude?: string[]) {
+function _formatContent_removed(input: string, exclude?: string[]) {
+  return formatContent(input, exclude);
   // Helper: convert #hashtags in a block of HTML/text to clickable links
   function linkifyHashtags(html: string) {
     return html.replace(/(^|[^A-Za-z0-9_\/\-])#([a-zA-Z0-9_-]+)/g, (match, pre, tag) => {
@@ -912,7 +914,7 @@ processed = processed.replace(youtubeRegex, (match, videoId) => {
 });
 
     // Image embeds
-    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
+    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
     const excludeSet = new Set(exclude || []);
     processed = processed.replace(imageRegex, (match) => {
       if (excludeSet.has(match)) return '';
@@ -947,7 +949,7 @@ processed = processed.replace(youtubeRegex, (match, videoId) => {
     });
 
     // Check for image URLs and convert them to img tags
-    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico)(?:\?[^\s]*)?)/gi;
+    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
     processed = processed.replace(imageRegex, (match) => {
       return `__IMAGE_EMBED_${btoa(match)}__`;
     });
@@ -985,14 +987,5 @@ processed = processed.replace(youtubeRegex, (match, videoId) => {
   });
 
   return paragraphs.join("\n");
-}
-
-function escapeHtml(unsafe: string) {
-  return unsafe
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
 }
 

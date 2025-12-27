@@ -13,7 +13,7 @@ interface ImagePickerProps {
   onChange?: (files: File[], previews: string[], urls: string[], captions: string[]) => void;
 }
 
-export default function ImagePicker({ max = 4, initialFiles = [], initialPreviews = [], initialUrls = [], initialCaptions = [], onChange }: ImagePickerProps) {
+export default function ImagePicker({ max = 4, initialFiles = [], initialPreviews = [], initialUrls = [], initialCaptions = [], onChange, showPreviews = true }: ImagePickerProps & { showPreviews?: boolean }) {
   const [files, setFiles] = useState<File[]>(initialFiles || []);
   const [previews, setPreviews] = useState<string[]>(initialPreviews || []);
   const [urls, setUrls] = useState<string[]>(initialUrls || []);
@@ -112,26 +112,26 @@ export default function ImagePicker({ max = 4, initialFiles = [], initialPreview
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {(previews || []).map((p, idx) => (
-          <div key={idx} className="w-28">
-            <div className="h-20 w-28 overflow-hidden rounded-md bg-gray-50 flex items-center justify-center">
+      {showPreviews && (
+        <div className="flex gap-2 overflow-x-auto whitespace-nowrap py-1">
+          {(previews || []).map((p, idx) => (
+            <div key={idx} className="w-24 h-20 flex-shrink-0 relative rounded-md overflow-hidden bg-gray-50">
               <img src={p} alt={`preview-${idx}`} className="w-full h-full object-cover" />
+              <div className="absolute top-1 right-1 flex gap-1">
+                <button type="button" onClick={() => move(idx, -1)} className="px-1 py-0.5 text-xs rounded bg-gray-100">←</button>
+                <button type="button" onClick={() => move(idx, 1)} className="px-1 py-0.5 text-xs rounded bg-gray-100">→</button>
+                <button type="button" onClick={() => removeAt(idx)} className="px-1 py-0.5 text-xs rounded bg-red-100">✕</button>
+              </div>
+              <input
+                placeholder="Caption"
+                value={captions[idx] || ''}
+                onChange={(e) => setCaption(idx, e.target.value)}
+                className="absolute left-1 right-1 bottom-1 text-xs rounded bg-white/70 px-1 py-0.5"
+              />
             </div>
-            <div className="flex gap-1 mt-1">
-              <button type="button" onClick={() => move(idx, -1)} className="px-1 py-0.5 text-xs rounded bg-gray-100">←</button>
-              <button type="button" onClick={() => move(idx, 1)} className="px-1 py-0.5 text-xs rounded bg-gray-100">→</button>
-              <button type="button" onClick={() => removeAt(idx)} className="px-1 py-0.5 text-xs rounded bg-red-100">✕</button>
-            </div>
-            <input
-              placeholder="Caption"
-              value={captions[idx] || ''}
-              onChange={(e) => setCaption(idx, e.target.value)}
-              className="mt-1 w-full text-xs rounded border px-1 py-1"
-            />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="mt-3 flex items-center gap-2">
         <Input placeholder="Paste image URL and press Add" onKeyDown={(e:any)=>{ if(e.key==='Enter'){ addUrl(e.target.value); e.target.value=''; } }} />

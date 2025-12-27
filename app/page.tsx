@@ -4,6 +4,7 @@ import { pageMetadata } from '@/lib/pageMetadata'
 import { Button } from "@/components/ui/button";
 import EventsList from '@/components/EventsList';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { decodeHtmlEntities } from '@/lib/formatContent';
 import { Activity, Archive, Heart, Users, Target, FileText, Megaphone, Shield } from "lucide-react";
 import TeamMemberCard from "@/components/TeamMemberCard";
 
@@ -230,7 +231,7 @@ export default function HomePage() {
                 <Card key={index} className="transition-shadow hover:shadow-lg">
                   <CardHeader>
                     <Icon className="h-12 w-12 text-primary" />
-                    <CardTitle className="text-xl">{initiative.title}</CardTitle>
+                    <CardTitle className="text-xl">{decodeHtmlEntities(initiative.title)}</CardTitle>
                     <CardDescription className="text-base">
                       {initiative.description}
                     </CardDescription>

@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 const ChartClient = dynamic(() => import('./ChartClient'), { ssr: false, loading: () => <div className="text-sm text-muted-foreground">Loading chart…</div> });
 
 export default function MetricsChart({ days = 30 }: { days?: number }) {
+  const [rangeDays, setRangeDays] = useState<number>(days);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [LineComp, setLineComp] = useState<any>(null);
@@ -33,7 +34,7 @@ export default function MetricsChart({ days = 30 }: { days?: number }) {
           // ignore import failures
         }
 
-        const resp = await fetch(`/api/admin/metrics?days=${days}`, { headers, credentials: 'same-origin' });
+        const resp = await fetch(`/api/admin/metrics?days=${rangeDays}`, { headers, credentials: 'same-origin' });
         const json = await resp.json().catch(() => ({ error: 'invalid_json' }));
         if (!mounted) return;
         if (json.error) {
@@ -53,7 +54,7 @@ export default function MetricsChart({ days = 30 }: { days?: number }) {
     })();
 
     return () => { mounted = false };
-  }, [days]);
+  }, [rangeDays]);
 
   // Lazy-load Chart.js only on client to avoid build-time missing-module errors
   useEffect(() => {
@@ -99,6 +100,13 @@ export default function MetricsChart({ days = 30 }: { days?: number }) {
     );
   }
 
+  // Compute totals to show above the chart
+  const totals = {
+    views: (data?.series?.views || []).reduce((a:number,b:number) => a + b, 0),
+    likes: (data?.series?.likes || []).reduce((a:number,b:number) => a + b, 0),
+    shares: (data?.series?.shares || []).reduce((a:number,b:number) => a + b, 0),
+  };
+
   const chartData = {
     labels: data.days,
     datasets: [
@@ -128,7 +136,34 @@ export default function MetricsChart({ days = 30 }: { days?: number }) {
 
   return (
     <div className="p-4 bg-white rounded shadow-sm">
-      <h3 className="mb-3 text-sm font-medium">Activity metrics (last {days} days)</h3>
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-sm font-medium">Activity metrics (last {rangeDays} days)</h3>
+        <div className="flex items-center gap-2">
+          <select value={String(rangeDays)} onChange={(e) => setRangeDays(Number(e.target.value))} className="rounded border px-2 py-1 text-sm">
+            <option value="7">7d</option>
+            <option value="30">30d</option>
+            <option value="90">90d</option>
+            <option value="180">180d</option>
+            <option value="365">365d</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="flex gap-4 items-center mb-3">
+        <div className="px-3 py-2 rounded bg-blue-50 text-sm">
+          <div className="text-xs text-muted-foreground">Views</div>
+          <div className="font-semibold">{totals.views.toLocaleString()}</div>
+        </div>
+        <div className="px-3 py-2 rounded bg-orange-50 text-sm">
+          <div className="text-xs text-muted-foreground">Likes</div>
+          <div className="font-semibold">{totals.likes.toLocaleString()}</div>
+        </div>
+        <div className="px-3 py-2 rounded bg-green-50 text-sm">
+          <div className="text-xs text-muted-foreground">Shares</div>
+          <div className="font-semibold">{totals.shares.toLocaleString()}</div>
+        </div>
+      </div>
+
       <div className="max-w-full overflow-x-auto">
         {/* Use the client-only ChartClient component (dynamically loaded). */}
         <ChartClient data={chartData} />
