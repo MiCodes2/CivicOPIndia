@@ -24,7 +24,11 @@ export default function Navbar() {
         setUser(user);
       })
       .catch((err:any) => {
-        console.warn('Supabase getUser failed:', err?.message || err);
+        const rawMsg = String(err?.message ?? err ?? '').toLowerCase();
+        // Silence expected refresh-token errors
+        if (!rawMsg.includes('refresh') && !rawMsg.includes('invalid refresh') && !rawMsg.includes('refresh token not found')) {
+          console.warn('Supabase getUser failed:', err?.message || err);
+        }
         try { supabase.auth.signOut(); } catch (e) {}
         try { localStorage.removeItem('civic-op-auth'); } catch (e) {}
         setUser(null);

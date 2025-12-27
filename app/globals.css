@@ -122,6 +122,11 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Default: remove underlines from links across the site; components can opt-in with `underline` */
+  a {
+    @apply no-underline;
+  }
 }
 
 /* Rich text content styling */
@@ -134,7 +139,7 @@
 }
 
 .prose a {
-  @apply text-primary underline hover:text-primary/80;
+  @apply text-primary no-underline hover:underline hover:text-primary/80;
 }
 
 .prose strong {

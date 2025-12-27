@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "generate:metadata": "node ./scripts/generate_page_metadata.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:all": "npx dotenv-cli -e .env.local -- node scripts/seed_all_activities.js"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

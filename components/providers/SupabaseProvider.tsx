@@ -32,14 +32,15 @@ export default function SupabaseProvider({
         setUser(session?.user ?? null);
       })
       .catch((err: any) => {
-        console.warn('Supabase getSession error:', err?.message ?? err);
-        // If refresh token is invalid or missing, attempt to recover by clearing local session
-        const msg = (err?.message || '').toLowerCase();
-        if (msg.includes('refresh') || msg.includes('invalid refresh')) {
+        const rawMsg = String(err?.message ?? err ?? '').toLowerCase();
+        // Treat refresh-related errors as expected and clear session silently
+        if (rawMsg.includes('refresh') || rawMsg.includes('invalid refresh') || rawMsg.includes('refresh token not found')) {
           try { supabase.auth.signOut(); } catch (e) {}
           try { localStorage.removeItem('civic-op-auth'); } catch (e) {}
           setSession(null);
           setUser(null);
+        } else {
+          console.warn('Supabase getSession error:', err?.message ?? err);
         }
       });
 

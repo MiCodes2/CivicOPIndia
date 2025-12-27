@@ -176,7 +176,6 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
             <Card className="sticky top-24">
               <CardHeader>
                 <CardTitle>Trending</CardTitle>
-                <CardDescription className="text-sm">Top hashtags</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
@@ -189,7 +188,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
                     });
                     return Object.entries(tagCounts).sort((a,b) => b[1]-a[1]).slice(0,8).map(([tag,count]) => (
                       <li key={tag}>
-                        <a href={`/activities?tag=${encodeURIComponent(tag)}`} className="flex items-center justify-between px-3 py-1 rounded hover:bg-gray-100">#{tag} <span className="text-sm text-muted-foreground">{count}</span></a>
+                        <a href={`/activities?tag=${encodeURIComponent(tag)}`} className="flex items-center justify-between px-3 py-1 rounded hover:bg-gray-100"><span className="text-primary font-medium">#{tag}</span> <span className="text-sm text-muted-foreground">{count}</span></a>
                       </li>
                     ));
                   })()}

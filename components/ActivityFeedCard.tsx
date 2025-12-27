@@ -132,7 +132,9 @@ import Link from 'next/link';
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { formatPostTime } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
-import { Heart, Share2, MapPin, LayoutDashboard, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, Share2, MapPin, LayoutDashboard, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { computeSyntheticTargets, displayedMetric, growthFractionSince } from '@/lib/utils';
+import EditMyActivityForm from '@/components/EditMyActivityForm';
 import type { Activity } from "@/lib/types/database";
 
 const TYPE_BADGE_CLASSES: Record<string, string> = {
@@ -159,6 +161,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [editing, setEditing] = useState(false);
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [localType, setLocalType] = useState(activity.type || 'Other');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   // Resolve relative/absolute URLs so images load correctly in carousel and modal
   const resolveUrl = (u: string) => {
     if (!u) return u;
@@ -224,6 +228,72 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const touchLastTap = useRef<number | null>(null);
   const previousLikesRef = useRef<number>(likes);
 
+  // Real views recorded in DB
+  const [realViews, setRealViews] = useState<number>((activity.views_count as any) || 0);
+  // Synthetic targets computed deterministically
+  const { viewsTarget, likesTarget, sharesTarget } = computeSyntheticTargets(activity as any);
+
+  // Tick to re-evaluate displayed metrics periodically so they grow live while page is open
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 15_000); // update every 15s
+    return () => clearInterval(id);
+  }, []);
+
+  // Displayed metrics (mix of synthetic growth and real counts)
+  const displayedViews = displayedMetric({ target: viewsTarget, createdAt: activity.activity_date, realCount: realViews });
+  const displayedLikes = Math.max(likes, displayedMetric({ target: likesTarget, createdAt: activity.activity_date, realCount: likes }));
+  const displayedShares = Math.max(shares, displayedMetric({ target: sharesTarget, createdAt: activity.activity_date, realCount: shares }));
+
+  // Periodically persist synthetic progress to server (seed DB) when displayed synthetic exceeds real counts
+  useEffect(() => {
+    let mounted = true;
+    const trySeed = async () => {
+      try {
+        // Only seed if synthetic is ahead by at least 3 and if not already at or beyond target
+        if (displayedViews - realViews >= 3 && displayedViews < viewsTarget) {
+          const lastKey = `last_seed_${activity.id}`;
+          const raw = localStorage.getItem(lastKey);
+          const last = raw ? parseInt(raw, 10) : 0;
+          const now = Date.now();
+          const COOLDOWN = 1000 * 60 * 10; // 10 minutes between seeds
+          if (now - last > COOLDOWN) {
+            const resp = await fetch('/api/activities/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id }) });
+            const json = await resp.json();
+            if (json?.activity?.views_count != null) {
+              setRealViews(json.activity.views_count);
+              try { localStorage.setItem(lastKey, String(now)); } catch (e) {}
+            }
+          }
+        }
+
+        // For likes: ensure we don't drive beyond cap, but seed if synthetic likes ahead by >=2
+        if (displayedLikes - likes >= 2 && displayedLikes < likesTarget) {
+          const lastKey = `last_seed_likes_${activity.id}`;
+          const raw = localStorage.getItem(lastKey);
+          const last = raw ? parseInt(raw, 10) : 0;
+          const now = Date.now();
+          const COOLDOWN = 1000 * 60 * 30; // 30 minutes between like seeds
+          if (now - last > COOLDOWN) {
+            const resp = await fetch('/api/activities/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id }) });
+            const json = await resp.json();
+            if (json?.activity?.likes_count != null) {
+              setLikes(json.activity.likes_count);
+              try { localStorage.setItem(lastKey, String(now)); } catch (e) {}
+            }
+          }
+        }
+
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    trySeed();
+    return () => { mounted = false; };
+  // Re-run when these change (tick keeps it periodic)
+  }, [displayedViews, realViews, viewsTarget, displayedLikes, likesTarget, likes, activity.id, tick]);
+
   // Check if user already liked this activity
   useEffect(() => {
     checkLikeStatus();
@@ -243,6 +313,55 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     };
   }, []);
 
+  // Ensure visitor id exists in localStorage for server-side dedupe and rate-limiting
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      let vid = localStorage.getItem('visitor_id');
+      if (!vid) {
+        vid = (window.crypto && (window.crypto as any).randomUUID) ? (window.crypto as any).randomUUID() : `v_${Math.random().toString(36).slice(2,10)}`;
+        localStorage.setItem('visitor_id', vid);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  // Increment view when card enters viewport; server enforces per-visitor 1-hour throttle.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let mounted = true;
+    const el = document.getElementById(`activity-${activity.id}`);
+    if (!el) return;
+
+    const observer = new IntersectionObserver(async (entries) => {
+      for (const entry of entries) {
+        if (!mounted) return;
+        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+          try {
+            const key = `viewed_v1_${activity.id}`;
+            const raw = localStorage.getItem(key);
+            const last = raw ? parseInt(raw, 10) : 0;
+            const now = Date.now();
+            // Local cooldown to limit calls: 1 hour
+            const COOLDOWN = 1000 * 60 * 60;
+            if (now - last > COOLDOWN) {
+              const visitorId = localStorage.getItem('visitor_id');
+              const resp = await fetch('/api/activities/view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id, visitorId }) });
+              const json = await resp.json();
+              if (json?.views_count != null) setRealViews(json.views_count);
+              try { localStorage.setItem(key, String(now)); } catch (e) {}
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+    }, { threshold: [0.5] });
+
+    observer.observe(el);
+    return () => { mounted = false; observer.disconnect(); };
+  }, [activity.id, realViews, viewsTarget]);
   const openImageModal = (imageUrl: string) => {
     const resolved = resolveUrl(imageUrl);
     const idx = images.findIndex((u) => resolveUrl(u) === resolved);
@@ -320,6 +439,13 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       try {
         const { data } = await supabase.from('activity_types').select('name').order('name');
         if (mounted && Array.isArray(data)) setTypeOptions(data.map((r:any)=>r.name));
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (mounted) setCurrentUserId(user?.id ?? null);
+        } catch (e) {
+          // ignore
+        }
       } catch {}
     })();
     return () => { mounted = false };
@@ -484,10 +610,13 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   };
 
   const handleShare = async () => {
-    setShares(shares + 1);
+    // Optimistic update
+    const prev = shares;
+    setShares((s) => s + 1);
     setShareAnimating(true);
     setTimeout(() => setShareAnimating(false), 900);
-    
+
+    let didShare = false;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -495,13 +624,32 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           text: activity.content || "",
           url: window.location.href,
         });
+        didShare = true;
       } catch (err) {
         // User cancelled or error occurred
+        didShare = false;
       }
     } else {
       // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      alert("Link copied to clipboard!");
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        alert("Link copied to clipboard!");
+        didShare = true;
+      } catch (e) {
+        didShare = false;
+      }
+    }
+
+    // Persist share server-side if a share action occurred (or optionally always)
+    try {
+      const resp = await fetch('/api/activities/share', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id }) });
+      const json = await resp.json();
+      if (json?.shares_count != null) {
+        setShares(json.shares_count);
+      }
+    } catch (e) {
+      // Revert optimistic on error
+      setShares(prev);
     }
   };
 
@@ -618,6 +766,13 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
+        {/* Post title (renders after the image, or above content when no image) */}
+        {activity.title && activity.title.trim() !== '' && (
+          <div className="px-4 md:px-4 mt-3 mb-4">
+            <h2 className="text-lg md:text-xl font-semibold leading-tight">{activity.title}</h2>
+          </div>
+        )}
+
         {/* Post content with collapsible 'More' like social feeds */}
         <CollapsibleContent
           contentHtml={formatContent(activity.content || '', images)}
@@ -660,19 +815,37 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
+        {/* Author edit (visible only to the logged-in author) */}
+        {(currentUserId && String(currentUserId) === String(activity.author_id)) && (
+          <div className="mb-4 px-4 md:px-4">
+            <button onClick={()=>setShowEditModal(true)} className="text-sm text-primary underline">Edit post</button>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="mb-4 border-t pt-3 px-4 md:px-4">
           <div className="flex items-center justify-between">
+            {/* Like, Share, Views ... placeholder comment */}
             <div className="flex items-center gap-3">
               <button aria-pressed={liked} onClick={() => { handleLike({ optimistic: true, showAnimation: !liked }); setShowHeart(true); setTimeout(()=>setShowHeart(false),800); }} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition">
                 <Heart className={`h-5 w-5 transition-transform duration-200 ${liked ? 'text-rose-600 scale-125 animate-pulse' : 'text-gray-700'}`} />
-                <span className={`text-sm font-medium transition-transform duration-200 ${liked ? 'scale-110' : ''}`}>{likes}</span>
+                <span className={`text-sm font-medium transition-transform duration-200 ${liked ? 'scale-110' : ''}`}>{displayedLikes}</span>
               </button>
 
               <button onClick={handleShare} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition">
                 <Share2 className={`h-5 w-5 ${shareAnimating ? 'text-emerald-600 animate-pulse' : 'text-gray-700'}`} />
-                <span className="text-sm">{shares}</span>
+                <span className="text-sm">{displayedShares}</span>
               </button>
+
+              <div className="flex items-center gap-2 rounded-full p-2 text-muted-foreground">
+                <Eye className="h-5 w-5 text-gray-700" />
+                <span className="text-sm">{displayedViews}</span>
+              </div>
+
+              {/* Author edit button (visible only to the logged-in author) */}
+              {(currentUserId && String(currentUserId) === String(activity.author_id)) && (
+                <button onClick={()=>setShowEditModal(true)} aria-label="Edit post" className="text-muted-foreground p-2 rounded hover:bg-gray-100">Edit</button>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -703,12 +876,33 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       </div>
     )}
 
+    {/* Edit Modal for authors */}
+    {showEditModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={()=>setShowEditModal(false)}>
+        <div className="bg-white rounded-md p-4 w-full max-w-3xl mx-4" onClick={(e)=>e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Edit Post</h3>
+            <button onClick={()=>setShowEditModal(false)} className="text-muted-foreground">Close</button>
+          </div>
+          <EditMyActivityForm activity={activity} onCancel={()=>setShowEditModal(false)} onSuccess={(updated)=>{ setShowEditModal(false); /* update local state to reflect changes */ window.location.reload(); }} />
+        </div>
+      </div>
+    )}
+
     {/* Mobile floating action bar removed per UX request */}
     </>
   );
 }
 
 function formatContent(input: string, exclude?: string[]) {
+  // Helper: convert #hashtags in a block of HTML/text to clickable links
+  function linkifyHashtags(html: string) {
+    return html.replace(/(^|[^A-Za-z0-9_\/\-])#([a-zA-Z0-9_-]+)/g, (match, pre, tag) => {
+      const t = String(tag).toLowerCase();
+      return `${pre}<a href="/activities?tag=${encodeURIComponent(t)}" class="text-primary font-medium no-underline">#${tag}</a>`;
+    });
+  }
+
   // If it already contains block-level HTML, assume it's already formatted
   const hasBlockTags = /<(p|div|ul|ol|li|br|h[1-6]|blockquote|iframe)\b[^>]*>/i.test(input);
   if (hasBlockTags) {
@@ -729,7 +923,8 @@ processed = processed.replace(youtubeRegex, (match, videoId) => {
       if (excludeSet.has(match)) return '';
       return `<div class="inline-image"><img src="${match}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${match.replace(/'/g, '\\\'')}')" /></div>`;
     });
-
+    // Linkify hashtags in HTML content
+    processed = linkifyHashtags(processed);
     return processed;
   }
 
@@ -771,6 +966,9 @@ processed = processed.replace(youtubeRegex, (match, videoId) => {
       const key = `__HTML_TAG_${idx}__`;
       restored = restored.replace(key, orig);
     });
+
+    // Linkify hashtags in the restored HTML/text
+    restored = linkifyHashtags(restored);
 
     // Convert YouTube placeholders to thumbnail placeholders that the client will swap with an iframe if embeddable
     restored = restored.replace(/__YOUTUBE_EMBED_([a-zA-Z0-9_-]{11})__/g, (match, videoId) => {

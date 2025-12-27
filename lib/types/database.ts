@@ -24,6 +24,7 @@ export type Activity = {
   tags: string[] | null;
   likes_count: number;
   shares_count: number;
+  views_count?: number | null; // real recorded views (incremented server-side)
   type: string | null; // e.g., 'Meeting', 'Protest', 'Campaign', 'Plantation'
 };
 
