@@ -16,7 +16,7 @@ export default async function EventsPage() {
   const events = data || []
 
   return (
-    <div className="mt-6">
+    <div className="mt-6 pb-12">
       <div className="container mx-auto px-3">
         <h1 className="text-2xl font-bold">Events</h1>
         {events.length === 0 ? (
