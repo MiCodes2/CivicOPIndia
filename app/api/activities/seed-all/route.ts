@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       const updates: any = {};
       if ((act.views_count ?? 0) < syntheticViews) updates.views_count = syntheticViews;
 
-      const incrementalIncrease = (current, target) => {
+      const incrementalIncrease = (current: number, target: number): number => {
         const gap = Math.max(0, target - current);
         if (gap <= 0) return 0;
         return Math.max(1, Math.round(gap * 0.25));
