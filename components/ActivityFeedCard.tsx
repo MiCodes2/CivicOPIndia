@@ -816,10 +816,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
               {activity.video_url.includes('drive.google.com') ? (
                 <div className="drive-video-embed w-full aspect-video bg-gray-100 rounded-md overflow-hidden">
                   <iframe 
-                    src={`https://drive.google.com/file/d/${activity.video_url.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1]}/preview`} 
+                    src={`https://drive.google.com/file/d/${activity.video_url.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1]}/preview`}
                     width="100%" 
                     height="100%" 
-                    allow="autoplay" 
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture" 
                     allowFullScreen
                     className="w-full h-full"
                   ></iframe>
@@ -827,7 +827,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
               ) : activity.video_url.includes('twitter.com') || activity.video_url.includes('x.com') ? (
                 <div className="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden">
                   <iframe 
-                    src={`https://platform.twitter.com/embed/Tweet.html?id=${activity.video_url.match(/\/status\/([0-9]+)/)?.[1]}`}
+                    src={`https://platform.x.com/embed/Tweet.html?id=${activity.video_url.match(/\/status\/([0-9]+)/)?.[1]}`}
                     width="100%" 
                     height="400" 
                     frameBorder="0" 

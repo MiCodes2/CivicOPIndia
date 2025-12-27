@@ -115,13 +115,13 @@ export function formatContent(input: string, exclude?: string[]) {
     const driveRegex = /https?:\/\/(?:www\.)?drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)\/(?:view|preview)(?:\?[^&\s]*usp=sharing)?/gi;
     processed = processed.replace(driveRegex, (match, fileId) => {
       const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-      return `<div class="drive-video-embed w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="100%" allow="autoplay" allowfullscreen></iframe></div>`;
+      return `<div class="drive-video-embed w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="100%" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
     });
 
     // Twitter/X video embeds
-    const twitterRegex = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/([0-9]+)/gi;
+    const twitterRegex = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/([0-9]+)(?:\/[^&\s]*)?/gi;
     processed = processed.replace(twitterRegex, (match, username, tweetId) => {
-      const embedUrl = `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}`;
+      const embedUrl = `https://platform.x.com/embed/Tweet.html?id=${tweetId}`;
       return `<div class="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="400" frameborder="0" scrolling="no" allowfullscreen></iframe></div>`;
     });
 
@@ -164,7 +164,7 @@ export function formatContent(input: string, exclude?: string[]) {
     });
 
     // Twitter/X video embeds
-    const twitterRegex = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/([0-9]+)/gi;
+    const twitterRegex = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/([0-9]+)(?:\/[^&\s]*)?/gi;
     processed = processed.replace(twitterRegex, (match, username, tweetId) => {
       return `__TWITTER_VIDEO_EMBED_${tweetId}__`;
     });
@@ -198,7 +198,7 @@ export function formatContent(input: string, exclude?: string[]) {
 
     // Restore Twitter/X video embeds
     restored = restored.replace(/__TWITTER_VIDEO_EMBED_([0-9]+)__/g, (m, tweetId) => {
-      const embedUrl = `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}`;
+      const embedUrl = `https://platform.x.com/embed/Tweet.html?id=${tweetId}`;
       return `<div class="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="400" frameborder="0" scrolling="no" allowfullscreen></iframe></div>`;
     });
 
