@@ -111,6 +111,20 @@ export function formatContent(input: string, exclude?: string[]) {
       return `<div class="youtube-embed" data-video-id="${videoId}"><div class="youtube-placeholder w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><a href="https://youtu.be/${videoId}" target="_blank" rel="noopener noreferrer" class="block w-full h-full relative"><img src="${thumb}" alt="YouTube thumbnail" class="w-full h-full object-cover" /><span class="absolute inset-0 flex items-center justify-center text-white text-3xl">▶</span></a></div></div>`;
     });
 
+    // Google Drive video embeds
+    const driveRegex = /https?:\/\/(?:www\.)?drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)\/(?:view|preview)(?:\?[^&\s]*usp=sharing)?/gi;
+    processed = processed.replace(driveRegex, (match, fileId) => {
+      const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+      return `<div class="drive-video-embed w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="100%" allow="autoplay" allowfullscreen></iframe></div>`;
+    });
+
+    // Twitter/X video embeds
+    const twitterRegex = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/([0-9]+)/gi;
+    processed = processed.replace(twitterRegex, (match, username, tweetId) => {
+      const embedUrl = `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}`;
+      return `<div class="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="400" frameborder="0" scrolling="no" allowfullscreen></iframe></div>`;
+    });
+
     // Image embeds (include jfif)
     const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
     const excludeSet = new Set(exclude || []);
@@ -143,6 +157,18 @@ export function formatContent(input: string, exclude?: string[]) {
       return `__YOUTUBE_EMBED_${videoId}__`;
     });
 
+    // Google Drive video embeds
+    const driveRegex = /https?:\/\/(?:www\.)?drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)\/(?:view|preview)(?:\?[^&\s]*usp=sharing)?/gi;
+    processed = processed.replace(driveRegex, (match, fileId) => {
+      return `__DRIVE_VIDEO_EMBED_${fileId}__`;
+    });
+
+    // Twitter/X video embeds
+    const twitterRegex = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/([0-9]+)/gi;
+    processed = processed.replace(twitterRegex, (match, username, tweetId) => {
+      return `__TWITTER_VIDEO_EMBED_${tweetId}__`;
+    });
+
     // Check for image URLs and convert them to placeholders
     const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
     processed = processed.replace(imageRegex, (match) => {
@@ -162,6 +188,18 @@ export function formatContent(input: string, exclude?: string[]) {
     restored = restored.replace(/__YOUTUBE_EMBED_([a-zA-Z0-9_-]{11})__/g, (m, videoId) => {
       const thumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
       return `<div class="youtube-embed" data-video-id="${videoId}"><div class="youtube-placeholder w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><a href="https://youtu.be/${videoId}" target="_blank" rel="noopener noreferrer" class="block w-full h-full relative"><img src="${thumb}" alt="YouTube thumbnail" class="w-full h-full object-cover" /><span class="absolute inset-0 flex items-center justify-center text-white text-3xl">▶</span></a></div></div>`;
+    });
+
+    // Restore Google Drive video embeds
+    restored = restored.replace(/__DRIVE_VIDEO_EMBED_([a-zA-Z0-9_-]+)__/g, (m, fileId) => {
+      const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+      return `<div class="drive-video-embed w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="100%" allow="autoplay" allowfullscreen></iframe></div>`;
+    });
+
+    // Restore Twitter/X video embeds
+    restored = restored.replace(/__TWITTER_VIDEO_EMBED_([0-9]+)__/g, (m, tweetId) => {
+      const embedUrl = `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}`;
+      return `<div class="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="400" frameborder="0" scrolling="no" allowfullscreen></iframe></div>`;
     });
 
     // Convert image placeholders to img tags (exclude set applied here too)

@@ -28,19 +28,30 @@ async function fetchFollowers() {
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${xBearer}` } });
     if (!resp.ok) {
       const txt = await resp.text().catch(() => null);
-      throw new Error(`X API error ${resp.status}: ${txt}`);
+      throw new Error(`X API error ${resp.status}: ${txt || 'Unknown error'}`);
     }
     const data = await resp.json();
     const user = data?.data;
-    if (!user || !user.public_metrics) throw new Error('Missing public_metrics in X response');
-    const followers = Number(user.public_metrics.followers_count || 0);
+    if (!user) {
+      throw new Error('User not found in X API response');
+    }
+    if (!user.public_metrics || typeof user.public_metrics.followers_count !== 'number') {
+      throw new Error('Missing or invalid followers_count in X API response');
+    }
+    const followers = user.public_metrics.followers_count;
 
-    const { data: inserted, error } = await supabase.from('social_followers').insert([{ platform: 'x', handle, followers_count: followers }]).select('*').single();
-    if (error) throw error;
+    console.log(`Found ${followers} followers for @${handle}`);
+    const { data: inserted, error } = await supabase.from('social_followers').insert([{ platform: 'x', handle, followers_count: followers }]).select('*').maybeSingle();
+    if (error) {
+      throw new Error(`Database insert error: ${error.message || error}`);
+    }
+    if (!inserted) {
+      throw new Error('Insert succeeded but no data returned');
+    }
     console.log('Inserted follower record:', inserted);
     return inserted;
   } catch (e) {
-    console.error('Failed to fetch/insert followers:', e);
+    console.error('Failed to fetch/insert followers:', e.message || e);
     throw e;
   }
 }

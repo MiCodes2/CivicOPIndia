@@ -19,6 +19,7 @@ export type Activity = {
   image_url: string | null;
   image_urls: string[] | null; // Array of image URLs for multiple images
   image_captions: string[] | null; // Array of captions corresponding to image URLs
+  video_url: string | null; // URL for embedded videos (YouTube, Google Drive, Twitter)
   author_id: string | null;
   author_name: string | null; // Display name for the author
   tags: string[] | null;

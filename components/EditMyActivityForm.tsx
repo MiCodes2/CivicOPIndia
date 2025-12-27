@@ -13,6 +13,7 @@ export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { 
   const [title, setTitle] = useState(activity.title || '');
   const [content, setContent] = useState(activity.content || '');
   const [location, setLocation] = useState(activity.location || '');
+  const [videoUrl, setVideoUrl] = useState(activity.video_url || '');
 
   // Images
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -45,7 +46,7 @@ export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { 
         }
       }
 
-      const payload: any = { id: activity.id, title: normalizeEntities(title), content: normalizeEntities(content), location };
+      const payload: any = { id: activity.id, title: normalizeEntities(title), content: normalizeEntities(content), location, video_url: videoUrl };
       if (urls && urls.length > 0) {
         payload.image_urls = urls;
         payload.image_url = urls[0];
@@ -103,6 +104,12 @@ export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { 
       <div>
         <label className="text-sm font-medium">Location</label>
         <Input value={location} onChange={(e)=>setLocation(e.target.value)} />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium">Video URL</label>
+        <Input value={videoUrl} onChange={(e)=>setVideoUrl(e.target.value)} placeholder="https://drive.google.com/file/d/.../view or https://twitter.com/.../status/..." />
+        <p className="text-xs text-muted-foreground mt-1">Optional: Google Drive public links, Twitter/X video posts, YouTube videos</p>
       </div>
 
       <div>

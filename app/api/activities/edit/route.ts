@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     if (String(activity.author_id) !== String(userId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // Allowed fields to update
-    const allowedFields = ['title','content','location','image_url','image_urls','tags','activity_date'];
+    const allowedFields = ['title','content','location','image_url','image_urls','video_url','tags','activity_date'];
     const updates: any = {};
     for (const f of allowedFields) {
       if (Object.prototype.hasOwnProperty.call(body, f)) updates[f] = body[f];

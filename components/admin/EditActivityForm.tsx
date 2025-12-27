@@ -40,6 +40,7 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
     activity_date: new Date(activity.activity_date).toISOString().split('T')[0],
     image_url: activity.image_url || "",
     image_urls: activity.image_url ? [activity.image_url] : [],
+    video_url: activity.video_url || "",
     likes_count: activity.likes_count,
     shares_count: activity.shares_count,
   });
@@ -280,7 +281,7 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
 
       // Use server-side admin update to bypass RLS (requires SUPABASE_SERVICE_ROLE_KEY)
       const tags = extractHashtags(contentToUse);
-      const payload = { id: activity.id, ...formData, image_url: imageUrlToUse, content: normalizeEntities(contentToUse), title: normalizeEntities(formData.title || ''), activity_date: new Date(formData.activity_date).toISOString(), tags, delete_files: deletedFiles };
+      const payload = { id: activity.id, ...formData, image_url: imageUrlToUse, video_url: formData.video_url, content: normalizeEntities(contentToUse), title: normalizeEntities(formData.title || ''), activity_date: new Date(formData.activity_date).toISOString(), tags, delete_files: deletedFiles };
       // If user marked files for deletion, confirm before proceeding
       if (deletedFiles && deletedFiles.length > 0) {
         const ok = window.confirm(`This will permanently delete ${deletedFiles.length} image(s) from the server. Continue?`);
@@ -468,6 +469,22 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
               value={formData.image_url}
               onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="video_url" className="text-sm font-medium">
+              🎥 Video URL
+            </label>
+            <Input
+              id="video_url"
+              type="text"
+              placeholder="https://drive.google.com/file/d/.../view or https://twitter.com/.../status/... or YouTube URL"
+              value={formData.video_url}
+              onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Supported: Google Drive public links, Twitter/X video posts, YouTube videos
+            </p>
           </div>
 
           <div className="space-y-2">

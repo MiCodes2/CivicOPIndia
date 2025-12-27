@@ -809,7 +809,64 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
-        {/* Post title (renders after the image, or above content when no image) */}
+        {/* Video embed */}
+        {activity.video_url && (
+          <div className="w-full bg-black/5 px-4 md:px-4">
+            <div className="w-full max-w-3xl mx-auto">
+              {activity.video_url.includes('drive.google.com') ? (
+                <div className="drive-video-embed w-full aspect-video bg-gray-100 rounded-md overflow-hidden">
+                  <iframe 
+                    src={`https://drive.google.com/file/d/${activity.video_url.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1]}/preview`} 
+                    width="100%" 
+                    height="100%" 
+                    allow="autoplay" 
+                    allowFullScreen
+                    className="w-full h-full"
+                  ></iframe>
+                </div>
+              ) : activity.video_url.includes('twitter.com') || activity.video_url.includes('x.com') ? (
+                <div className="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden">
+                  <iframe 
+                    src={`https://platform.twitter.com/embed/Tweet.html?id=${activity.video_url.match(/\/status\/([0-9]+)/)?.[1]}`}
+                    width="100%" 
+                    height="400" 
+                    frameBorder="0" 
+                    scrolling="no" 
+                    allowFullScreen
+                    className="w-full"
+                  ></iframe>
+                </div>
+              ) : activity.video_url.includes('youtube.com') || activity.video_url.includes('youtu.be') ? (
+                <div className="youtube-embed">
+                  <div className="youtube-placeholder w-full aspect-video bg-gray-100 rounded-md overflow-hidden">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${activity.video_url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/(?:v|e(?:mbed)?)\/(?:v|e(?:mbed)?)\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1]}`}
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    ></iframe>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full aspect-video bg-gray-100 rounded-md overflow-hidden">
+                  <iframe 
+                    src={activity.video_url} 
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0" 
+                    allowFullScreen
+                    className="w-full h-full"
+                  ></iframe>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Post title (renders after the image/video, or above content when no media) */}
         {activity.title && activity.title.trim() !== '' && (
           <div className="px-4 md:px-4 mt-3 mb-4">
             <h2 className="text-lg md:text-xl font-semibold leading-tight">{decodeHtmlEntities(activity.title)}</h2>

@@ -7,12 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { decodeHtmlEntities } from '@/lib/formatContent';
 import { Activity, Archive, Heart, Users, Target, FileText, Megaphone, Shield } from "lucide-react";
 import TeamMemberCard from "@/components/TeamMemberCard";
+import StatsSection from "@/components/StatsSection";
 
 export default function HomePage() {
   const stats = [
     { value: "500+", label: "Activities" },
     { value: "50+", label: "Protests" },
-    { value: "34K+", label: "Supporters" },
+    { value: "34K+", label: "Supporters", dynamic: true, api: "/api/x/followers" },
     { value: "5+", label: "Years" }
   ];
 
@@ -82,18 +83,7 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="border-b bg-card py-16">
-        <div className="container mx-auto px-3">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-4xl font-bold text-primary">{stat.value}</div>
-                <div className="mt-2 text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <StatsSection initialStats={stats} />
 
       {/* About Section */}
       <section className="py-16">

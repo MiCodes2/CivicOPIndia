@@ -31,6 +31,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     activity_date: string;
     image_url: string;
     image_urls: string[];
+    video_url: string;
     likes_count: number;
     shares_count: number;
   }
@@ -43,6 +44,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     activity_date: new Date().toISOString().split('T')[0],
     image_url: "",
     image_urls: [], // Initialize as an empty array for multiple images
+    video_url: "",
     likes_count: 0,
     shares_count: 0,
   });
@@ -416,6 +418,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         activity_date: new Date(formData.activity_date).toISOString(),
         // `activities` table has `image_url` (TEXT) not `image_urls` array
         image_url: imageUrls[0] || formData.image_url || null,
+        video_url: formData.video_url || null,
         tags: tags.length ? tags : null,
         likes_count: formData.likes_count || 0,
         shares_count: formData.shares_count || 0,
@@ -688,6 +691,22 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
               value={formData.image_url}
               onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="video_url" className="text-sm font-medium">
+              🎥 Video URL (optional)
+            </label>
+            <Input
+              id="video_url"
+              type="text"
+              placeholder="https://drive.google.com/file/d/.../view or https://twitter.com/.../status/... or YouTube URL"
+              value={formData.video_url}
+              onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Supported: Google Drive public links, Twitter/X video posts, YouTube videos
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
