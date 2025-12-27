@@ -16,7 +16,8 @@ export async function POST(req: Request) {
     const { viewsTarget, likesTarget, sharesTarget } = computeSyntheticTargets(activity as any);
 
     // Compute server-side synthetic progress
-    const frac = growthFractionSince(activity.created_at || activity.activity_date || new Date().toISOString());
+    // Prefer created_at (server column); fallback to now if missing
+    const frac = growthFractionSince((activity as any).created_at || new Date().toISOString());
     const syntheticViews = Math.round(viewsTarget * frac);
     const syntheticLikes = Math.min(likesTarget, Math.round(likesTarget * frac));
     const syntheticShares = Math.min(sharesTarget, Math.round(sharesTarget * frac));

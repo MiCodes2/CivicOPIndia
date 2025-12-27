@@ -317,10 +317,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
-      let vid = localStorage.getItem('visitor_id');
+      let vid = localStorage.getItem('visitor_id') ?? '';
       if (!vid) {
-        vid = (window.crypto && (window.crypto as any).randomUUID) ? (window.crypto as any).randomUUID() : `v_${Math.random().toString(36).slice(2,10)}`;
-        localStorage.setItem('visitor_id', vid);
+        const newVid = (window.crypto && (window.crypto as any).randomUUID) ? (window.crypto as any).randomUUID() : `v_${Math.random().toString(36).slice(2,10)}`;
+        localStorage.setItem('visitor_id', newVid);
       }
     } catch (e) {
       // ignore
