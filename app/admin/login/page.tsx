@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,27 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Shield, Mail } from "lucide-react";
 import Link from "next/link";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [captchaAnswer, setCaptchaAnswer] = useState("");
-  const [captchaQuestion, setCaptchaQuestion] = useState({ num1: 0, num2: 0, answer: 0 });
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
-  // Generate random captcha on mount
-  useEffect(() => {
-    generateCaptcha();
-  }, []);
-
-  const generateCaptcha = () => {
-    const num1 = Math.floor(Math.random() * 10) + 1;
-    const num2 = Math.floor(Math.random() * 10) + 1;
-    setCaptchaQuestion({ num1, num2, answer: num1 + num2 });
-    setCaptchaAnswer("");
+  const handleCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -36,9 +29,8 @@ export default function AdminLoginPage() {
     setError("");
 
     // Verify captcha
-    if (parseInt(captchaAnswer) !== captchaQuestion.answer) {
-      setError("Incorrect captcha answer. Please try again.");
-      generateCaptcha();
+    if (!captchaToken) {
+      setError("Please complete the CAPTCHA verification");
       return;
     }
 
@@ -58,7 +50,9 @@ export default function AdminLoginPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
-      generateCaptcha(); // Reset captcha on error
+      // Reset captcha on error
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setLoading(false);
     }
@@ -107,28 +101,16 @@ export default function AdminLoginPage() {
                 />
               </div>
 
-              {/* Captcha */}
+              {/* reCAPTCHA */}
               <div className="space-y-2">
-                <label htmlFor="captcha" className="text-sm font-medium">
-                  Security Check: What is {captchaQuestion.num1} + {captchaQuestion.num2}?
-                </label>
-                <Input
-                  id="captcha"
-                  type="number"
-                  placeholder="Enter answer"
-                  value={captchaAnswer}
-                  onChange={(e) => setCaptchaAnswer(e.target.value)}
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={generateCaptcha}
-                  className="text-xs"
-                >
-                  Generate New Question
-                </Button>
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "your-recaptcha-site-key"}
+                    onChange={handleCaptchaChange}
+                    theme="light"
+                  />
+                </div>
               </div>
 
               {error && (

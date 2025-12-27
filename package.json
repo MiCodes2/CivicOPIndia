@@ -9,7 +9,10 @@
     "generate:metadata": "node ./scripts/generate_page_metadata.js",
     "lint": "eslint",
     "seed:all": "npx dotenv-cli -e .env.local -- node scripts/seed_all_activities.js",
-    "check:metrics": "npx dotenv-cli -e .env.local -- node scripts/check_metrics_data.js"
+    "check:metrics": "npx dotenv-cli -e .env.local -- node scripts/check_metrics_data.js",
+    "analyze:metrics": "npx dotenv-cli -e .env.local -- node scripts/analyze_metrics.js",
+    "deduplicate:shares": "npx dotenv-cli -e .env.local -- node scripts/deduplicate_shares.js",
+    "recalculate:shares": "npx dotenv-cli -e .env.local -- node scripts/recalculate_shares.js"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",

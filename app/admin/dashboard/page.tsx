@@ -26,6 +26,7 @@ export default function AdminDashboard() {
   const [editorTab, setEditorTab] = useState<'posts'|'events'>('posts');
   const [listTab, setListTab] = useState<'activities'|'events'>('activities');
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const router = useRouter();
   const supabase = createClient();
 
@@ -61,6 +62,16 @@ export default function AdminDashboard() {
     
     if (data) {
       setActivities(data);
+      
+      // Set default month to latest month if not already set
+      if (selectedMonth === 'all' && data.length > 0) {
+        const latestActivity = data[0];
+        const d = new Date(latestActivity.activity_date || latestActivity.created_at || '');
+        if (!isNaN(d.getTime())) {
+          const latestMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+          setSelectedMonth(latestMonth);
+        }
+      }
     }
   };
 
@@ -191,8 +202,51 @@ export default function AdminDashboard() {
                 <button onClick={() => setListTab('activities')} className={`px-3 py-1 rounded ${listTab === 'activities' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>Activities</button>
                 <button onClick={() => setListTab('events')} className={`px-3 py-1 rounded ${listTab === 'events' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>Events</button>
               </div>
-              <div className="text-xs text-muted-foreground">{listTab === 'events' ? `${events.length} total` : `${activities.length} total`}</div>
+              <div className="text-xs text-muted-foreground">
+                {listTab === 'events' 
+                  ? `${events.length} total` 
+                  : selectedMonth === 'all' 
+                    ? `${activities.length} total` 
+                    : `${activities.filter(a => {
+                        const d = new Date(a.activity_date || a.created_at || '');
+                        if (isNaN(d.getTime())) return false;
+                        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                        return key === selectedMonth;
+                      }).length} of ${activities.length} total`
+                }
+              </div>
             </div>
+
+            {listTab === 'activities' && (
+              <div className="mb-3">
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Months</option>
+                  {(() => {
+                    const months: Record<string, number> = {};
+                    for (const a of activities) {
+                      const d = new Date(a.activity_date || a.created_at || '');
+                      if (isNaN(d.getTime())) continue;
+                      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                      months[key] = (months[key] || 0) + 1;
+                    }
+                    const sortedMonths = Object.keys(months).sort((a,b)=> b.localeCompare(a));
+                    return sortedMonths.map((monthKey) => {
+                      const [yr, mo] = monthKey.split('-');
+                      const label = new Date(Number(yr), Number(mo)-1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+                      return (
+                        <option key={monthKey} value={monthKey}>
+                          {label} ({months[monthKey]} posts)
+                        </option>
+                      );
+                    });
+                  })()}
+                </select>
+              </div>
+            )}
 
             {listTab === 'activities' ? (
               activities.length > 0 ? (
@@ -207,7 +261,11 @@ export default function AdminDashboard() {
                       groups[key].push(a);
                     }
                     const keys = Object.keys(groups).sort((a,b)=> b.localeCompare(a));
-                    return keys.map((k) => {
+                    
+                    // Filter keys based on selected month
+                    const filteredKeys = selectedMonth === 'all' ? keys : keys.filter(k => k === selectedMonth);
+                    
+                    return filteredKeys.map((k) => {
                       const [yr, mo] = k.split('-');
                       const label = new Date(Number(yr), Number(mo)-1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
                       return (

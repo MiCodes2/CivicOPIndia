@@ -101,21 +101,21 @@ export async function GET(req: Request) {
     let likesSeries = mapCountsFromMap(likesCounts);
     let sharesSeries = mapCountsFromMap(sharesCounts);
 
-    // Fallback: if likes/shares event tables are empty, derive series from activities' aggregated counts
+    // Fallback: if event tables are empty, derive series from activities' aggregated counts
     const sum = (arr: number[]) => arr.reduce((a,b)=>a+b, 0);
-    if (sum(likesSeries) === 0 || sum(sharesSeries) === 0) {
+    if (sum(viewsSeries) === 0 || sum(likesSeries) === 0) {
       try {
-        const { data: acts, error: aErr } = await supabase.from('activities').select('created_at, likes_count, shares_count');
+        const { data: acts, error: aErr } = await supabase.from('activities').select('created_at, likes_count, views_count').gte('created_at', sinceIso);
         if (!aErr && acts) {
+          const actViews: Record<string, number> = {};
           const actLikes: Record<string, number> = {};
-          const actShares: Record<string, number> = {};
           for (const a of acts) {
             const day = (new Date(a.created_at)).toISOString().slice(0,10);
+            actViews[day] = (actViews[day] || 0) + Number(a.views_count || 0);
             actLikes[day] = (actLikes[day] || 0) + Number(a.likes_count || 0);
-            actShares[day] = (actShares[day] || 0) + Number(a.shares_count || 0);
           }
+          if (sum(viewsSeries) === 0) viewsSeries = daysArr.map(d => actViews[d] || 0);
           if (sum(likesSeries) === 0) likesSeries = daysArr.map(d => actLikes[d] || 0);
-          if (sum(sharesSeries) === 0) sharesSeries = daysArr.map(d => actShares[d] || 0);
         }
       } catch (e) {
         // ignore fallback errors

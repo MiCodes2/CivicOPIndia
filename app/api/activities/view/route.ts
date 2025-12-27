@@ -9,10 +9,18 @@ export async function POST(req: Request) {
     const body = await req.json();
     const id = body?.activityId;
     const visitorId = body?.visitorId ?? null;
-    const userId = body?.userId ?? null;
     if (!id) return NextResponse.json({ error: 'Missing activityId' }, { status: 400 });
 
     const supabase = await createServerClient();
+
+    // Try to get authenticated user (if any)
+    let userId: string | null = null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id || null;
+    } catch (e) {
+      userId = null;
+    }
 
     // Find the most recent view by this visitor or user
     let lastView: any = null;

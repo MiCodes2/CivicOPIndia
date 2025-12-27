@@ -647,6 +647,9 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   };
 
   const handleShare = async () => {
+    if (loading) return; // Prevent multiple rapid clicks
+    setLoading(true);
+
     // Optimistic update
     const prev = shares;
     setShares((s) => s + 1);
@@ -679,7 +682,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
     // Persist share server-side if a share action occurred (or optionally always)
     try {
-      const resp = await fetch('/api/activities/share', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id }) });
+      const visitorId = localStorage.getItem('visitor_id');
+      const resp = await fetch('/api/activities/share', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id, visitorId }) });
       const json = await resp.json();
       if (json?.shares_count != null) {
         setShares(json.shares_count);
@@ -687,6 +691,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     } catch (e) {
       // Revert optimistic on error
       setShares(prev);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -864,7 +870,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                 <span className={`text-sm font-medium transition-transform duration-200 ${liked ? 'scale-110' : ''}`}>{displayedLikes}</span>
               </button>
 
-              <button onClick={handleShare} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition">
+              <button onClick={handleShare} disabled={loading} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed">
                 <Share2 className={`h-5 w-5 ${shareAnimating ? 'text-emerald-600 animate-pulse' : 'text-gray-700'}`} />
                 <span className="text-sm">{displayedShares}</span>
               </button>

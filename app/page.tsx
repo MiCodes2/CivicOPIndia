@@ -210,6 +210,12 @@ export default function HomePage() {
                 <div className="font-semibold">Bangalore Apartments’ Federation</div>
               </div>
             </Link>
+            <Link href="/partners/conscious-communities" className="flex-1 min-w-[180px] max-w-xs text-center">
+              <div className="bg-card rounded-xl p-6 shadow hover:shadow-lg transition">
+                <img src="https://lzpyfvqdimkrkioxrzbf.supabase.co/storage/v1/object/public/CivicOPI/ConsciousCommunities.PNG" alt="Conscious Communities Logo" className="mx-auto h-16 mb-4" />
+                <div className="font-semibold">Conscious Communities</div>
+              </div>
+            </Link>
           </div>
         </div>
       </section>
