@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: { params: any }) {
   try {
-    const activityId = Number(params.id);
+    const p = await context.params;
+    const activityId = Number(p?.id);
     if (!activityId) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
 
     const supabase = await createServerClient();
