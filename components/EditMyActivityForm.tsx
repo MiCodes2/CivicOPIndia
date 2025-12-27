@@ -50,7 +50,35 @@ export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { 
         payload.image_url = urls[0];
       }
 
-      const resp = await fetch('/api/activities/edit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      // Include user's access token in Authorization header (if available) so server can verify author
+      const supabase = (await import('@/lib/supabase/client')).createClient();
+      let token: string | null = null;
+      try { const s = await supabase.auth.getSession(); token = s?.data?.session?.access_token ?? null; } catch (e) { token = null; }
+
+      // Fallback: read raw session from localStorage (older clients or missing API)
+      if (!token && typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('civic-op-auth');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            token = parsed?.currentSession?.access_token || parsed?.access_token || parsed?.currentSession?.access_token || null;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      // Dev-time visibility to help debug authorization issues
+      if (process.env.NODE_ENV !== 'production') {
+        try {
+          console.debug('Edit activity payload', { id: activity.id, token, headers });
+        } catch {}
+      }
+
+      const resp = await fetch('/api/activities/edit', { method: 'POST', headers, body: JSON.stringify(payload), credentials: 'same-origin' });
       const json = await resp.json();
       if (!resp.ok) throw new Error(json?.error || 'Update failed');
       onSuccess(json.activity as Activity);
@@ -81,9 +109,16 @@ export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { 
         <ImagePicker max={4} initialFiles={[]} initialPreviews={imagePreviews} initialUrls={imageUrls} onChange={(files, previews, urls) => { setImageFiles(files); setImagePreviews(previews); setImageUrls(urls); }} />
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Save'}</Button>
-        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+      <div className="mt-6 pb-6">
+        <div className="sticky bottom-0 bg-white pt-3 flex items-center gap-2 justify-between border-t -mx-4 px-4">
+          <div>
+            <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Save'}</Button>
+            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+          </div>
+          <div>
+            <Button variant="ghost" onClick={onCancel} aria-label="Close" className="px-2 py-1">Close</Button>
+          </div>
+        </div>
       </div>
     </form>
   );

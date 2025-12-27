@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { Client } from 'twitter-api-sdk'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
 // Simple in-memory cache (works for dev and single-host deployments).
 // TTL in ms
@@ -8,6 +9,23 @@ let cached: { value: string | null; expiresAt: number } | null = null
 
 export async function GET() {
   try {
+    const handle = process.env.NEXT_PUBLIC_X_HANDLE || process.env.X_HANDLE || 'CivicOp_india'
+
+    // First, try to return latest stored value from DB (so UI is never blank)
+    try {
+      const supabase = await createServerClient()
+      const { data: latest, error: dbErr } = await supabase.from('social_followers').select('followers_count,fetched_at').eq('platform', 'x').eq('handle', handle).order('fetched_at', { ascending: false }).limit(1).maybeSingle()
+      if (!dbErr && latest && typeof latest.followers_count === 'number') {
+        const formatted = Number(latest.followers_count).toLocaleString('en-IN')
+        // Cache the DB value briefly
+        cached = { value: formatted, expiresAt: Date.now() + Math.min(CACHE_TTL, 60 * 60 * 1000) }
+        return NextResponse.json({ followers: formatted, cached: 'db', fetched_at: latest.fetched_at })
+      }
+    } catch (dbErr) {
+      // Ignore DB errors here and fall back to live fetch below; log for diagnostics
+      console.warn('Failed to read stored follower count:', dbErr)
+    }
+
     // Return cached value when valid
     if (cached && Date.now() < cached.expiresAt) {
       return NextResponse.json({ followers: cached.value, cached: true })
@@ -21,7 +39,7 @@ export async function GET() {
     const client = new Client(token)
 
     // Use the SDK to fetch user public metrics
-    const resp = await client.users.findUserByUsername('CivicOp_india', { 'user.fields': ['public_metrics'] })
+    const resp = await client.users.findUserByUsername(handle, { 'user.fields': ['public_metrics'] })
     const count = resp?.data?.public_metrics?.followers_count
     if (typeof count === 'number') {
       const formatted = Number(count).toLocaleString('en-IN')

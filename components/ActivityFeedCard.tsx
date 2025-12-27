@@ -132,7 +132,7 @@ import Link from 'next/link';
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { formatPostTime } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
-import { Heart, Share2, MapPin, LayoutDashboard, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { Heart, Share2, MapPin, LayoutDashboard, ChevronLeft, ChevronRight, Eye, Edit } from "lucide-react";
 import { computeSyntheticTargets, displayedMetric, growthFractionSince } from '@/lib/utils';
 import EditMyActivityForm from '@/components/EditMyActivityForm';
 import type { Activity } from "@/lib/types/database";
@@ -815,12 +815,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
-        {/* Author edit (visible only to the logged-in author) */}
-        {(currentUserId && String(currentUserId) === String(activity.author_id)) && (
-          <div className="mb-4 px-4 md:px-4">
-            <button onClick={()=>setShowEditModal(true)} className="text-sm text-primary underline">Edit post</button>
-          </div>
-        )}
+
 
         {/* Actions */}
         <div className="mb-4 border-t pt-3 px-4 md:px-4">
@@ -844,7 +839,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
               {/* Author edit button (visible only to the logged-in author) */}
               {(currentUserId && String(currentUserId) === String(activity.author_id)) && (
-                <button onClick={()=>setShowEditModal(true)} aria-label="Edit post" className="text-muted-foreground p-2 rounded hover:bg-gray-100">Edit</button>
+                <button onClick={()=>setShowEditModal(true)} aria-label="Edit post" className="p-2 rounded hover:bg-gray-100 text-muted-foreground"><Edit className="h-5 w-5" /></button>
               )}
             </div>
 
@@ -879,7 +874,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     {/* Edit Modal for authors */}
     {showEditModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={()=>setShowEditModal(false)}>
-        <div className="bg-white rounded-md p-4 w-full max-w-3xl mx-4" onClick={(e)=>e.stopPropagation()}>
+        <div className="bg-white rounded-md p-4 w-full max-w-3xl mx-4 max-h-[90vh] overflow-auto" onClick={(e)=>e.stopPropagation()}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold">Edit Post</h3>
             <button onClick={()=>setShowEditModal(false)} className="text-muted-foreground">Close</button>
