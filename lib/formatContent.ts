@@ -122,7 +122,7 @@ export function formatContent(input: string, exclude?: string[]) {
     const twitterRegex = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/([0-9]+)(?:\/[^&\s]*)?/gi;
     processed = processed.replace(twitterRegex, (match, username, tweetId) => {
       const embedUrl = `https://platform.x.com/embed/Tweet.html?id=${tweetId}`;
-      return `<div class="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="400" frameborder="0" scrolling="no" allowfullscreen></iframe></div>`;
+      return `<div class="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden flex justify-center"><iframe src="${embedUrl}" width="100%" height="400" frameborder="0" scrolling="no" allowfullscreen class="w-full min-h-[400px] max-w-2xl"></iframe></div>`;
     });
 
     // Image embeds (include jfif)
@@ -199,7 +199,7 @@ export function formatContent(input: string, exclude?: string[]) {
     // Restore Twitter/X video embeds
     restored = restored.replace(/__TWITTER_VIDEO_EMBED_([0-9]+)__/g, (m, tweetId) => {
       const embedUrl = `https://platform.x.com/embed/Tweet.html?id=${tweetId}`;
-      return `<div class="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden"><iframe src="${embedUrl}" width="100%" height="400" frameborder="0" scrolling="no" allowfullscreen></iframe></div>`;
+      return `<div class="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden flex justify-center"><iframe src="${embedUrl}" width="100%" height="400" frameborder="0" scrolling="no" allowfullscreen class="w-full min-h-[400px] max-w-2xl"></iframe></div>`;
     });
 
     // Convert image placeholders to img tags (exclude set applied here too)

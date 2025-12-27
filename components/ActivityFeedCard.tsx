@@ -811,7 +811,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
         {/* Video embed */}
         {activity.video_url && (
-          <div className="w-full bg-black/5 px-4 md:px-4">
+          <div className="w-full bg-black/5 px-4 md:px-4 mb-4">
             <div className="w-full max-w-3xl mx-auto">
               {activity.video_url.includes('drive.google.com') ? (
                 <div className="drive-video-embed w-full aspect-video bg-gray-100 rounded-md overflow-hidden">
@@ -825,7 +825,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                   ></iframe>
                 </div>
               ) : activity.video_url.includes('twitter.com') || activity.video_url.includes('x.com') ? (
-                <div className="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden">
+                <div className="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden flex justify-center">
                   <iframe 
                     src={`https://platform.x.com/embed/Tweet.html?id=${activity.video_url.match(/\/status\/([0-9]+)/)?.[1]}`}
                     width="100%" 
@@ -833,7 +833,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                     frameBorder="0" 
                     scrolling="no" 
                     allowFullScreen
-                    className="w-full"
+                    className="w-full min-h-[400px] max-w-2xl"
                   ></iframe>
                 </div>
               ) : activity.video_url.includes('youtube.com') || activity.video_url.includes('youtu.be') ? (
