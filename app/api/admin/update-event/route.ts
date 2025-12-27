@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { unlink } from 'fs/promises';
 import path from 'path';
+import { decodeHtmlEntities, normalizeEntities } from '@/lib/formatContent';
 
 export async function POST(req: Request) {
   try {
@@ -26,6 +27,10 @@ export async function POST(req: Request) {
     if (allowed.event_date) {
       try { allowed.event_date = new Date(allowed.event_date).toISOString(); } catch {}
     }
+
+    // Decode HTML entities in title/content
+    if (allowed.title) allowed.title = normalizeEntities(String(allowed.title));
+    if (allowed.content) allowed.content = normalizeEntities(String(allowed.content));
 
     const { error } = await supabase.from('events').update(allowed).eq('id', id);
     if (error) return NextResponse.json({ error: error.message || error }, { status: 500 });

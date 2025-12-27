@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
 import ImagePicker from "@/components/admin/ImagePicker";
+import { decodeHtmlEntities, normalizeEntities } from '@/lib/formatContent';
 type EventType = any;
 
 interface EditEventFormProps {
@@ -43,7 +44,7 @@ export default function EditEventForm({ event, onCancel, onSuccess }: EditEventF
     setError("");
     setLoading(true);
     try {
-      const payload: any = { id: event.id, ...formData };
+      const payload: any = { id: event.id, ...formData, title: normalizeEntities(formData.title || ''), content: normalizeEntities(formData.content || '') };
 
       // Upload any newly added files via ImagePicker
       const imageUrls: string[] = [];

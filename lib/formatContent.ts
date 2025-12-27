@@ -16,7 +16,12 @@ export function decodeHtmlEntities(str: string) {
   if (typeof document !== 'undefined') {
     const el = document.createElement('textarea');
     el.innerHTML = str;
-    return el.value;
+    let s = el.value;
+    // decode numeric entities remaining after DOM decode
+    s = s.replace(/&#(\d+);/g, (m, code) => String.fromCharCode(parseInt(code, 10)));
+    s = s.replace(/&#x([0-9a-fA-F]+);/g, (m, code) => String.fromCharCode(parseInt(code, 16)));
+    s = s.replace(/&apos;/g, "'").replace(/&#039;/g, "'");
+    return s;
   }
   // Server-side fallback: decode common named entities and numeric entities
   let decoded = String(str)
@@ -24,9 +29,11 @@ export function decodeHtmlEntities(str: string) {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'");
-  // numeric entities
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'");
+  // numeric entities (decimal and hex)
   decoded = decoded.replace(/&#(\d+);/g, (m, code) => String.fromCharCode(parseInt(code, 10)));
+  decoded = decoded.replace(/&#x([0-9a-fA-F]+);/g, (m, code) => String.fromCharCode(parseInt(code, 16)));
   return decoded;
 }
 
@@ -39,10 +46,47 @@ const base64Decode = (s: string) => {
   return Buffer.from(s, 'base64').toString('utf8');
 };
 
+export function normalizeEntities(str: string) {
+  if (!str) return '';
+  let prev = String(str);
+  for (let i = 0; i < 4; i++) {
+    const dec = decodeHtmlEntities(prev);
+    if (dec === prev) break;
+    prev = dec;
+  }
+  return prev;
+}
+
+export function strictClean(str: string) {
+  // Built on normalizeEntities but performs aggressive cleaning of common broken encodings
+  if (!str) return '';
+  let s = normalizeEntities(String(str));
+
+  // Fix common double-encoded numeric entities and variants (e.g., &amp;#039;, &#039;, & #039;)
+  s = s.replace(/&amp;#\s*0*39;|&\s*#\s*0*39;|&#x27;/gi, "'");
+
+  // decode any remaining numeric/hex sequences spelled oddly
+  s = s.replace(/&amp;#\s*(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
+  s = s.replace(/&amp;#x\s*([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+
+  // Remove invisible / zero-width characters and stray control characters
+  s = s.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+  // Normalize whitespace and remove excessive escaping
+  s = s.replace(/\\+'/g, "'");
+  s = s.replace(/\s+/g, ' ').trim();
+
+  // Normalize curly quotes to straight quotes to avoid inconsistent rendering
+  s = s.replace(/[‘’‚‛]/g, "'");
+  s = s.replace(/[“”„‟]/g, '"');
+
+  return s;
+}
+
 export function formatContent(input: string, exclude?: string[]) {
   // First, decode HTML entities (handles cases like &amp;#039; or &#039;) so they render as characters
   try {
-    input = decodeHtmlEntities(input || '');
+    input = normalizeEntities(input || '');
   } catch (e) {
     // ignore and continue with original input
     input = input || '';
@@ -132,5 +176,8 @@ export function formatContent(input: string, exclude?: string[]) {
     return `<p>${withBreaks}</p>`;
   });
 
-  return paragraphs.join("\n");
+  let out = paragraphs.join("\n");
+  // Ensure raw ampersands immediately followed by an anchor are escaped consistently to avoid SSR hydration mismatches
+  out = out.replace(/&(?!#?\w+;)(?=<a\s)/g, '&amp;');
+  return out;
 }

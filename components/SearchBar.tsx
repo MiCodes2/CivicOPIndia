@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { SEARCH_PAGES } from '../lib/searchPages'
+import { decodeHtmlEntities } from '@/lib/formatContent'
 
 export default function SearchBar({ initial = '', disableSuggestions = false }: { initial?: string, disableSuggestions?: boolean }) {
   const [q, setQ] = useState(initial)
@@ -206,9 +207,9 @@ export default function SearchBar({ initial = '', disableSuggestions = false }: 
                     }
                   }}
                 >
-                  <div className="font-semibold">{r.title || 'Untitled'}</div>
+                  <div className="font-semibold">{decodeHtmlEntities(r.title || 'Untitled')}</div>
                   {r.snippet && <div className="text-sm text-muted-foreground mt-1">{truncate(r.snippet || '', 120)}</div>}
-                  {r.author_name && <div className="text-sm text-muted-foreground">{r.author_name}</div>}
+                  {r.author_name && <div className="text-sm text-muted-foreground">{decodeHtmlEntities(r.author_name)}</div>}
                 </a>
               </li>
             )

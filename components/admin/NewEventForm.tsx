@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
 import ImagePicker from "@/components/admin/ImagePicker";
+import { decodeHtmlEntities, normalizeEntities } from '@/lib/formatContent';
 
 interface NewEventFormProps {
   onSuccess?: () => void;
@@ -202,9 +203,11 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("You must be logged in to create events");
 
+      const rawTitle = formData.title || null;
+      const rawContent = formData.content || null;
       const payload = {
-        title: formData.title || null,
-        content: formData.content || null,
+        title: normalizeEntities(rawTitle as string) || null,
+        content: normalizeEntities(rawContent as string) || null,
         location: formData.location || null,
         type: formData.type || null,
         event_date: new Date(formData.event_date).toISOString(),
@@ -323,7 +326,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
               {drafts.map((d) => (
                 <div key={d.id} className="flex items-center justify-between gap-2">
                   <div className="text-sm">
-                    <div className="font-medium">{d.title}</div>
+                    <div className="font-medium">{decodeHtmlEntities(d.title)}</div>
                     <div className="text-xs text-muted-foreground">{formatDraftAge(d.savedAt)}</div>
                   </div>
                   <div className="flex gap-2">

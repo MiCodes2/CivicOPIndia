@@ -12,6 +12,7 @@ import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import type { Activity } from "@/lib/types/database";
 import RichTextEditor from "@/components/RichTextEditor";
 import ImagePicker from "@/components/admin/ImagePicker";
+import { normalizeEntities } from '@/lib/formatContent';
 
 interface EditActivityFormProps {
   activity: Activity;
@@ -279,7 +280,7 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
 
       // Use server-side admin update to bypass RLS (requires SUPABASE_SERVICE_ROLE_KEY)
       const tags = extractHashtags(contentToUse);
-      const payload = { id: activity.id, ...formData, image_url: imageUrlToUse, content: contentToUse, activity_date: new Date(formData.activity_date).toISOString(), tags, delete_files: deletedFiles };
+      const payload = { id: activity.id, ...formData, image_url: imageUrlToUse, content: normalizeEntities(contentToUse), title: normalizeEntities(formData.title || ''), activity_date: new Date(formData.activity_date).toISOString(), tags, delete_files: deletedFiles };
       // If user marked files for deletion, confirm before proceeding
       if (deletedFiles && deletedFiles.length > 0) {
         const ok = window.confirm(`This will permanently delete ${deletedFiles.length} image(s) from the server. Continue?`);

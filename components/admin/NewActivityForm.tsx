@@ -11,6 +11,7 @@ import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
 import ImagePicker from "@/components/admin/ImagePicker";
 import ImageLightbox from '@/components/admin/ImageLightbox';
+import { decodeHtmlEntities, normalizeEntities } from '@/lib/formatContent';
 
 interface NewActivityFormProps {
   onSuccess?: () => void;
@@ -405,9 +406,11 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         contentToInsert = (contentToInsert || '') + extras.join('');
       }
 
+      const rawTitle = formData.title || null;
+      const rawContent = contentToInsert || formData.content || null;
       const payload = {
-        title: formData.title || null,
-        content: contentToInsert || formData.content || null,
+        title: normalizeEntities(rawTitle as string) || null,
+        content: normalizeEntities(rawContent as string) || null,
         location: formData.location || null,
         type: canonicalizeType(formData.type) || null,
         activity_date: new Date(formData.activity_date).toISOString(),
@@ -738,7 +741,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
               {drafts.map((d) => (
                 <div key={d.id} className="flex items-center justify-between gap-2">
                   <div className="text-sm">
-                    <div className="font-medium">{d.title}</div>
+                    <div className="font-medium">{decodeHtmlEntities(d.title)}</div>
                     <div className="text-xs text-muted-foreground">{formatDraftAge(d.savedAt)}</div>
                   </div>
                   <div className="flex gap-2">

@@ -216,6 +216,9 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [modalIndex, setModalIndex] = useState<number>(0);
+  const [modalUseIframe, setModalUseIframe] = useState<boolean>(true);
+  const [modalIframeLoaded, setModalIframeLoaded] = useState<boolean>(false);
+  const modalIframeRef = useRef<HTMLIFrameElement | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const touchStartX = useRef<number | null>(null);
   const touchDeltaX = useRef<number>(0);
@@ -368,6 +371,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     const idx = images.findIndex((u) => resolveUrl(u) === resolved);
     setModalIndex(idx >= 0 ? idx : 0);
     setModalImage(resolved);
+    setModalUseIframe(true);
+    setModalIframeLoaded(false);
     setModalOpen(true);
   };
 
@@ -375,6 +380,37 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const nextImage = useCallback(() => {
     setCurrentIndex((i) => Math.min(images.length - 1, i + 1));
   }, [images.length]);
+
+  // Listen for iframe load/error messages and fallback if needed
+  useEffect(() => {
+    if (!modalOpen) return;
+    let t: any = setTimeout(() => { if (!modalIframeLoaded) setModalUseIframe(false); }, 1500);
+    const onMsg = (e: MessageEvent) => {
+      if (e?.data?.type === 'iframe-image-loaded') {
+        setModalIframeLoaded(true);
+        // Resize iframe according to natural dimensions
+        const w = Number(e.data.w || 0);
+        const h = Number(e.data.h || 0);
+        if (w > 0 && h > 0 && modalIframeRef.current) {
+          const targetW = Math.min(window.innerWidth * 0.75, 1200);
+          const maxH = window.innerHeight * 0.9;
+          let width = Math.round(targetW);
+          let height = Math.round((targetW * h) / w);
+          if (height > maxH) {
+            height = Math.round(maxH);
+            width = Math.round((maxH * w) / h);
+          }
+          modalIframeRef.current.style.width = `${width}px`;
+          modalIframeRef.current.style.height = `${height}px`;
+          modalIframeRef.current.style.maxWidth = `${targetW}px`;
+          modalIframeRef.current.style.maxHeight = `${Math.round(maxH)}px`;
+        }
+      }
+      if (e?.data?.type === 'iframe-image-error') setModalUseIframe(false);
+    };
+    window.addEventListener('message', onMsg);
+    return () => { clearTimeout(t); window.removeEventListener('message', onMsg); };
+  }, [modalOpen, modalIframeLoaded]);
 
   const prevImage = useCallback(() => {
     setCurrentIndex((i) => Math.max(0, i - 1));
@@ -670,10 +706,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         {/* Header */}
         <div className="mb-0 flex items-start justify-between py-2 px-4">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{(activity.author_name||'').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
+            <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{decodeHtmlEntities(activity.author_name || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
               <div className="flex items-center gap-2">
-                <div className="text-sm font-medium">{activity.author_name || 'Unknown'}</div>
+                <div className="text-sm font-medium">{decodeHtmlEntities(activity.author_name || 'Unknown')}</div>
                 <div className="text-xs text-muted-foreground">{formatPostTime(activity.activity_date)}</div>
               </div>
               {activity.location && (
@@ -752,7 +788,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
             </div>
             {activity.image_captions && activity.image_captions[0] && (
               <div className="mt-2 text-center">
-                <p className="text-sm text-muted-foreground">{activity.image_captions[0]}</p>
+                <p className="text-sm text-muted-foreground">{decodeHtmlEntities(activity.image_captions[0])}</p>
               </div>
             )}
 
@@ -860,14 +896,48 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         onClick={() => setModalOpen(false)}
       >
         <div className="relative mx-4 max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => setModalOpen(false)}
-            className="absolute right-0 top-0 z-50 m-2 rounded bg-white/90 p-2 text-sm"
-            aria-label="Close image"
-          >
-            Close
-          </button>
-          <img src={modalImage} alt="Full image" className="max-h-[90vh] max-w-[90vw] object-contain rounded-md bg-white" />
+          {/* close button moved inside container and positioned near the image */}
+          <div className="absolute top-2 right-2 z-50">
+            <button onClick={() => setModalOpen(false)} className="rounded-full bg-white/90 p-2 text-sm">✕</button>
+          </div>
+          {
+            (() => {
+              // try to prefer an original/untransformed URL for the modal
+              const getOriginalUrl = (u: string) => {
+                if (!u) return u;
+                if (u.startsWith('data:')) return u;
+                try {
+                  const url = new URL(u, window.location.origin);
+                  ['w', 'width', 'h', 'height', 'fit', 'crop', 'f', 'q', 'quality', 's', 'auto'].forEach(p => url.searchParams.delete(p));
+                  url.pathname = url.pathname.replace(/\/upload\/c_[^/]+(,[^/]+)*\//, '/upload/');
+                  url.pathname = url.pathname.replace(/\/\-\/preview\//, '/');
+                  return url.toString();
+                } catch (e) {
+                  return u;
+                }
+              };
+              const full = getOriginalUrl(modalImage);
+              return (
+                <>
+                  <div className="relative">
+                    {modalUseIframe ? (
+                      (() => {
+                        // embed via srcdoc so the iframe shows only the image (avoids host wrappers and scrollbars)
+                        const iframeDoc = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" /><style>html,body{height:100%;margin:0;background:#fff;display:flex;align-items:center;justify-content:center}img{display:block;max-width:100%;max-height:100%;margin:0 auto;object-fit:contain}</style></head><body><img id="_img" src="${full}" alt="image" onload="(function(){var i=document.getElementById('_img');window.parent.postMessage({type:'iframe-image-loaded',w:i.naturalWidth,h:i.naturalHeight},'*')})()" onerror="window.parent.postMessage({type:'iframe-image-error'},'*')"/></body></html>`;
+                        return <iframe ref={modalIframeRef} title="Full image frame" srcDoc={iframeDoc} className="rounded-md bg-white" style={{ border: 'none', width: 'auto', maxHeight: '90vh' }} />
+                      })()
+                    ) : (
+                      <img src={full} alt="Full image" className="max-h-[80vh] max-w-[80vw] object-contain rounded-md bg-white" />
+                    )}
+
+
+
+
+                  </div>
+                </>
+              );
+            })()
+          }
         </div>
       </div>
     )}

@@ -56,7 +56,9 @@ export default function EventsList() {
           <Card key={ev.id} className="flex flex-col text-sm py-1 gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {ev.image_url && (
-              <img src={ev.image_url} alt={ev.title} className="h-14 w-full object-cover rounded-t-md" />
+              <div className="rounded-t-md overflow-hidden h-24 sm:h-28">
+                <img src={ev.image_url} alt={decodeHtmlEntities(ev.title)} className="w-full h-full object-cover block" />
+              </div>
             )}
             <CardContent className="px-3 py-1">
               <div className="flex items-start justify-between gap-2">

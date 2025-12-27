@@ -224,7 +224,7 @@ export default function AdminDashboard() {
                                 <div className="font-medium">{decodeHtmlEntities(activity.title)}</div>
                                 <div className="mt-1 text-xs text-muted-foreground">{formatDateShort(activity.activity_date)}</div>
                                 <div className="mt-2 flex gap-2">
-                                  <Button size="sm" variant="outline" onClick={() => setEditingActivity(activity)}>
+                                  <Button size="sm" variant="outline" onClick={() => { setEditingActivity(activity); setEditorTab('posts'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                                     <Edit className="h-3 w-3 mr-1" />
                                     Edit
                                   </Button>
@@ -275,7 +275,7 @@ export default function AdminDashboard() {
                                   <div className="font-medium">{decodeHtmlEntities(ev.title)}</div>
                                   <div className="mt-1 text-xs text-muted-foreground">{formatDateShort(ev.event_date)}</div>
                                   <div className="mt-2 flex gap-2">
-                                    <Button size="sm" variant="outline" onClick={() => setEditingEvent(ev)}>
+                                    <Button size="sm" variant="outline" onClick={() => { setEditingEvent(ev); setEditorTab('events'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                                       <Edit className="h-3 w-3 mr-1" />
                                       Edit
                                     </Button>

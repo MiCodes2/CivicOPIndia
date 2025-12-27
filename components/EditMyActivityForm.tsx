@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import RichTextEditor from '@/components/RichTextEditor';
 import { Input } from '@/components/ui/input';
 import ImagePicker from '@/components/admin/ImagePicker';
+import { decodeHtmlEntities, normalizeEntities } from '@/lib/formatContent';
 import type { Activity } from '@/lib/types/database';
 
 export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { activity: Activity; onCancel: () => void; onSuccess: (updated: Activity) => void }) {
@@ -44,7 +45,7 @@ export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { 
         }
       }
 
-      const payload: any = { id: activity.id, title, content, location };
+      const payload: any = { id: activity.id, title: normalizeEntities(title), content: normalizeEntities(content), location };
       if (urls && urls.length > 0) {
         payload.image_urls = urls;
         payload.image_url = urls[0];

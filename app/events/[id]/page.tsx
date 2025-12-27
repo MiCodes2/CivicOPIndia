@@ -3,6 +3,7 @@ import { pageMetadata } from '@/lib/pageMetadata'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatContent, decodeHtmlEntities } from '@/lib/formatContent'
+import EventImage from '@/components/EventImage'
 
 type Props = { params: { id: string } }
 
@@ -26,8 +27,8 @@ export default async function EventPage({ params }: Props) {
   const event = data as any
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-3xl mx-auto">
+    <div className="container mx-auto px-4 pt-8 pb-20">
+      <div className="max-w-3xl mx-auto mb-12">
         <h1 className="text-3xl font-bold">{decodeHtmlEntities(event.title)}</h1>
 
         <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
@@ -39,11 +40,11 @@ export default async function EventPage({ params }: Props) {
         <div className="mt-2 text-sm text-muted-foreground">{new Date(event.event_date).toLocaleString()}</div>
         {event.location && <div className="mt-1 text-sm text-muted-foreground">{event.location}</div>}
         {event.image_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={event.image_url} alt={event.title} className="mt-4 w-full rounded-md object-cover" />
+          <EventImage images={[event.image_url]} alt={decodeHtmlEntities(event.title)} />
         )}
         <div className="prose mt-6" dangerouslySetInnerHTML={{ __html: formatContent(event.content || '') }} />
       </div>
+      <div className="h-20 md:h-28" />
     </div>
   )
 }
