@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { formatContent, decodeHtmlEntities } from '@/lib/formatContent';
+import { formatContent, decodeHtmlEntities, escapeHtml } from '@/lib/formatContent';
 
 // Collapsible content component to mimic social media 'See more' behavior
 function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
