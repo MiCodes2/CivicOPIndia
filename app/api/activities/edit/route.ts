@@ -26,8 +26,11 @@ export async function POST(req: Request) {
       if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
         const token = authHeader.split(' ')[1];
         try {
-          const resp = await fetch((process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/auth/v1/user', {
-            headers: { Authorization: `Bearer ${token}` },
+          const apikey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || null;
+          debugInfo.authApikeySent = Boolean(apikey);
+          const urlBase = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+          const resp = await fetch(urlBase + '/auth/v1/user', {
+            headers: { Authorization: `Bearer ${token}`, ...(apikey ? { apikey } : {}) },
           });
           debugInfo.authCheckStatus = resp.status;
           debugInfo.authCheckOk = resp.ok;

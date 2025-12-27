@@ -10,6 +10,7 @@ import NewActivityForm from "@/components/admin/NewActivityForm";
 import NewEventForm from "@/components/admin/NewEventForm";
 import EditActivityForm from "@/components/admin/EditActivityForm";
 import EditEventForm from "@/components/admin/EditEventForm";
+import MetricsChart from '@/components/admin/MetricsChart';
 import { LogOut, Activity as ActivityIcon, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
 
@@ -21,6 +22,8 @@ export default function AdminDashboard() {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [editorTab, setEditorTab] = useState<'posts'|'events'>('posts');
+  const [listTab, setListTab] = useState<'activities'|'events'>('activities');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
@@ -134,75 +137,65 @@ export default function AdminDashboard() {
               Public Feed
             </Link>
           </Button>
-          <Button onClick={handleSignOut} variant="outline" className="w-full sm:w-auto">
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
+
         </div>
       </div>
 
 
       <div className="grid gap-8 lg:grid-cols-3">
-        {/* Post/Edit Form */}
+        {/* Left: Tabbed Editor */}
         <div className="lg:col-span-2">
-          {editingActivity ? (
-            <EditActivityForm
-              activity={editingActivity}
-              onCancel={() => setEditingActivity(null)}
-              onSuccess={() => {
-                setEditingActivity(null);
-                loadActivities();
-              }}
-            />
-          ) : editingEvent ? (
-            <EditEventForm
-              event={editingEvent}
-              onCancel={() => setEditingEvent(null)}
-              onSuccess={() => { setEditingEvent(null); loadEvents(); }}
-            />
-          ) : (
-            <>
-              <NewActivityForm onSuccess={loadActivities} />
-              <div className="mt-6">
-                <NewEventForm onSuccess={loadEvents} />
-              </div>
-            </>
-          )}
+          <div className="flex items-center gap-2 mb-4">
+            <button onClick={() => { setEditingActivity(null); setEditingEvent(null); setEditorTab('posts'); }} className={`px-3 py-1 rounded ${typeof editorTab !== 'undefined' && editorTab === 'posts' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>Posts</button>
+            <button onClick={() => { setEditingActivity(null); setEditingEvent(null); setEditorTab('events'); }} className={`px-3 py-1 rounded ${typeof editorTab !== 'undefined' && editorTab === 'events' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>Events</button>
+          </div>
+
+          <div className="bg-white rounded shadow-sm p-4">
+            {editorTab === 'posts' ? (
+              editingActivity ? (
+                <EditActivityForm
+                  activity={editingActivity}
+                  onCancel={() => setEditingActivity(null)}
+                  onSuccess={() => {
+                    setEditingActivity(null);
+                    loadActivities();
+                  }}
+                />
+              ) : (
+                <NewActivityForm onSuccess={loadActivities} />
+              )
+            ) : (
+              editorTab === 'events' && (
+                editingEvent ? (
+                  <EditEventForm
+                    event={editingEvent}
+                    onCancel={() => setEditingEvent(null)}
+                    onSuccess={() => { setEditingEvent(null); loadEvents(); }}
+                  />
+                ) : (
+                  <NewEventForm onSuccess={loadEvents} />
+                )
+              )
+            )}
+          </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar: Charts + Tabbed Lists */}
         <div className="space-y-6">
-          {/* Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Stats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Activities</span>
-                <span className="font-bold">{activities.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Events</span>
-                <span className="font-bold">{events.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Account</span>
-                <span className="font-bold">Admin</span>
-              </div>
-            </CardContent>
-          </Card>
+          <MetricsChart days={30} />
 
-          {/* All Activities */}
-          <Card>
-            <CardHeader>
-              <CardTitle>All Activities</CardTitle>
-              <CardDescription>Manage your posts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {activities.length > 0 ? (
+          <div className="bg-white rounded shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex gap-2">
+                <button onClick={() => setListTab('activities')} className={`px-3 py-1 rounded ${listTab === 'activities' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>Activities</button>
+                <button onClick={() => setListTab('events')} className={`px-3 py-1 rounded ${listTab === 'events' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>Events</button>
+              </div>
+              <div className="text-xs text-muted-foreground">{listTab === 'events' ? `${events.length} total` : `${activities.length} total`}</div>
+            </div>
+
+            {listTab === 'activities' ? (
+              activities.length > 0 ? (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {/* Group activities by month for easier management */}
                   {(() => {
                     const groups: Record<string, typeof activities> = {};
                     for (const a of activities) {
@@ -248,71 +241,63 @@ export default function AdminDashboard() {
                   })()}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  No activities yet. Create your first post!
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* All Events */}
-          <Card>
-            <CardHeader>
-              <CardTitle>All Events</CardTitle>
-              <CardDescription>Manage events (create, edit, delete)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {events.length > 0 ? (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {(() => {
-                    const groups: Record<string, typeof events> = {};
-                    for (const e of events) {
-                      const d = new Date(e.event_date || e.created_at || '');
-                      if (isNaN(d.getTime())) continue;
-                      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-                      if (!groups[key]) groups[key] = [];
-                      groups[key].push(e);
-                    }
-                    const keys = Object.keys(groups).sort((a,b)=> b.localeCompare(a));
-                    return keys.map((k) => {
-                      const [yr, mo] = k.split('-');
-                      const label = new Date(Number(yr), Number(mo)-1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
-                      return (
-                        <div key={k} className="mb-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <div className="text-sm font-medium">{label}</div>
-                              <div className="text-xs text-muted-foreground">{groups[k].length} event{groups[k].length !== 1 ? 's' : ''}</div>
+                <p className="text-sm text-muted-foreground">No activities yet. Create your first post!</p>
+              )
+            ) : (
+              listTab === 'events' && (
+                events.length > 0 ? (
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                    {(() => {
+                      const groups: Record<string, typeof events> = {};
+                      for (const e of events) {
+                        const d = new Date(e.event_date || e.created_at || '');
+                        if (isNaN(d.getTime())) continue;
+                        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(e);
+                      }
+                      const keys = Object.keys(groups).sort((a,b)=> b.localeCompare(a));
+                      return keys.map((k) => {
+                        const [yr, mo] = k.split('-');
+                        const label = new Date(Number(yr), Number(mo)-1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+                        return (
+                          <div key={k} className="mb-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <div className="text-sm font-medium">{label}</div>
+                                <div className="text-xs text-muted-foreground">{groups[k].length} event{groups[k].length !== 1 ? 's' : ''}</div>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {groups[k].map((ev) => (
+                                <div key={ev.id} className="rounded-lg border p-3 text-sm">
+                                  <div className="font-medium">{ev.title}</div>
+                                  <div className="mt-1 text-xs text-muted-foreground">{formatDateShort(ev.event_date)}</div>
+                                  <div className="mt-2 flex gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => setEditingEvent(ev)}>
+                                      <Edit className="h-3 w-3 mr-1" />
+                                      Edit
+                                    </Button>
+                                    <Button size="sm" variant="destructive" onClick={() => handleDeleteEvent(ev.id)}>
+                                      <Trash2 className="h-3 w-3 mr-1" />
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                          <div className="space-y-2">
-                            {groups[k].map((ev) => (
-                              <div key={ev.id} className="rounded-lg border p-3 text-sm">
-                                <div className="font-medium">{ev.title}</div>
-                                <div className="mt-1 text-xs text-muted-foreground">{formatDateShort(ev.event_date)}</div>
-                                <div className="mt-2 flex gap-2">
-                                  <Button size="sm" variant="outline" onClick={() => setEditingEvent(ev)}>
-                                    <Edit className="h-3 w-3 mr-1" />
-                                    Edit
-                                  </Button>
-                                  <Button size="sm" variant="destructive" onClick={() => handleDeleteEvent(ev.id)}>
-                                    <Trash2 className="h-3 w-3 mr-1" />
-                                    Delete
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No events yet. Create your first event!</p>
-              )}
-            </CardContent>
-          </Card>
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No events yet. Create your first event!</p>
+                )
+              )
+            )}
+
+          </div>
         </div>
       </div>
     </div>
