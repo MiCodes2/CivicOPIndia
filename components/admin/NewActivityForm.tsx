@@ -469,6 +469,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         activity_date: new Date().toISOString().split('T')[0],
         image_url: "",
         image_urls: [], // Reset to empty array
+        video_url: "",
         likes_count: 0,
         shares_count: 0,
       });
