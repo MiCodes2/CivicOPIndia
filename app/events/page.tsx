@@ -34,7 +34,19 @@ export default async function EventsPage() {
                     <CardTitle className="text-base line-clamp-2 mb-0">{decodeHtmlEntities(ev.title)}</CardTitle>
                     <div className="text-xs text-muted-foreground">{ev.type}</div>
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground">{new Date(ev.event_date ?? '').toLocaleDateString()}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {new Date(ev.event_date ?? '').toLocaleDateString()}
+                    {(() => {
+                      const eventDate = new Date(ev.event_date ?? '');
+                      const now = new Date();
+                      if (isNaN(eventDate.getTime())) return null;
+                      if (eventDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+                        return <span className="ml-2 px-2 py-0.5 rounded bg-green-100 text-green-800 text-[10px] font-semibold">upcoming</span>;
+                      } else {
+                        return <span className="ml-2 px-2 py-0.5 rounded bg-gray-200 text-gray-700 text-[10px] font-semibold">past</span>;
+                      }
+                    })()}
+                  </div>
                   <div className="mt-1 text-sm text-muted-foreground">{ev.location}</div>
                   <div className="mt-2"><Link href={`/events/${ev.id}`} className="text-primary underline">View Details</Link></div>
                 </CardContent>

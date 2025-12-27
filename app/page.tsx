@@ -52,6 +52,7 @@ export default function HomePage() {
               Building a transparent, accountable democracy through collective civic action.
               Together, we hold power accountable and create lasting change.
             </p>
+            <p className="mt-2 text-lg text-primary font-semibold">Real-Time Civic Governance Dashboard</p>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Button asChild size="lg" className="text-lg w-full sm:w-auto bg-gradient-to-r from-primary to-emerald-500 text-white shadow-lg hover:scale-[1.02] transition-transform">
                 <Link href="/activities">Explore Activities</Link>
