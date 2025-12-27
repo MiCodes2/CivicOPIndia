@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { pageMetadata } from '@/lib/pageMetadata'
 import { createClient } from "@/lib/supabase/server";
 import { Activity as ActivityIcon, Users, Megaphone, FileText } from "lucide-react";
@@ -148,24 +149,45 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
         // three-column layout: left types, center feed, right trending tags
         <div className="grid gap-6 lg:grid-cols-4">
           <aside className="hidden lg:block lg:col-span-1">
-            <Card className="sticky top-24">
-              <CardHeader>
-                <CardTitle>Types</CardTitle>
-                <CardDescription className="text-sm">Filter by type</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  <li>
-                    <a href="/activities" className={`block px-3 py-1 rounded ${!selectedType ? 'bg-primary text-white' : 'hover:bg-gray-100'}`}>All ({activitiesList.length})</a>
-                  </li>
-                  {((typeRows||[]).map((r:any)=>r.name)).map((t:any) => (
-                    <li key={t}>
-                      <a href={`/activities?type=${encodeURIComponent(t)}`} className="block px-3 py-1 rounded hover:bg-gray-100">{t} <span className="text-muted-foreground">({countsByType[t] || 0})</span></a>
+            <div className="sticky top-24 flex flex-col gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Types</CardTitle>
+                  <CardDescription className="text-sm">Filter by type</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    <li>
+                      <a href="/activities" className={`block px-3 py-1 rounded ${!selectedType ? 'bg-primary text-white' : 'hover:bg-gray-100'}`}>All ({activitiesList.length})</a>
                     </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+                    {((typeRows||[]).map((r:any)=>r.name)).map((t:any) => (
+                      <li key={t}>
+                        <a href={`/activities?type=${encodeURIComponent(t)}`} className="block px-3 py-1 rounded hover:bg-gray-100">{t} <span className="text-muted-foreground">({countsByType[t] || 0})</span></a>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-primary flex items-center gap-2">
+                    <span className="animate-pulse">📢</span>
+                    Citizens Issue Box
+                  </CardTitle>
+                  <CardDescription className="text-sm font-medium text-primary/80">
+                    Your voice matters - we will share with relevant authorities
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <Button asChild className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
+                    <Link href="/citizens-issue" className="flex items-center justify-center">
+                      Report Issue Now
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </aside>
 
           <main className="lg:col-span-2">

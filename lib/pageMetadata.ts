@@ -8,6 +8,10 @@ const pageMetadata: Record<string, PageMeta> = {
     "title": "Daily Activities",
     "description": "Stay updated with our latest actions, protests, and community initiatives.\n          Join us in building a more accountable democracy."
   },
+  "citizens-issue": {
+    "title": "Citizens Issue Box",
+    "description": "Submit your grievances and we'll raise them with the relevant authorities to ensure accountability and action."
+  },
   "admin/dashboard": {
     "title": "Admin Dashboard",
     "description": "Logged in as {user.email}."

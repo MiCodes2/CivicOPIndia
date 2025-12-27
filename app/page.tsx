@@ -297,6 +297,33 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Citizens Issue Box Section */}
+      <section className="border-t bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 py-8">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-md">
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+              <CardContent className="p-6 text-center">
+                <div className="mb-4">
+                  <span className="text-2xl animate-pulse">📢</span>
+                </div>
+                <CardTitle className="text-lg text-primary mb-3">
+                  Citizens Issue Box
+                </CardTitle>
+                <CardDescription className="text-sm font-medium text-primary/80 mb-4">
+                  Your voice matters - we will share with relevant authorities
+                </CardDescription>
+                <Button asChild size="sm" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.05]">
+                  <Link href="/citizens-issue" className="flex items-center justify-center gap-2">
+                    <span>Report Issue</span>
+                    <span className="animate-bounce text-sm">→</span>
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Call to Action */}
       <section className="border-t bg-gradient-to-br from-primary/20 to-accent/20 py-16">
         <div className="container mx-auto px-4">
@@ -308,6 +335,9 @@ export default function HomePage() {
             <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Button asChild size="lg" className="text-lg w-full sm:w-auto bg-gradient-to-r from-primary to-emerald-500 text-white shadow-lg hover:scale-[1.02] transition-transform">
                 <Link href="/activities">View Activities</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="text-lg w-full sm:w-auto border-primary text-primary hover:bg-primary hover:text-white shadow-lg hover:scale-[1.02] transition-transform">
+                <Link href="/citizens-issue">Report Issue</Link>
               </Button>
             </div>
           </div>

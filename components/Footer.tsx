@@ -70,7 +70,7 @@ export default function Footer() {
 
       {/* Main Footer */}
       <div className="container mx-auto px-4 md:px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-start">
           {/* About */}
           <div>
             <h3 className="mb-4 text-lg font-semibold">Civic Opposition of India</h3>
@@ -111,21 +111,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
-          <div>
-            <h3 className="mb-4 text-lg font-semibold">Contact</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>citizens.east.blr@gmail.com</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>India</span>
-              </li>
-            </ul>
-          </div>
-
           {/* Support */}
           <div>
             <h3 className="mb-4 text-lg font-semibold">Support Our Work</h3>
@@ -149,6 +134,9 @@ export default function Footer() {
           <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground md:flex-row">
             <p>© {new Date().getFullYear()} Civic Opposition of India. All rights reserved.</p>
             <div className="flex gap-4">
+              <Link href="/contact" className="transition-colors hover:text-primary">
+                Contact
+              </Link>
               <Link href="/privacy-policy" className="transition-colors hover:text-primary">
                 Privacy Policy
               </Link>
