@@ -7,7 +7,7 @@ import { useState } from "react";
 interface TeamMemberCardProps {
   name: string;
   role: string;
-  description: string;
+  description: React.ReactNode;
   imageSrc: string;
   initials: string;
 }
@@ -41,8 +41,8 @@ export default function TeamMemberCard({
           )}
         </div>
         <h3 className="text-xl font-bold">{name}</h3>
-        <p className="mt-1 text-sm font-medium text-primary">{role}</p>
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm font-bold text-primary">{role}</p>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
           {description}
         </p>
       </CardContent>

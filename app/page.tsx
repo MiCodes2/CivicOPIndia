@@ -232,7 +232,7 @@ export default function HomePage() {
             <Link href="/team/mithilesh-kumar" className="flex-1 min-w-[220px] max-w-xs text-center">
               <TeamMemberCard
                 name="Mithilesh Kumar"
-                role="CEO & Founder"
+                role="GovTech Architect & Founder"
                 description="Visionary leader driving civic accountability and democratic reform"
                 imageSrc="/mithilesh-kumar.jpeg"
                 initials="MK"
