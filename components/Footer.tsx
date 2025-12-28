@@ -118,16 +118,15 @@ export default function Footer() {
 
           {/* Support */}
           <div>
-            <h3 className="mb-4 text-lg font-semibold">Support Our Work</h3>
+            <h3 className="mb-4 text-lg font-semibold">Join the Beta for CivicOp 2.0</h3>
             <p className="mb-4 text-sm text-muted-foreground">
-              Your contribution helps us fight for transparency and justice.
+              Get early access to our real-time tracking tools and help shape the future of digital governance.
             </p>
             <Link
-              href="/donate"
+              href="/contact"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              <Heart className="h-4 w-4" />
-              Donate Now
+              Request Access
             </Link>
           </div>
         </div>

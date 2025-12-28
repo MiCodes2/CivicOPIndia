@@ -61,6 +61,7 @@ export default function Navbar() {
     { href: "/", label: "Home", icon: Home },
     { href: "/activities", label: "Activities", icon: Activity },
     { href: "/about", label: "About", icon: Info },
+    { href: "#partners-govtech", label: "Partners / GovTech", icon: Shield },
     { href: "/donate", label: "Donate", icon: Heart },
   ];
 

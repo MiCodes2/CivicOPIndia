@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Block admin areas
+Disallow: /admin/
+
+# Allow important pages
+Allow: /
+Allow: /activities
+Allow: /about
+Allow: /citizens-issue
+
+# Sitemap
+Sitemap: https://civicopindia.com/sitemap.xml

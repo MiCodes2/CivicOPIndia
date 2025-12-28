@@ -42,6 +42,57 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "CivicOp - Civic Operations of India",
+            "url": "https://civicop.in",
+            "logo": "https://civicop.in/logo.png",
+            "description": "India's leading civic engagement platform for transparent governance, protests tracking, RTI filing, and AI-powered civic operations.",
+            "foundingDate": "2020",
+            "sameAs": [
+              "https://x.com/CivicOp_india",
+              "https://www.facebook.com/CivicOpIndia"
+            ],
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "telephone": "+91-XXXXXXXXXX", // Add actual contact
+              "contactType": "customer service",
+              "availableLanguage": "English"
+            },
+            "offers": [
+              {
+                "@type": "Service",
+                "name": "Civic Engagement Platform",
+                "description": "Real-time tracking of protests, RTI campaigns, and civic issues"
+              },
+              {
+                "@type": "Service",
+                "name": "AI-Powered Governance",
+                "description": "Future AI verification, predictive analytics, and municipal APIs"
+              }
+            ],
+            "areaServed": {
+              "@type": "Country",
+              "name": "India"
+            },
+            "knowsAbout": [
+              "Civic Engagement",
+              "Digital Governance",
+              "AI for Social Good",
+              "Transparency in Government",
+              "Citizen Rights",
+              "Protests and Demonstrations",
+              "Right to Information (RTI)"
+            ]
+          })
+        }}
+      />
+
       {/* Hero Section */}
       <section className="border-b bg-gradient-to-br from-primary/10 via-accent/10 to-background py-16">
         <div className="container mx-auto px-3">
@@ -54,6 +105,7 @@ export default function HomePage() {
               Together, we hold power accountable and create lasting change.
             </p>
             <p className="mt-2 text-lg text-primary font-semibold">Real-Time Civic Governance Dashboard</p>
+            <p className="mt-1 text-sm italic text-muted-foreground">Evolving into CivicOp (Civic Operations of India) in 2026</p>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Button asChild size="lg" className="text-lg w-full sm:w-auto bg-gradient-to-r from-primary to-emerald-500 text-white shadow-lg hover:scale-[1.02] transition-transform">
                 <Link href="/activities">Explore Activities</Link>
@@ -78,6 +130,68 @@ export default function HomePage() {
             <div id="events-list" className="mt-6">
               <EventsList />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Future Roadmap Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-3">
+          <div className="mb-12 text-center">
+            <h2 className="text-4xl font-bold tracking-tight">Future Roadmap: Portal</h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Innovative tools to revolutionize civic engagement and governance
+            </p>
+          </div>
+          <div className="grid gap-8 md:grid-cols-3">
+            <Card className="transition-shadow hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-1 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded">BETA</span>
+                </div>
+                <CardTitle className="text-xl">AI-Powered Verification</CardTitle>
+                <CardDescription className="text-base">
+                  Automated validation of civic complaints using Computer Vision to filter spam and prioritize emergencies.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            <Card className="transition-shadow hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">IN DEV</span>
+                </div>
+                <CardTitle className="text-xl">Predictive Ward Analytics</CardTitle>
+                <CardDescription className="text-base">
+                  Machine Learning models that forecast infrastructure failures before they happen.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            <Card className="transition-shadow hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-800 rounded">PLANNED</span>
+                </div>
+                <CardTitle className="text-xl">Municipal Dashboard API</CardTitle>
+                <CardDescription className="text-base">
+                  Direct integration for city officials to resolve tickets 3x faster.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Partners / GovTech CTA Section */}
+      <section id="partners-govtech" className="py-16 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold">Empowering Smart Cities</h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Are you a Municipal Corporation? Learn how our data can help you optimize resource allocation.
+            </p>
+            <Button asChild className="mt-6">
+              <Link href="/contact">Request Pilot Access</Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -340,6 +454,58 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Transparency by Design Section */}
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="mb-12 text-center">
+            <h2 className="text-4xl font-bold tracking-tight">Transparency by Design</h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Our AI systems are built with open-source principles and full accountability
+            </p>
+          </div>
+          <div className="mx-auto max-w-4xl">
+            <div className="bg-black rounded-lg shadow-2xl overflow-hidden">
+              {/* Terminal Header */}
+              <div className="flex items-center px-4 py-2 bg-gray-800">
+                <div className="flex space-x-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                </div>
+                <div className="ml-4 text-gray-400 text-sm">CivicOp Terminal</div>
+              </div>
+              {/* Terminal Body */}
+              <div className="p-6 font-mono text-sm text-green-400 bg-black">
+                <pre className="whitespace-pre-wrap">
+{`# SYSTEM_MANIFEST: CivicOp_City_Sentinel_v2.1
+agent_profile:
+  name: "CityOps Sentinel"
+  role: "Autonomous Civic Governance Auditor"
+  architecture: "Multi-Modal LLM + Geospatial Anomaly Detection"
+  deployment_status: "BETA (Ward 44, Bengaluru)"
+
+core_directives:
+  1. VERIFY_REALITY:
+     - Analyze citizen reports (images/video) for authenticity.
+     - METRIC: Reduce false positives by 99% before human review.
+  2. PREDICT_FAILURE:
+     - OUTPUT: "Pre-Crime" alerts for infrastructure.
+     - ACTION: Notify Traffic Management Center API.
+  3. ENFORCE_ACCOUNTABILITY:
+     - IF resolution_time > SLA (72 hours):
+         THEN escalate_to: Zonal_Commissioner
+
+constraints:
+  - PRIVACY_FIRST: Automatically blur faces and license plates.
+  - BIAS_CHECK: Prioritize issues based on severity, not neighborhood affluence.`}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
