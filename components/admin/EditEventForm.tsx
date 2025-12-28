@@ -81,8 +81,15 @@ export default function EditEventForm({ event, onCancel, onSuccess }: EditEventF
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Edit Event</CardTitle>
-        <CardDescription>Update the event details</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Edit Event</CardTitle>
+            <CardDescription>Update the event details</CardDescription>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+            Clear
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -122,7 +129,7 @@ export default function EditEventForm({ event, onCancel, onSuccess }: EditEventF
 
           <div className="flex gap-2">
             <Button type="submit" className="flex-1" disabled={loading}>{loading ? 'Updating...' : 'Update Event'}</Button>
-            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={onCancel}>Clear</Button>
           </div>
         </form>
       </CardContent>

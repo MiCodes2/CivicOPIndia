@@ -254,6 +254,8 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
       setFormData({ title: "", content: "", location: "", event_date: new Date().toISOString().split('T')[0], image_url: "", type: EVENT_TYPES[0], image_urls: [] });
       setImageFiles([]);
       setImagePreviews([]);
+      setImageFiles([]);
+      setImagePreviews([]);
       if (onSuccess) onSuccess();
       router.refresh();
       alert('Event created')
@@ -315,6 +317,20 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
               )}
             </div>
             <div className="flex gap-2">
+              <Button type="button" onClick={() => {
+                setFormData({
+                  title: "",
+                  content: "",
+                  location: "",
+                  event_date: new Date().toISOString().split('T')[0],
+                  image_url: "",
+                  image_urls: [],
+                  type: EVENT_TYPES[0],
+                });
+                setImageFiles([]);
+                setImagePreviews([]);
+                setDraftSavedAt(null);
+              }} disabled={loading}>Clear</Button>
               <Button type="button" onClick={saveCurrentAsDraft} disabled={loading}>Save Draft</Button>
             </div>
           </div>

@@ -27,6 +27,7 @@ export default function AdminDashboard() {
   const [listTab, setListTab] = useState<'activities'|'events'>('activities');
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [selectedEventMonth, setSelectedEventMonth] = useState<string>('all');
   const router = useRouter();
   const supabase = createClient();
 
@@ -80,7 +81,18 @@ export default function AdminDashboard() {
       .from('events')
       .select('*')
       .order('event_date', { ascending: false });
-    if (data) setEvents(data);
+    if (data) {
+      setEvents(data);
+      // Set default month to latest month if not already set
+      if (selectedEventMonth === 'all' && data.length > 0) {
+        const latestEvent = data[0];
+        const d = new Date(latestEvent.event_date || latestEvent.created_at || '');
+        if (!isNaN(d.getTime())) {
+          const latestMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+          setSelectedEventMonth(latestMonth);
+        }
+      }
+    }
   };
 
   const handleSignOut = async () => {
@@ -204,7 +216,14 @@ export default function AdminDashboard() {
               </div>
               <div className="text-xs text-muted-foreground">
                 {listTab === 'events' 
-                  ? `${events.length} total` 
+                  ? selectedEventMonth === 'all' 
+                    ? `${events.length} total` 
+                    : `${events.filter(e => {
+                        const d = new Date(e.event_date || e.created_at || '');
+                        if (isNaN(d.getTime())) return false;
+                        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                        return key === selectedEventMonth;
+                      }).length} of ${events.length} total`
                   : selectedMonth === 'all' 
                     ? `${activities.length} total` 
                     : `${activities.filter(a => {
@@ -240,6 +259,37 @@ export default function AdminDashboard() {
                       return (
                         <option key={monthKey} value={monthKey}>
                           {label} ({months[monthKey]} posts)
+                        </option>
+                      );
+                    });
+                  })()}
+                </select>
+              </div>
+            )}
+
+            {listTab === 'events' && (
+              <div className="mb-3">
+                <select
+                  value={selectedEventMonth}
+                  onChange={(e) => setSelectedEventMonth(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Months</option>
+                  {(() => {
+                    const months: Record<string, number> = {};
+                    for (const e of events) {
+                      const d = new Date(e.event_date || e.created_at || '');
+                      if (isNaN(d.getTime())) continue;
+                      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                      months[key] = (months[key] || 0) + 1;
+                    }
+                    const sortedMonths = Object.keys(months).sort((a,b)=> b.localeCompare(a));
+                    return sortedMonths.map((monthKey) => {
+                      const [yr, mo] = monthKey.split('-');
+                      const label = new Date(Number(yr), Number(mo)-1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+                      return (
+                        <option key={monthKey} value={monthKey}>
+                          {label} ({months[monthKey]} events)
                         </option>
                       );
                     });
@@ -316,7 +366,11 @@ export default function AdminDashboard() {
                         groups[key].push(e);
                       }
                       const keys = Object.keys(groups).sort((a,b)=> b.localeCompare(a));
-                      return keys.map((k) => {
+                      
+                      // Filter keys based on selected event month
+                      const filteredKeys = selectedEventMonth === 'all' ? keys : keys.filter(k => k === selectedEventMonth);
+                      
+                      return filteredKeys.map((k) => {
                         const [yr, mo] = k.split('-');
                         const label = new Date(Number(yr), Number(mo)-1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
                         return (

@@ -114,7 +114,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
         {/* Mobile: type filter buttons replacing description */}
         <div className="mt-2 md:hidden">
           <div className="flex gap-2 overflow-x-auto pb-1">
-            <Link href="/activities" aria-current={!selectedType ? 'true' : undefined} className={`px-3 py-1 rounded ${!selectedType ? 'bg-primary text-white' : 'bg-gray-100'}`}>All ({activitiesList.length})</Link>
+            <Link href="/activities" aria-current={!selectedType ? 'true' : undefined} className={`px-3 py-1 rounded ${!selectedType ? 'bg-primary text-white' : 'bg-gray-100'}`}>All</Link>
             {((typeRows||[]).map((r:any)=>r.name)).map((t:any) => (
               <Link key={t} href={`/activities?type=${encodeURIComponent(t)}`} aria-current={selectedType === t ? 'true' : undefined} className={`px-3 py-1 rounded ${selectedType === t ? 'bg-primary text-white' : 'bg-gray-100'}`}>{t}</Link>
             ))}
@@ -152,17 +152,17 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
             <div className="sticky top-24 flex flex-col gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Types</CardTitle>
-                  <CardDescription className="text-sm">Filter by type</CardDescription>
+                  <CardTitle>Activity Categories</CardTitle>
+                  <CardDescription className="text-sm">Explore activities by type</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
                     <li>
-                      <a href="/activities" className={`block px-3 py-1 rounded ${!selectedType ? 'bg-primary text-white' : 'hover:bg-gray-100'}`}>All ({activitiesList.length})</a>
+                      <a href="/activities" className={`block px-3 py-1 rounded ${!selectedType ? 'bg-primary text-white' : 'hover:bg-gray-100'}`}>All</a>
                     </li>
                     {((typeRows||[]).map((r:any)=>r.name)).map((t:any) => (
                       <li key={t}>
-                        <a href={`/activities?type=${encodeURIComponent(t)}`} className="block px-3 py-1 rounded hover:bg-gray-100">{t} <span className="text-muted-foreground">({countsByType[t] || 0})</span></a>
+                        <a href={`/activities?type=${encodeURIComponent(t)}`} className="block px-3 py-1 rounded hover:bg-gray-100">{t}</a>
                       </li>
                     ))}
                   </ul>
@@ -210,7 +210,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
                     });
                     return Object.entries(tagCounts).sort((a,b) => b[1]-a[1]).slice(0,8).map(([tag,count]) => (
                       <li key={tag}>
-                        <a href={`/activities?tag=${encodeURIComponent(tag)}`} className="flex items-center justify-between px-3 py-1 rounded hover:bg-gray-100"><span className="text-primary font-medium">#{tag}</span> <span className="text-sm text-muted-foreground">{count}</span></a>
+                        <a href={`/activities?tag=${encodeURIComponent(tag)}`} className="block px-3 py-1 rounded hover:bg-gray-100"><span className="text-primary font-medium">#{tag}</span></a>
                       </li>
                     ));
                   })()}

@@ -750,6 +750,23 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
               )}
             </div>
             <div className="flex gap-2">
+              <Button type="button" onClick={() => {
+                setFormData({
+                  title: "",
+                  content: "",
+                  location: "",
+                  type: "",
+                  activity_date: new Date().toISOString().split('T')[0],
+                  image_url: "",
+                  image_urls: [],
+                  video_url: "",
+                  likes_count: 0,
+                  shares_count: 0,
+                });
+                setImageFiles([]);
+                setImagePreviews([]);
+                setDraftSavedAt(null);
+              }} disabled={loading}>Clear</Button>
               <Button type="button" onClick={saveCurrentAsDraft} disabled={loading}>Save Draft</Button>
             </div>
           </div>

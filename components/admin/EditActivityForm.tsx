@@ -315,10 +315,17 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Edit Activity</CardTitle>
-        <CardDescription>
-          Update the activity details
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Edit Activity</CardTitle>
+            <CardDescription>
+              Update the activity details
+            </CardDescription>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+            Clear
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -562,7 +569,7 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
               {loading ? "Updating..." : "Update Activity"}
             </Button>
             <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
+              Clear
             </Button>
           </div>
         </form>
