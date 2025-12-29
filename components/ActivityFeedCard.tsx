@@ -11,40 +11,41 @@ import { computeSyntheticTargets, displayedMetric, growthFractionSince } from '@
 import EditMyActivityForm from '@/components/EditMyActivityForm';
 import type { Activity } from "@/lib/types/database";
 
-// --- FIX: Recursive Decoder ---
-// This runs a loop to strip multiple layers of encoding (e.g. &amp;#039; -> &#039; -> ')
-// It is pure string manipulation, so it works on both Server and Client without breaking hydration.
-const recursiveDecode = (input: string) => {
-  if (!input) return "";
-  let curr = input;
-  let prev = "";
-  let loopCount = 0;
+// --- FIX: Browser-Native Decoder ---
+// This uses the browser's internal text parser to fix stubborn entities like &#039;
+// It handles double-encoding (e.g. &amp;#039;) by running up to 3 passes.
+const browserDecode = (html: string) => {
+  if (typeof window === 'undefined' || !html) return html;
+  
+  try {
+    const txt = document.createElement("textarea");
+    let current = html;
+    let previous = "";
+    let limit = 0;
 
-  // Loop until the string stops changing or we hit a safety limit (5 loops)
-  while (curr !== prev && loopCount < 5) {
-    prev = curr;
-    curr = curr
-      .replace(/&amp;#039;/g, "'")
-      .replace(/&amp;#39;/g, "'")
-      .replace(/&#039;/g, "'")
-      .replace(/&#39;/g, "'")
-      .replace(/&amp;apos;/g, "'")
-      .replace(/&apos;/g, "'")
-      .replace(/&amp;quot;/g, '"')
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;amp;/g, '&');
-    loopCount++;
+    // Run up to 3 times to catch nested encoding (aren&amp;#039;t -> aren&#039;t -> aren't)
+    while (current !== previous && limit < 3) {
+      previous = current;
+      txt.innerHTML = current;
+      current = txt.value;
+      limit++;
+    }
+    return current;
+  } catch (e) {
+    return html;
   }
-  return curr;
 };
 
 function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
   const [expanded, setExpanded] = useState(false);
+  const [safeHtml, setSafeHtml] = useState(contentHtml);
+
+  // Apply the browser decode strictly on the client side
+  useEffect(() => {
+    setSafeHtml(browserDecode(contentHtml));
+  }, [contentHtml]);
   
-  // Apply the recursive decoder here to ensure the final HTML passed to the div is clean
-  const finalHtml = recursiveDecode(contentHtml);
-  
-  const contentText = finalHtml.replace(/<[^>]*>/g, '');
+  const contentText = safeHtml.replace(/<[^>]*>/g, '');
   const shouldAttemptTruncate = contentText.trim().length > 150;
   const [needsTruncate, setNeedsTruncate] = useState(false);
   const [measuring, setMeasuring] = useState<boolean>(shouldAttemptTruncate);
@@ -68,7 +69,7 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
     const origBoxOrient = (el.style as any).WebkitBoxOrient;
 
     try {
-      // 1. Unclamp to measure real height
+      // 1. Measure full height
       el.style.display = 'block';
       (el.style as any).WebkitLineClamp = '';
       (el.style as any).WebkitBoxOrient = '';
@@ -76,7 +77,7 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
       requestAnimationFrame(() => {
         const fullHeight = el.scrollHeight;
 
-        // Calculate approx line height
+        // Calculate line height
         let lineHeight = 0;
         try {
           const span = document.createElement('span');
@@ -99,7 +100,7 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
         const fullLines = Math.round(fullHeight / lineHeight);
         const exceedsMin = fullLines >= minLinesForToggle;
 
-        // 2. Re-clamp to check if overflow happens visually
+        // 2. Apply clamp
         el.style.display = '-webkit-box';
         (el.style as any).WebkitLineClamp = '3';
         (el.style as any).WebkitBoxOrient = 'vertical';
@@ -110,28 +111,26 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
           setNeedsTruncate(willShow);
           setMeasuring(false);
 
-          // Restore original state (expanded vs collapsed logic handles the rest via render)
           el.style.display = origDisplay;
           (el.style as any).WebkitLineClamp = origClamp;
           (el.style as any).WebkitBoxOrient = origBoxOrient;
         });
       });
     } catch (e) {
-      // Fallback
       setMeasuring(false);
     }
-  }, [finalHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
+  }, [safeHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
 
   return (
     <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
-        // Formatting Fix: whitespace-pre-wrap ensures paragraphs are preserved
+        // CSS: Using the whitespace-pre-wrap that successfully fixed your paragraphs
         className={`transition-all whitespace-pre-wrap break-words [&_p]:mb-3 [&_p:last-child]:mb-0 ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
-        // Line Clamp Logic
+        // STYLE: Standard line-clamp logic
         style={!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
-        dangerouslySetInnerHTML={{ __html: finalHtml }}
+        dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
 
       {(!measuring && needsTruncate) && (
@@ -179,10 +178,17 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   
-  // Clean header fields
-  const safeTitle = recursiveDecode(activity.title || '');
-  const safeAuthor = recursiveDecode(activity.author_name || 'Unknown');
-  const safeCaption = recursiveDecode((activity.image_captions && activity.image_captions[0]) || '');
+  // Safe State for Header Fields (Title/Author)
+  const [safeTitle, setSafeTitle] = useState(activity.title || '');
+  const [safeAuthor, setSafeAuthor] = useState(activity.author_name || 'Unknown');
+  const [safeCaption, setSafeCaption] = useState((activity.image_captions && activity.image_captions[0]) || '');
+
+  // Apply browser decode to header fields on mount
+  useEffect(() => {
+    setSafeTitle(browserDecode(activity.title || ''));
+    setSafeAuthor(browserDecode(activity.author_name || 'Unknown'));
+    setSafeCaption(browserDecode((activity.image_captions && activity.image_captions[0]) || ''));
+  }, [activity]);
 
   const resolveUrl = (u: string) => {
     if (!u) return u;
@@ -679,7 +685,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           )}
 
           <CollapsibleContent
-            // Pass content to formatting chain which includes our new sanitizer
             contentHtml={formatContent(activity.content || '', images)}
             onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
             onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })}
