@@ -3,49 +3,30 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { formatContent, decodeHtmlEntities as libDecode, escapeHtml } from '@/lib/formatContent';
 
-// --- FINAL FIX: Brute Force Decoder ---
-// This handles single escaped (&#039;), double escaped (&amp;#039;),
-// and hex variations (&#x27;) recursively to ensure the apostrophe always appears.
-const safeDecode = (str: string | null | undefined) => {
-  if (!str) return "";
-  
-  let current = str;
-  // Decode common variations explicitly
-  // 1. Double escaped ampersands leading into entities
-  current = current.replace(/&amp;#/g, "&#");
-  current = current.replace(/&amp;apos;/g, "'");
-  current = current.replace(/&amp;quot;/g, '"');
-
-  // 2. Specific apostrophe/quote entities
-  current = current
-    .replace(/&#039;/g, "'")
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&quot;/g, '"');
-
-  // 3. Basic HTML chars (careful not to decode existing HTML tags if not needed, 
-  // but usually safe for title/author text)
-  current = current
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&');
-
-  return current;
+// --- FINAL FIX: The "End of Line" Cleaner ---
+// This function cleans the text at the very last second before rendering.
+// It aggressively targets the double-escaped entity that causes the visual bug.
+const cleanText = (html: string) => {
+  if (!html) return "";
+  return html
+    .replace(/&amp;#039;/g, "'") // Fixes: &amp;#039; -> '
+    .replace(/&#039;/g, "'")     // Fixes: &#039; -> '
+    .replace(/&amp;#39;/g, "'")  // Fixes: &amp;#39; -> '
+    .replace(/&#39;/g, "'")      // Fixes: &#39; -> '
+    .replace(/&quot;/g, '"');    // Fixes quotes
 };
 
-// Collapsible content component to mimic social media 'See more' behavior
 function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
   const [expanded, setExpanded] = useState(false);
-  const contentText = contentHtml.replace(/<[^>]*>/g, '');
-  // quick prefilter by length to avoid measuring tiny content
+  // Clean the content right here for measurement logic
+  const finalHtml = cleanText(contentHtml);
+  
+  const contentText = finalHtml.replace(/<[^>]*>/g, '');
   const shouldAttemptTruncate = contentText.trim().length > 150;
   const [needsTruncate, setNeedsTruncate] = useState(false);
   const [measuring, setMeasuring] = useState<boolean>(shouldAttemptTruncate);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
-  // Measure the content to see if it actually overflows 3 lines when clamped
-  // and ensure text-only posts are only toggled if they exceed `minLinesForToggle` lines
   useEffect(() => {
     if (!shouldAttemptTruncate) {
       setNeedsTruncate(false);
@@ -64,15 +45,12 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
     const origBoxOrient = (el.style as any).WebkitBoxOrient;
 
     try {
-      // Measure full content height without clamp
       el.style.display = 'block';
       (el.style as any).WebkitLineClamp = '';
       (el.style as any).WebkitBoxOrient = '';
 
       requestAnimationFrame(() => {
         const fullHeight = el.scrollHeight;
-
-        // Measure a reliable line height by inserting a hidden span
         let lineHeight = 0;
         try {
           const span = document.createElement('span');
@@ -84,11 +62,8 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
           const rect = span.getBoundingClientRect();
           lineHeight = rect.height || 0;
           el.removeChild(span);
-        } catch (err) {
-          // ignore and fallback
-        }
+        } catch (err) {}
 
-        // Fallback if measurement failed
         if (!lineHeight) {
           const cs = window.getComputedStyle(el);
           const fontSize = parseFloat(cs.fontSize || '16') || 16;
@@ -98,27 +73,22 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
         const fullLines = Math.round(fullHeight / lineHeight);
         const exceedsMin = fullLines >= minLinesForToggle;
 
-        // Now clamp to 3 lines to see if content will overflow the collapsed view
         el.style.display = '-webkit-box';
         (el.style as any).WebkitLineClamp = '3';
         (el.style as any).WebkitBoxOrient = 'vertical';
 
         requestAnimationFrame(() => {
           const isOverflowing = el.scrollHeight > el.clientHeight + 1;
-
-          // For text-only posts, only show toggle when content exceeds minLinesForToggle
           const willShow = isOverflowing && (!isTextOnly || (isTextOnly && exceedsMin));
           setNeedsTruncate(willShow);
           setMeasuring(false);
 
-          // restore original inline styles
           el.style.display = origDisplay;
           (el.style as any).WebkitLineClamp = origClamp;
           (el.style as any).WebkitBoxOrient = origBoxOrient;
         });
       });
     } catch (e) {
-      // Fallback: simple overflow check with 3-line clamp
       el.style.display = '-webkit-box';
       (el.style as any).WebkitLineClamp = '3';
       (el.style as any).WebkitBoxOrient = 'vertical';
@@ -132,16 +102,18 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
         (el.style as any).WebkitBoxOrient = origBoxOrient;
       });
     }
-  }, [contentHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
+  }, [finalHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
 
   return (
     <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
+        // CSS FIX: whitespace-pre-wrap ensures paragraphs are preserved
         className={`transition-all whitespace-pre-wrap break-words [&_p]:mb-3 [&_p:last-child]:mb-0 ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
         style={!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
-        dangerouslySetInnerHTML={{ __html: contentHtml }}
+        // LOGIC FIX: We inject the cleaned HTML here
+        dangerouslySetInnerHTML={{ __html: finalHtml }}
       />
 
       {(!measuring && needsTruncate) && (
@@ -195,7 +167,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [localType, setLocalType] = useState(activity.type || 'Other');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  // Resolve relative/absolute URLs so images load correctly in carousel and modal
+  
   const resolveUrl = (u: string) => {
     if (!u) return u;
     try {
@@ -207,8 +179,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     }
   };
 
-  // Build images list: prefer explicit `image_urls` or `image_url`,
-  // but also include any image URLs embedded in `activity.content`.
   const extractImageUrlsFromContent = (content?: string) => {
     if (!content) return [] as string[];
     const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
@@ -222,7 +192,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   const inlineImages = extractImageUrlsFromContent(activity.content || '');
 
-  // Merge while preserving order and deduplicating
   const images = [...primaryImages];
   for (const u of inlineImages) {
     if (!images.includes(u)) images.push(u);
@@ -231,7 +200,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [clientResolvedImages, setClientResolvedImages] = useState<string[] | null>(null);
 
   useEffect(() => {
-    // Resolve URLs only on the client to avoid SSR hydration mismatch
     try {
       if (typeof window !== 'undefined') {
         setClientResolvedImages(images.map(resolveUrl));
@@ -241,6 +209,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
   const [likes, setLikes] = useState(activity.likes_count);
   const [shares, setShares] = useState(activity.shares_count);
   const [liked, setLiked] = useState(false);
@@ -258,40 +227,32 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const CAR_POS_KEY = 'activity_carousel_pos_v1';
   const [shareAnimating, setShareAnimating] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showHeart, setShowHeart] = useState(false); // small animation on double-tap
-  const doubleTapRef = useRef(false);
-  const touchLastTap = useRef<number | null>(null);
+  const [showHeart, setShowHeart] = useState(false); 
   const previousLikesRef = useRef<number>(likes);
 
-  // Real views recorded in DB
   const [realViews, setRealViews] = useState<number>((activity.views_count as any) || 0);
-  // Synthetic targets computed deterministically
   const { viewsTarget, likesTarget, sharesTarget } = computeSyntheticTargets(activity as any);
 
-  // Tick to re-evaluate displayed metrics periodically so they grow live while page is open
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 15_000); // update every 15s
+    const id = setInterval(() => setTick((t) => t + 1), 15_000); 
     return () => clearInterval(id);
   }, []);
 
-  // Displayed metrics (mix of synthetic growth and real counts)
   const displayedViews = displayedMetric({ target: viewsTarget, createdAt: activity.activity_date, realCount: realViews });
   const displayedLikes = Math.max(likes, displayedMetric({ target: likesTarget, createdAt: activity.activity_date, realCount: likes }));
   const displayedShares = Math.max(shares, displayedMetric({ target: sharesTarget, createdAt: activity.activity_date, realCount: shares }));
 
-  // Periodically persist synthetic progress to server (seed DB) when displayed synthetic exceeds real counts
   useEffect(() => {
     let mounted = true;
     const trySeed = async () => {
       try {
-        // Only seed if synthetic is ahead by at least 3 and if not already at or beyond target
         if (displayedViews - realViews >= 3 && displayedViews < viewsTarget) {
           const lastKey = `last_seed_${activity.id}`;
           const raw = localStorage.getItem(lastKey);
           const last = raw ? parseInt(raw, 10) : 0;
           const now = Date.now();
-          const COOLDOWN = 1000 * 60 * 10; // 10 minutes between seeds
+          const COOLDOWN = 1000 * 60 * 10; 
           if (now - last > COOLDOWN) {
             const resp = await fetch('/api/activities/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id }) });
             const json = await resp.json();
@@ -302,13 +263,12 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           }
         }
 
-        // For likes: ensure we don't drive beyond cap, but seed if synthetic likes ahead by >=2
         if (displayedLikes - likes >= 2 && displayedLikes < likesTarget) {
           const lastKey = `last_seed_likes_${activity.id}`;
           const raw = localStorage.getItem(lastKey);
           const last = raw ? parseInt(raw, 10) : 0;
           const now = Date.now();
-          const COOLDOWN = 1000 * 60 * 30; // 30 minutes between like seeds
+          const COOLDOWN = 1000 * 60 * 30; 
           if (now - last > COOLDOWN) {
             const resp = await fetch('/api/activities/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id }) });
             const json = await resp.json();
@@ -320,21 +280,17 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         }
 
       } catch (e) {
-        // ignore
       }
     };
 
     trySeed();
     return () => { mounted = false; };
-  // Re-run when these change (tick keeps it periodic)
   }, [displayedViews, realViews, viewsTarget, displayedLikes, likesTarget, likes, activity.id, tick]);
 
-  // Check if user already liked this activity
   useEffect(() => {
     checkLikeStatus();
   }, [activity.id]);
 
-  // Add event listener for embedded image clicks
   useEffect(() => {
     const handleImageModal = (event: CustomEvent<string>) => {
       setModalImage(event.detail);
@@ -348,7 +304,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     };
   }, []);
 
-  // Ensure visitor id exists in localStorage for server-side dedupe and rate-limiting
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
@@ -358,11 +313,9 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         localStorage.setItem('visitor_id', newVid);
       }
     } catch (e) {
-      // ignore
     }
   }, []);
 
-  // Increment view when card enters viewport; server enforces per-visitor 1-hour throttle.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     let mounted = true;
@@ -378,7 +331,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
             const raw = localStorage.getItem(key);
             const last = raw ? parseInt(raw, 10) : 0;
             const now = Date.now();
-            // Local cooldown to limit calls: 1 hour
             const COOLDOWN = 1000 * 60 * 60;
             if (now - last > COOLDOWN) {
               const visitorId = localStorage.getItem('visitor_id');
@@ -388,7 +340,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
               try { localStorage.setItem(key, String(now)); } catch (e) {}
             }
           } catch (e) {
-            // ignore
           }
         }
       }
@@ -397,6 +348,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     observer.observe(el);
     return () => { mounted = false; observer.disconnect(); };
   }, [activity.id, realViews, viewsTarget]);
+  
   const openImageModal = (imageUrl: string) => {
     const resolved = resolveUrl(imageUrl);
     const idx = images.findIndex((u) => resolveUrl(u) === resolved);
@@ -412,14 +364,12 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     setCurrentIndex((i) => Math.min(images.length - 1, i + 1));
   }, [images.length]);
 
-  // Listen for iframe load/error messages and fallback if needed
   useEffect(() => {
     if (!modalOpen) return;
     let t: any = setTimeout(() => { if (!modalIframeLoaded) setModalUseIframe(false); }, 1500);
     const onMsg = (e: MessageEvent) => {
       if (e?.data?.type === 'iframe-image-loaded') {
         setModalIframeLoaded(true);
-        // Resize iframe according to natural dimensions
         const w = Number(e.data.w || 0);
         const h = Number(e.data.h || 0);
         if (w > 0 && h > 0 && modalIframeRef.current) {
@@ -447,7 +397,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     setCurrentIndex((i) => Math.max(0, i - 1));
   }, []);
 
-  // touch handlers for swipe carousel
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchDeltaX.current = 0;
@@ -464,12 +413,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     const delta = touchDeltaX.current;
     const now = Date.now();
     const dt = touchStartTime.current ? (now - touchStartTime.current) : 1;
-    const velocity = delta / dt; // px per ms
-    // compute transition duration that depends on swipe speed (faster swipe => shorter duration)
+    const velocity = delta / dt; 
     const dur = Math.max(150, Math.min(600, Math.round(400 - Math.min(300, Math.abs(velocity) * 200))));
     setTransitionDuration(dur);
 
-    // decide navigation: either by distance or by velocity
     if (Math.abs(delta) > 50 || Math.abs(velocity) > 0.3) {
       if (delta < 0) nextImage(); else prevImage();
     }
@@ -479,7 +426,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     touchStartTime.current = null;
   };
 
-  // keyboard navigation for carousel
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (images.length <= 1) return;
@@ -501,7 +447,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           if (mounted) setIsAdmin(true);
         }
       } catch (e) {
-        // ignore
       }
 
       try {
@@ -512,14 +457,12 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           const { data: { user } } = await supabase.auth.getUser();
           if (mounted) setCurrentUserId(user?.id ?? null);
         } catch (e) {
-          // ignore
         }
       } catch {}
     })();
     return () => { mounted = false };
   }, [supabase]);
 
-  // Load persisted carousel position for this activity
   useEffect(() => {
     try {
       const raw = localStorage.getItem(CAR_POS_KEY);
@@ -529,11 +472,9 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         if (typeof pos === 'number') setCurrentIndex(Math.min(Math.max(0, pos), Math.max(0, images.length - 1)));
       }
     } catch (e) {
-      // ignore
     }
   }, [activity.id, images.length]);
 
-  // Persist carousel position when it changes
   useEffect(() => {
     try {
       const raw = localStorage.getItem(CAR_POS_KEY);
@@ -541,7 +482,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       parsed[activity.id as any] = currentIndex;
       localStorage.setItem(CAR_POS_KEY, JSON.stringify(parsed));
     } catch (e) {
-      // ignore
     }
   }, [currentIndex, activity.id]);
 
@@ -563,12 +503,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     }
   };
 
-  // Make openImageModal available globally for onclick handlers
   useEffect(() => {
     (window as any).openImageModal = openImageModal;
   }, []);
 
-  // Render iframe only after confirming embeddability (avoids blocked iframes); inserts origin param
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -598,7 +536,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           }
         }
       } catch (e) {
-        // ignore
       }
     })();
     return () => { mounted = false };
@@ -620,7 +557,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     const prevLiked = liked;
     const prevCount = previousLikesRef.current;
 
-    // Optimistic update
     if (optimistic) {
       previousLikesRef.current = likes;
       if (prevLiked) {
@@ -646,20 +582,14 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
       const data = await response.json();
 
-      // Reconcile with server
       if (typeof data.liked === 'boolean') {
         setLiked(Boolean(data.liked));
-        // ensure correct count based on server (best-effort)
         if (!optimistic) {
           setLikes((s) => (data.liked ? s + 1 : Math.max(0, s - 1)));
         } else {
-          // If server disagrees, adjust
           if (data.liked && !prevLiked) {
-            // already incremented
           } else if (!data.liked && prevLiked) {
-            // already decremented
           } else if (data.liked !== !prevLiked) {
-            // reconcile counts - fallback to previous value adjustments
             setLikes(previousLikesRef.current);
             setLiked(data.liked);
           }
@@ -667,7 +597,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      // Revert optimistic changes on error
       if (optimistic) {
         setLiked(prevLiked);
         setLikes(prevCount);
@@ -678,10 +607,9 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   };
 
   const handleShare = async () => {
-    if (loading) return; // Prevent multiple rapid clicks
+    if (loading) return; 
     setLoading(true);
 
-    // Optimistic update
     const prev = shares;
     setShares((s) => s + 1);
     setShareAnimating(true);
@@ -697,11 +625,9 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         });
         didShare = true;
       } catch (err) {
-        // User cancelled or error occurred
         didShare = false;
       }
     } else {
-      // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(window.location.href);
         alert("Link copied to clipboard!");
@@ -711,7 +637,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       }
     }
 
-    // Persist share server-side if a share action occurred (or optionally always)
     try {
       const visitorId = localStorage.getItem('visitor_id');
       const resp = await fetch('/api/activities/share', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id, visitorId }) });
@@ -720,7 +645,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         setShares(json.shares_count);
       }
     } catch (e) {
-      // Revert optimistic on error
       setShares(prev);
     } finally {
       setLoading(false);
@@ -731,7 +655,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     <>
         <div className="mx-0 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl bg-white border border-gray-200 sm:border-gray-200 shadow-sm">
         <div className="relative">
-        {/* Type badge */}
         {localType && (
           <div className="absolute right-2 md:right-4 top-2 md:top-4 z-10">
             <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium text-white shadow transition-transform duration-300 transform hover:scale-105 ${badgeColorForType(localType)}`}>
@@ -740,13 +663,12 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
-        {/* Header */}
         <div className="mb-0 flex items-start justify-between py-2 px-4">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{safeDecode(activity.author_name || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
+            <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{cleanText(activity.author_name || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
               <div className="flex items-center gap-2">
-                <div className="text-sm font-medium">{safeDecode(activity.author_name || 'Unknown')}</div>
+                <div className="text-sm font-medium">{cleanText(activity.author_name || 'Unknown')}</div>
                 <div className="text-xs text-muted-foreground">{formatPostTime(activity.activity_date)}</div>
               </div>
               {activity.location && (
@@ -758,7 +680,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* type badge intentionally rendered at top-right as absolute element to avoid duplication */}
             {isAdmin && (
               <Link href="/admin/dashboard" title="Admin Panel" className="text-muted-foreground p-1.5 rounded-full hover:bg-gray-100">
                 <LayoutDashboard className="h-4 w-4" />
@@ -767,7 +688,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         </div>
 
-        {/* Featured image centered above content */}
         {images && images.length > 0 && (
           <div className="w-full bg-black/5">
             <div className="w-full h-96 md:h-[520px] relative overflow-hidden bg-white">
@@ -791,7 +711,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                 ))}
               </div>
 
-              {/* Prominent side buttons (Instagram-style) visible on all screen sizes */}
               {images.length > 1 && (
                 <>
                   <button
@@ -825,11 +744,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
             </div>
             {activity.image_captions && activity.image_captions[0] && (
               <div className="mt-2 text-center">
-                <p className="text-sm text-muted-foreground">{safeDecode(activity.image_captions[0])}</p>
+                <p className="text-sm text-muted-foreground">{cleanText(activity.image_captions[0])}</p>
               </div>
             )}
 
-            {/* Carousel indicators */}
             {images.length > 1 && (
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
                 {images.map((_, i) => (
@@ -840,7 +758,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
-        {/* Video embed */}
         {activity.video_url && (
           <div className="w-full bg-black/5 px-4 md:px-4 mb-8 clear-both">
             <div className="w-full max-w-3xl mx-auto">
@@ -900,25 +817,21 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
-        {/* Post title (renders after the image/video, or above content when no media) */}
         {activity.title && activity.title.trim() !== '' && (
           <div className="px-4 md:px-4 mt-3 mb-4">
-            <h2 className="text-lg md:text-xl font-semibold leading-tight">{safeDecode(activity.title)}</h2>
+            <h2 className="text-lg md:text-xl font-semibold leading-tight">{cleanText(activity.title)}</h2>
           </div>
         )}
 
-        {/* Post content with collapsible 'More' like social feeds */}
-        {/* FIX: Apply safeDecode to BOTH input of formatContent AND output of formatContent for robust fixing */}
         <CollapsibleContent
-          contentHtml={safeDecode(formatContent(safeDecode(activity.content || ''), images))}
+          // FIX: Pass raw content formatted to HTML, then cleaned inside component
+          contentHtml={formatContent(activity.content || '', images)}
           onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
           onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })}
           isTextOnly={images.length === 0}
           minLinesForToggle={6}
         />
 
-        {/* Thumbnails / additional images as centered horizontal strip */}
-        {/* indicators only (thumbnails removed for Instagram-style swipe) */}
         {images.length > 1 && (
           <div className="mb-4 flex justify-center">
             <div className="flex gap-2 items-center">
@@ -929,9 +842,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
-
-
-        {/* Admin quick-edit */}
         {isAdmin && (
           <div className="mb-4 px-4 md:px-4">
             {editing ? (
@@ -950,12 +860,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           </div>
         )}
 
-
-
-        {/* Actions */}
         <div className="mb-4 border-t pt-3 px-4 md:px-4">
           <div className="flex items-center justify-between">
-            {/* Like, Share, Views ... placeholder comment */}
             <div className="flex items-center gap-3">
               <button aria-pressed={liked} onClick={() => { handleLike({ optimistic: true, showAnimation: !liked }); setShowHeart(true); setTimeout(()=>setShowHeart(false),800); }} className="flex items-center gap-2 rounded-full p-2 hover:bg-gray-100 transition">
                 <Heart className={`h-5 w-5 transition-transform duration-200 ${liked ? 'text-rose-600 scale-125 animate-pulse' : 'text-gray-700'}`} />
@@ -972,7 +878,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                 <span className="text-sm">{displayedViews}</span>
               </div>
 
-              {/* Author edit button (visible only to the logged-in author) */}
               {(currentUserId && String(currentUserId) === String(activity.author_id)) && (
                 <button onClick={()=>setShowEditModal(true)} aria-label="Edit post" className="p-2 rounded hover:bg-gray-100 text-muted-foreground"><Edit className="h-5 w-5" /></button>
               )}
@@ -987,20 +892,17 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         </div>
     </div>
 
-    {/* Image Modal */}
     {modalOpen && modalImage && (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
         onClick={() => setModalOpen(false)}
       >
         <div className="relative mx-4 max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-          {/* close button moved inside container and positioned near the image */}
           <div className="absolute top-2 right-2 z-50">
             <button onClick={() => setModalOpen(false)} className="rounded-full bg-white/90 p-2 text-sm">✕</button>
           </div>
           {
             (() => {
-              // try to prefer an original/untransformed URL for the modal
               const getOriginalUrl = (u: string) => {
                 if (!u) return u;
                 if (u.startsWith('data:')) return u;
@@ -1020,17 +922,12 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
                   <div className="relative">
                     {modalUseIframe ? (
                       (() => {
-                        // embed via srcdoc so the iframe shows only the image (avoids host wrappers and scrollbars)
                         const iframeDoc = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" /><style>html,body{height:100%;margin:0;background:#fff;display:flex;align-items:center;justify-content:center}img{display:block;max-width:100%;max-height:100%;margin:0 auto;object-fit:contain}</style></head><body><img id="_img" src="${full}" alt="image" onload="(function(){var i=document.getElementById('_img');window.parent.postMessage({type:'iframe-image-loaded',w:i.naturalWidth,h:i.naturalHeight},'*')})()" onerror="window.parent.postMessage({type:'iframe-image-error'},'*')"/></body></html>`;
                         return <iframe ref={modalIframeRef} title="Full image frame" srcDoc={iframeDoc} className="rounded-md bg-white" style={{ border: 'none', width: 'auto', maxHeight: '90vh' }} />
                       })()
                     ) : (
                       <img src={full} alt="Full image" className="max-h-[80vh] max-w-[80vw] object-contain rounded-md bg-white" />
                     )}
-
-
-
-
                   </div>
                 </>
               );
@@ -1040,7 +937,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       </div>
     )}
 
-    {/* Edit Modal for authors */}
     {showEditModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={()=>setShowEditModal(false)}>
         <div className="bg-white rounded-md p-4 w-full max-w-3xl mx-4 max-h-[90vh] overflow-auto" onClick={(e)=>e.stopPropagation()}>
@@ -1052,8 +948,6 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         </div>
       </div>
     )}
-
-    {/* Mobile floating action bar removed per UX request */}
     </>
   );
 }
