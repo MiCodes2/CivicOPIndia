@@ -11,25 +11,38 @@ import { computeSyntheticTargets, displayedMetric, growthFractionSince } from '@
 import EditMyActivityForm from '@/components/EditMyActivityForm';
 import type { Activity } from "@/lib/types/database";
 
-// --- FIX: The Final Sanitizer ---
-// This function cleans the text AFTER formatting but BEFORE rendering.
-// It specifically targets the double-encoded entities visible in your screenshot.
-const sanitizeFinalHtml = (html: string) => {
-  if (!html) return "";
-  return html
-    // Case 1: The browser sees "&amp;#039;" and renders "&#039;" (Green text issue)
-    .replace(/&amp;#039;/g, "'")
-    .replace(/&amp;#39;/g, "'")
-    // Case 2: The browser sees literal "&#039;" text
-    .replace(/&#039;/g, "'")
-    .replace(/&#39;/g, "'");
+// --- FIX: Recursive Decoder ---
+// This runs a loop to strip multiple layers of encoding (e.g. &amp;#039; -> &#039; -> ')
+// It is pure string manipulation, so it works on both Server and Client without breaking hydration.
+const recursiveDecode = (input: string) => {
+  if (!input) return "";
+  let curr = input;
+  let prev = "";
+  let loopCount = 0;
+
+  // Loop until the string stops changing or we hit a safety limit (5 loops)
+  while (curr !== prev && loopCount < 5) {
+    prev = curr;
+    curr = curr
+      .replace(/&amp;#039;/g, "'")
+      .replace(/&amp;#39;/g, "'")
+      .replace(/&#039;/g, "'")
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;apos;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;quot;/g, '"')
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;amp;/g, '&');
+    loopCount++;
+  }
+  return curr;
 };
 
 function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
   const [expanded, setExpanded] = useState(false);
   
-  // Apply sanitizer here
-  const finalHtml = sanitizeFinalHtml(contentHtml);
+  // Apply the recursive decoder here to ensure the final HTML passed to the div is clean
+  const finalHtml = recursiveDecode(contentHtml);
   
   const contentText = finalHtml.replace(/<[^>]*>/g, '');
   const shouldAttemptTruncate = contentText.trim().length > 150;
@@ -55,7 +68,7 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
     const origBoxOrient = (el.style as any).WebkitBoxOrient;
 
     try {
-      // Restore measurement logic
+      // 1. Unclamp to measure real height
       el.style.display = 'block';
       (el.style as any).WebkitLineClamp = '';
       (el.style as any).WebkitBoxOrient = '';
@@ -63,6 +76,7 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
       requestAnimationFrame(() => {
         const fullHeight = el.scrollHeight;
 
+        // Calculate approx line height
         let lineHeight = 0;
         try {
           const span = document.createElement('span');
@@ -85,7 +99,7 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
         const fullLines = Math.round(fullHeight / lineHeight);
         const exceedsMin = fullLines >= minLinesForToggle;
 
-        // Check clamp
+        // 2. Re-clamp to check if overflow happens visually
         el.style.display = '-webkit-box';
         (el.style as any).WebkitLineClamp = '3';
         (el.style as any).WebkitBoxOrient = 'vertical';
@@ -96,6 +110,7 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
           setNeedsTruncate(willShow);
           setMeasuring(false);
 
+          // Restore original state (expanded vs collapsed logic handles the rest via render)
           el.style.display = origDisplay;
           (el.style as any).WebkitLineClamp = origClamp;
           (el.style as any).WebkitBoxOrient = origBoxOrient;
@@ -112,9 +127,9 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
-        // RESTORED: This class configuration worked for paragraph spacing
+        // Formatting Fix: whitespace-pre-wrap ensures paragraphs are preserved
         className={`transition-all whitespace-pre-wrap break-words [&_p]:mb-3 [&_p:last-child]:mb-0 ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
-        // RESTORED: Standard clamp styles that work with the CSS above
+        // Line Clamp Logic
         style={!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
         dangerouslySetInnerHTML={{ __html: finalHtml }}
       />
@@ -164,10 +179,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   
-  // Apply sanitizer to title/author as well
-  const safeTitle = sanitizeFinalHtml(activity.title || '');
-  const safeAuthor = sanitizeFinalHtml(activity.author_name || 'Unknown');
-  const safeCaption = sanitizeFinalHtml((activity.image_captions && activity.image_captions[0]) || '');
+  // Clean header fields
+  const safeTitle = recursiveDecode(activity.title || '');
+  const safeAuthor = recursiveDecode(activity.author_name || 'Unknown');
+  const safeCaption = recursiveDecode((activity.image_captions && activity.image_captions[0]) || '');
 
   const resolveUrl = (u: string) => {
     if (!u) return u;
