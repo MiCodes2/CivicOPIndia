@@ -11,42 +11,27 @@ import { computeSyntheticTargets, displayedMetric, growthFractionSince } from '@
 import EditMyActivityForm from '@/components/EditMyActivityForm';
 import type { Activity } from "@/lib/types/database";
 
-// --- NUCLEAR FIX: Browser-Native Decoder ---
-// This uses a hidden DOM element to decode text exactly how a browser would.
-// It runs recursively to fix double/triple encoded entities (e.g. &amp;#039;)
-function decodeRealBrowser(html: string): string {
-  if (typeof window === 'undefined') return html; // server-side fallback
-  try {
-    const txt = document.createElement("textarea");
-    
-    // Pass 1
-    txt.innerHTML = html;
-    let value = txt.value;
-    
-    // Pass 2 (Recursive check for stubborn entities)
-    if (value.includes('&') || value.includes('&#')) {
-        txt.innerHTML = value;
-        value = txt.value;
-    }
-    
-    return value;
-  } catch (e) {
-    return html;
-  }
-}
+// --- FIX: The Final Sanitizer ---
+// This function cleans the text AFTER formatting but BEFORE rendering.
+// It specifically targets the double-encoded entities visible in your screenshot.
+const sanitizeFinalHtml = (html: string) => {
+  if (!html) return "";
+  return html
+    // Case 1: The browser sees "&amp;#039;" and renders "&#039;" (Green text issue)
+    .replace(/&amp;#039;/g, "'")
+    .replace(/&amp;#39;/g, "'")
+    // Case 2: The browser sees literal "&#039;" text
+    .replace(/&#039;/g, "'")
+    .replace(/&#39;/g, "'");
+};
 
-// Collapsible content component
 function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
   const [expanded, setExpanded] = useState(false);
-  const [safeContent, setSafeContent] = useState(contentHtml);
-
-  // Run the browser-native decoder once on mount
-  useEffect(() => {
-    const decoded = decodeRealBrowser(contentHtml);
-    setSafeContent(decoded);
-  }, [contentHtml]);
-
-  const contentText = safeContent.replace(/<[^>]*>/g, '');
+  
+  // Apply sanitizer here
+  const finalHtml = sanitizeFinalHtml(contentHtml);
+  
+  const contentText = finalHtml.replace(/<[^>]*>/g, '');
   const shouldAttemptTruncate = contentText.trim().length > 150;
   const [needsTruncate, setNeedsTruncate] = useState(false);
   const [measuring, setMeasuring] = useState<boolean>(shouldAttemptTruncate);
@@ -58,71 +43,91 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
       setMeasuring(false);
       return;
     }
-    // ... (Measurement logic remains strictly same as before for stability)
+
     const el = contentRef.current;
-    if (!el) { setMeasuring(false); return; }
+    if (!el) {
+      setMeasuring(false);
+      return;
+    }
 
     const origDisplay = el.style.display;
     const origClamp = (el.style as any).WebkitLineClamp;
     const origBoxOrient = (el.style as any).WebkitBoxOrient;
 
     try {
+      // Restore measurement logic
       el.style.display = 'block';
       (el.style as any).WebkitLineClamp = '';
       (el.style as any).WebkitBoxOrient = '';
+
       requestAnimationFrame(() => {
         const fullHeight = el.scrollHeight;
-        let lineHeight = 24; // Fallback
-        const cs = window.getComputedStyle(el);
-        const fontSize = parseFloat(cs.fontSize || '16') || 16;
-        lineHeight = Math.round(fontSize * 1.4);
-        
+
+        let lineHeight = 0;
+        try {
+          const span = document.createElement('span');
+          span.textContent = 'A';
+          span.style.visibility = 'hidden';
+          span.style.position = 'absolute';
+          span.style.whiteSpace = 'nowrap';
+          el.appendChild(span);
+          const rect = span.getBoundingClientRect();
+          lineHeight = rect.height || 0;
+          el.removeChild(span);
+        } catch (err) {}
+
+        if (!lineHeight) {
+          const cs = window.getComputedStyle(el);
+          const fontSize = parseFloat(cs.fontSize || '16') || 16;
+          lineHeight = Math.round(fontSize * 1.4);
+        }
+
         const fullLines = Math.round(fullHeight / lineHeight);
         const exceedsMin = fullLines >= minLinesForToggle;
-        
-        // Check overflow
+
+        // Check clamp
         el.style.display = '-webkit-box';
         (el.style as any).WebkitLineClamp = '3';
         (el.style as any).WebkitBoxOrient = 'vertical';
-        
+
         requestAnimationFrame(() => {
           const isOverflowing = el.scrollHeight > el.clientHeight + 1;
-          setNeedsTruncate(isOverflowing && (!isTextOnly || (isTextOnly && exceedsMin)));
+          const willShow = isOverflowing && (!isTextOnly || (isTextOnly && exceedsMin));
+          setNeedsTruncate(willShow);
           setMeasuring(false);
+
           el.style.display = origDisplay;
           (el.style as any).WebkitLineClamp = origClamp;
           (el.style as any).WebkitBoxOrient = origBoxOrient;
         });
       });
-    } catch (e) { setMeasuring(false); }
-  }, [safeContent, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
+    } catch (e) {
+      // Fallback
+      setMeasuring(false);
+    }
+  }, [finalHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
 
   return (
-    // REMOVED 'prose' class to prevent tailwind typography conflicts
-    <div className="mb-4 px-4 md:px-4 text-gray-800 text-sm md:text-base max-w-none">
+    <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
-        // STRICT CSS OVERRIDES for formatting
-        className={`transition-all break-words ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
-        style={{
-          whiteSpace: 'pre-wrap',       // Forces newlines to render
-          wordBreak: 'break-word',      // Prevents horizontal scroll
-          lineHeight: '1.6',            // Good readability
-          display: !expanded && (needsTruncate || measuring) ? '-webkit-box' : 'block',
-          WebkitLineClamp: !expanded && (needsTruncate || measuring) ? 3 : undefined,
-          WebkitBoxOrient: !expanded && (needsTruncate || measuring) ? 'vertical' : undefined,
-        }}
-        dangerouslySetInnerHTML={{ __html: safeContent }}
+        // RESTORED: This class configuration worked for paragraph spacing
+        className={`transition-all whitespace-pre-wrap break-words [&_p]:mb-3 [&_p:last-child]:mb-0 ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
+        // RESTORED: Standard clamp styles that work with the CSS above
+        style={!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
+        dangerouslySetInnerHTML={{ __html: finalHtml }}
       />
 
       {(!measuring && needsTruncate) && (
         <div className="mt-1">
           <button
-            className="text-sm font-medium text-gray-500 hover:text-gray-700"
+            className="text-sm text-muted-foreground"
             onClick={() => setExpanded((s) => !s)}
+            aria-expanded={expanded}
+            style={{ background: 'transparent', border: 'none', padding: 0 }}
           >
-            {!expanded ? '...more' : ' show less'}
+            {!expanded ? '...more' : ' less'}
           </button>
         </div>
       )}
@@ -159,17 +164,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   
-  // Clean title/author immediately for header rendering
-  const [safeTitle, setSafeTitle] = useState(activity.title || '');
-  const [safeAuthor, setSafeAuthor] = useState(activity.author_name || 'Unknown');
-  const [safeCaption, setSafeCaption] = useState((activity.image_captions && activity.image_captions[0]) || '');
-
-  useEffect(() => {
-    // Decode header fields on mount
-    setSafeTitle(decodeRealBrowser(activity.title || ''));
-    setSafeAuthor(decodeRealBrowser(activity.author_name || 'Unknown'));
-    setSafeCaption(decodeRealBrowser((activity.image_captions && activity.image_captions[0]) || ''));
-  }, [activity]);
+  // Apply sanitizer to title/author as well
+  const safeTitle = sanitizeFinalHtml(activity.title || '');
+  const safeAuthor = sanitizeFinalHtml(activity.author_name || 'Unknown');
+  const safeCaption = sanitizeFinalHtml((activity.image_captions && activity.image_captions[0]) || '');
 
   const resolveUrl = (u: string) => {
     if (!u) return u;
@@ -539,11 +537,9 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
           <div className="mb-0 flex items-start justify-between py-2 px-4">
             <div className="flex items-center gap-3">
-              {/* DECODED: Author Initials */}
               <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{safeAuthor.split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
               <div>
                 <div className="flex items-center gap-2">
-                  {/* DECODED: Author Name */}
                   <div className="text-sm font-medium">{safeAuthor}</div>
                   <div className="text-xs text-muted-foreground">{formatPostTime(activity.activity_date)}</div>
                 </div>
@@ -668,6 +664,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           )}
 
           <CollapsibleContent
+            // Pass content to formatting chain which includes our new sanitizer
             contentHtml={formatContent(activity.content || '', images)}
             onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
             onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })}
