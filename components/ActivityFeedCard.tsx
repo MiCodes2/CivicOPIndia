@@ -3,21 +3,35 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { formatContent, decodeHtmlEntities as libDecode, escapeHtml } from '@/lib/formatContent';
 
-// --- FIX: Robust Decoder ---
-// We define this locally to ensure it handles numeric entities correctly.
+// --- FINAL FIX: Brute Force Decoder ---
+// This handles single escaped (&#039;), double escaped (&amp;#039;),
+// and hex variations (&#x27;) recursively to ensure the apostrophe always appears.
 const safeDecode = (str: string | null | undefined) => {
   if (!str) return "";
-  return str
-    // Fix the specific apostrophe issue aggressively
-    .replace(/&amp;#039;/g, "'")
+  
+  let current = str;
+  // Decode common variations explicitly
+  // 1. Double escaped ampersands leading into entities
+  current = current.replace(/&amp;#/g, "&#");
+  current = current.replace(/&amp;apos;/g, "'");
+  current = current.replace(/&amp;quot;/g, '"');
+
+  // 2. Specific apostrophe/quote entities
+  current = current
     .replace(/&#039;/g, "'")
     .replace(/&#39;/g, "'")
-    // Fix other common entities
-    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
     .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"');
+
+  // 3. Basic HTML chars (careful not to decode existing HTML tags if not needed, 
+  // but usually safe for title/author text)
+  current = current
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&');
+
+  return current;
 };
 
 // Collapsible content component to mimic social media 'See more' behavior
@@ -125,7 +139,6 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
-        // CSS FIX: whitespace-pre-wrap ensures paragraphs are preserved
         className={`transition-all whitespace-pre-wrap break-words [&_p]:mb-3 [&_p:last-child]:mb-0 ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
         style={!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
         dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -895,9 +908,9 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         )}
 
         {/* Post content with collapsible 'More' like social feeds */}
-        {/* FIX: Force replace on the FINAL HTML output to fix double-escaping */}
+        {/* FIX: Apply safeDecode to BOTH input of formatContent AND output of formatContent for robust fixing */}
         <CollapsibleContent
-          contentHtml={formatContent(safeDecode(activity.content || ''), images).replace(/&amp;#039;/g, "'").replace(/&#039;/g, "'").replace(/&#39;/g, "'")}
+          contentHtml={safeDecode(formatContent(safeDecode(activity.content || ''), images))}
           onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
           onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })}
           isTextOnly={images.length === 0}
