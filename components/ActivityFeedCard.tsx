@@ -1,7 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { formatContent, decodeHtmlEntities, escapeHtml } from '@/lib/formatContent';
+import { formatContent, decodeHtmlEntities as libDecode, escapeHtml } from '@/lib/formatContent';
+
+// --- FIX: Robust Decoder for "aren&#039;t" issues ---
+// We define this locally to ensure it handles numeric entities correctly
+// regardless of what the imported library function does.
+const safeDecode = (str: string | null | undefined) => {
+  if (!str) return "";
+  return str
+    .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(Number(dec))) // Handles &#039; -> '
+    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+};
 
 // Collapsible content component to mimic social media 'See more' behavior
 function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
@@ -108,7 +123,8 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
-        className={`transition-all ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
+        /* UPDATED: Added whitespace-pre-wrap and explicit paragraph margin utilities */
+        className={`transition-all whitespace-pre-wrap break-words [&_p]:mb-3 [&_p:last-child]:mb-0 ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
         style={!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
         dangerouslySetInnerHTML={{ __html: contentHtml }}
       />
@@ -712,10 +728,10 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         {/* Header */}
         <div className="mb-0 flex items-start justify-between py-2 px-4">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{decodeHtmlEntities(activity.author_name || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
+            <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-sm font-medium text-white shadow">{safeDecode(activity.author_name || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase()}</div>
             <div>
               <div className="flex items-center gap-2">
-                <div className="text-sm font-medium">{decodeHtmlEntities(activity.author_name || 'Unknown')}</div>
+                <div className="text-sm font-medium">{safeDecode(activity.author_name || 'Unknown')}</div>
                 <div className="text-xs text-muted-foreground">{formatPostTime(activity.activity_date)}</div>
               </div>
               {activity.location && (
@@ -794,7 +810,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
             </div>
             {activity.image_captions && activity.image_captions[0] && (
               <div className="mt-2 text-center">
-                <p className="text-sm text-muted-foreground">{decodeHtmlEntities(activity.image_captions[0])}</p>
+                <p className="text-sm text-muted-foreground">{safeDecode(activity.image_captions[0])}</p>
               </div>
             )}
 
@@ -872,13 +888,14 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
         {/* Post title (renders after the image/video, or above content when no media) */}
         {activity.title && activity.title.trim() !== '' && (
           <div className="px-4 md:px-4 mt-3 mb-4">
-            <h2 className="text-lg md:text-xl font-semibold leading-tight">{decodeHtmlEntities(activity.title)}</h2>
+            <h2 className="text-lg md:text-xl font-semibold leading-tight">{safeDecode(activity.title)}</h2>
           </div>
         )}
 
         {/* Post content with collapsible 'More' like social feeds */}
+        {/* FIX: Use safeDecode() on content BEFORE passing to formatContent() */}
         <CollapsibleContent
-          contentHtml={formatContent(activity.content || '', images)}
+          contentHtml={formatContent(safeDecode(activity.content || ''), images)}
           onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
           onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })}
           isTextOnly={images.length === 0}
@@ -1025,103 +1042,3 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     </>
   );
 }
-
-function _formatContent_removed(input: string, exclude?: string[]) {
-  return formatContent(input, exclude);
-  // Helper: convert #hashtags in a block of HTML/text to clickable links
-  function linkifyHashtags(html: string) {
-    return html.replace(/(^|[^A-Za-z0-9_\/\-])#([a-zA-Z0-9_-]+)/g, (match, pre, tag) => {
-      const t = String(tag).toLowerCase();
-      return `${pre}<a href="/activities?tag=${encodeURIComponent(t)}" class="text-primary font-medium no-underline">#${tag}</a>`;
-    });
-  }
-
-  // If it already contains block-level HTML, assume it's already formatted
-  const hasBlockTags = /<(p|div|ul|ol|li|br|h[1-6]|blockquote|iframe)\b[^>]*>/i.test(input);
-  if (hasBlockTags) {
-    // Always process YouTube and image URLs, even in HTML content
-    let processed = input;
-
-// YouTube embeds: render a thumbnail placeholder (data-video-id) and let the client confirm embeddability before inserting iframe
-const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/(?:v|e(?:mbed)?)\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
-processed = processed.replace(youtubeRegex, (match, videoId) => {
-  const thumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-  return `<div class="youtube-embed" data-video-id="${videoId}"><div class="youtube-placeholder w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><a href="https://youtu.be/${videoId}" target="_blank" rel="noopener noreferrer" class="block w-full h-full relative"><img src="${thumb}" alt="YouTube thumbnail" class="w-full h-full object-cover" /><span class="absolute inset-0 flex items-center justify-center text-white text-3xl">▶</span></a></div></div>`;
-});
-
-    // Image embeds
-    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
-    const excludeSet = new Set(exclude || []);
-    processed = processed.replace(imageRegex, (match) => {
-      if (excludeSet.has(match)) return '';
-      return `<div class="inline-image"><img src="${match}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${match.replace(/'/g, '\\\'')}')" /></div>`;
-    });
-    // Linkify hashtags in HTML content
-    processed = linkifyHashtags(processed);
-    return processed;
-  }
-
-  // Normalize line endings and trim
-  const text = input.replace(/\r\n/g, "\n").trim();
-  if (!text) return "";
-
-  // Allowed inline tags we want to preserve
-  const allowedTagRegex = /<\/?(?:a|strong|b|em|i|u|code)\b[^>]*>/gi;
-
-  const paragraphs = text.split(/\n\n+/g).map((p) => {
-    // Extract allowed inline tags and replace them with placeholders
-    const placeholders: string[] = [];
-    const extracted = p.replace(allowedTagRegex, (match) => {
-      const key = `__HTML_TAG_${placeholders.length}__`;
-      placeholders.push(match);
-      return key;
-    });
-
-    // Check for YouTube URLs and convert them to embeds
-    let processed = extracted;
-    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
-    processed = processed.replace(youtubeRegex, (match, videoId) => {
-      return `__YOUTUBE_EMBED_${videoId}__`;
-    });
-
-    // Check for image URLs and convert them to img tags
-    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
-    processed = processed.replace(imageRegex, (match) => {
-      return `__IMAGE_EMBED_${btoa(match)}__`;
-    });
-
-    // Escape the remaining text
-    const escaped = escapeHtml(processed);
-
-    // Restore placeholders (original allowed tags)
-    let restored = escaped;
-    placeholders.forEach((orig, idx) => {
-      const key = `__HTML_TAG_${idx}__`;
-      restored = restored.replace(key, orig);
-    });
-
-    // Linkify hashtags in the restored HTML/text
-    restored = linkifyHashtags(restored);
-
-    // Convert YouTube placeholders to thumbnail placeholders that the client will swap with an iframe if embeddable
-    restored = restored.replace(/__YOUTUBE_EMBED_([a-zA-Z0-9_-]{11})__/g, (match, videoId) => {
-      const thumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-      return `<div class="youtube-embed" data-video-id="${videoId}"><div class="youtube-placeholder w-full aspect-video bg-gray-100 rounded-md overflow-hidden"><a href="https://youtu.be/${videoId}" target="_blank" rel="noopener noreferrer" class="block w-full h-full relative"><img src="${thumb}" alt="YouTube thumbnail" class="w-full h-full object-cover" /><span class="absolute inset-0 flex items-center justify-center text-white text-3xl">▶</span></a></div></div>`;
-    });
-
-    // Convert image placeholders to img tags
-    const excludeSet = new Set(exclude || []);
-    restored = restored.replace(/__IMAGE_EMBED_([^_]+)__/g, (match, encodedUrl) => {
-      const imageUrl = atob(encodedUrl);
-      if (excludeSet.has(imageUrl)) return '';
-      return `<div class="inline-image"><img src="${imageUrl}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${imageUrl.replace(/'/g, '\\\'')}')" /></div>`;
-    });
-
-    // Replace single newlines with <br /> inside a paragraph
-    const withBreaks = restored.replace(/\n/g, "<br />");
-    return `<p>${withBreaks}</p>`;
-  });
-
-  return paragraphs.join("\n");
-}
-
