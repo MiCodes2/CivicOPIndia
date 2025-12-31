@@ -12,8 +12,6 @@ import EditMyActivityForm from '@/components/EditMyActivityForm';
 import type { Activity } from "@/lib/types/database";
 
 // --- FIX: Browser-Native Decoder ---
-// This uses the browser's internal text parser to fix stubborn entities like &#039;
-// It handles double-encoding (e.g. &amp;#039;) by running up to 3 passes.
 const browserDecode = (html: string) => {
   if (typeof window === 'undefined' || !html) return html;
   
@@ -36,112 +34,137 @@ const browserDecode = (html: string) => {
   }
 };
 
-function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
+// --- UPDATED COMPONENT: Mobile-Optimized Collapsible Content ---
+function CollapsibleContent({ 
+  contentHtml, 
+  onDoubleClick, 
+  onDoubleTapLike, 
+  isTextOnly = false, 
+  minLinesForToggle = 6 
+}: { 
+  contentHtml: string; 
+  onDoubleClick?: () => void; 
+  onDoubleTapLike?: () => void; 
+  isTextOnly?: boolean; 
+  minLinesForToggle?: number 
+}) {
   const [expanded, setExpanded] = useState(false);
   const [safeHtml, setSafeHtml] = useState(contentHtml);
+  
+  // State to track if truncation is actually needed based on DOM measurements
+  const [needsTruncate, setNeedsTruncate] = useState(false);
+  const [isMeasuring, setIsMeasuring] = useState(true);
+  
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
-  // Apply the browser decode strictly on the client side
+  // Apply browser decode strictly on client
   useEffect(() => {
     setSafeHtml(browserDecode(contentHtml));
   }, [contentHtml]);
-  
-  const contentText = safeHtml.replace(/<[^>]*>/g, '');
-  const shouldAttemptTruncate = contentText.trim().length > 150;
-  const [needsTruncate, setNeedsTruncate] = useState(false);
-  const [measuring, setMeasuring] = useState<boolean>(shouldAttemptTruncate);
-  const contentRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (!shouldAttemptTruncate) {
-      setNeedsTruncate(false);
-      setMeasuring(false);
-      return;
-    }
-
+  // Combined logic: Measure height and decide if we need the button
+  const measure = useCallback(() => {
     const el = contentRef.current;
-    if (!el) {
-      setMeasuring(false);
-      return;
-    }
+    if (!el) return;
 
-    const origDisplay = el.style.display;
-    const origClamp = (el.style as any).WebkitLineClamp;
-    const origBoxOrient = (el.style as any).WebkitBoxOrient;
+    // 1. Reset styles to measure the "full" natural height
+    el.style.display = 'block';
+    el.style.webkitLineClamp = 'unset';
+    el.style.webkitBoxOrient = 'unset';
+    el.style.overflow = 'visible';
 
-    try {
-      // 1. Measure full height
-      el.style.display = 'block';
-      (el.style as any).WebkitLineClamp = '';
-      (el.style as any).WebkitBoxOrient = '';
+    requestAnimationFrame(() => {
+      // Get the Line Height accurately from the computed style
+      const style = window.getComputedStyle(el);
+      const lineHeight = parseFloat(style.lineHeight);
+      const fontSize = parseFloat(style.fontSize);
+      
+      // Fallback if lineHeight returns "normal" (approx 1.2 to 1.5 depending on browser)
+      const validLineHeight = !isNaN(lineHeight) ? lineHeight : (fontSize * 1.5);
+      
+      const fullHeight = el.scrollHeight;
+      const fullLines = Math.round(fullHeight / validLineHeight);
+      
+      // 2. Check strict line count condition
+      const exceedsMinLines = fullLines > minLinesForToggle;
 
+      // 3. Re-apply the clamp styles to check for physical overflow
+      el.style.display = '-webkit-box';
+      el.style.webkitLineClamp = '3';
+      el.style.webkitBoxOrient = 'vertical';
+      el.style.overflow = 'hidden';
+
+      // Small delay to let the clamp render before checking overflow
       requestAnimationFrame(() => {
-        const fullHeight = el.scrollHeight;
-
-        // Calculate line height
-        let lineHeight = 0;
-        try {
-          const span = document.createElement('span');
-          span.textContent = 'A';
-          span.style.visibility = 'hidden';
-          span.style.position = 'absolute';
-          span.style.whiteSpace = 'nowrap';
-          el.appendChild(span);
-          const rect = span.getBoundingClientRect();
-          lineHeight = rect.height || 0;
-          el.removeChild(span);
-        } catch (err) {}
-
-        if (!lineHeight) {
-          const cs = window.getComputedStyle(el);
-          const fontSize = parseFloat(cs.fontSize || '16') || 16;
-          lineHeight = Math.round(fontSize * 1.4);
-        }
-
-        const fullLines = Math.round(fullHeight / lineHeight);
-        const exceedsMin = fullLines >= minLinesForToggle;
-
-        // 2. Apply clamp
-        el.style.display = '-webkit-box';
-        (el.style as any).WebkitLineClamp = '3';
-        (el.style as any).WebkitBoxOrient = 'vertical';
-
-        requestAnimationFrame(() => {
-          const isOverflowing = el.scrollHeight > el.clientHeight + 1;
-          const willShow = isOverflowing && (!isTextOnly || (isTextOnly && exceedsMin));
-          setNeedsTruncate(willShow);
-          setMeasuring(false);
-
-          el.style.display = origDisplay;
-          (el.style as any).WebkitLineClamp = origClamp;
-          (el.style as any).WebkitBoxOrient = origBoxOrient;
-        });
+        const isOverflowing = el.scrollHeight > el.clientHeight;
+        
+        // LOGIC: Show button if it visually overflows AND (it's mixed content OR it meets the min-line text requirement)
+        const shouldShow = isOverflowing && (!isTextOnly || (isTextOnly && exceedsMinLines));
+        
+        setNeedsTruncate(shouldShow);
+        setIsMeasuring(false);
+        
+        // Reset manual styles so React Render takes over control
+        el.style.display = '';
+        el.style.webkitLineClamp = '';
+        el.style.webkitBoxOrient = '';
+        el.style.overflow = '';
       });
-    } catch (e) {
-      setMeasuring(false);
-    }
-  }, [safeHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
+    });
+  }, [isTextOnly, minLinesForToggle]);
+
+  // Trigger measurement on content change or window resize (fixing mobile rotation issues)
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+
+    // Initial measure
+    measure();
+
+    // Re-measure on resize
+    const observer = new ResizeObserver(() => {
+      measure();
+    });
+
+    observer.observe(el);
+    observer.observe(document.body); // Fallback for layout shifts
+
+    return () => observer.disconnect();
+  }, [safeHtml, measure]);
+
+  // Dynamic Styles based on state
+  const clampStyle: React.CSSProperties = (!expanded && !isMeasuring && needsTruncate) 
+    ? { 
+        display: '-webkit-box', 
+        WebkitLineClamp: 3, 
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden'
+      } 
+    : {};
 
   return (
-    <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
+    <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none relative">
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
-        // CSS: Using the whitespace-pre-wrap that successfully fixed your paragraphs
-        className={`transition-all whitespace-pre-wrap break-words [&_p]:mb-3 [&_p:last-child]:mb-0 ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
-        // STYLE: Standard line-clamp logic
-        style={!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
+        className={`transition-all whitespace-pre-wrap break-words [&_p]:mb-3 [&_p:last-child]:mb-0`}
+        style={clampStyle}
         dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
 
-      {(!measuring && needsTruncate) && (
-        <div className="mt-1">
+      {/* Only show button if we are done measuring AND truncation is needed */}
+      {!isMeasuring && needsTruncate && (
+        <div className="mt-2">
           <button
-            className="text-sm text-muted-foreground"
-            onClick={() => setExpanded((s) => !s)}
+            type="button"
+            className="text-sm font-semibold text-primary hover:underline focus:outline-none cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded((s) => !s);
+            }}
             aria-expanded={expanded}
-            style={{ background: 'transparent', border: 'none', padding: 0 }}
           >
-            {!expanded ? '...more' : ' less'}
+            {!expanded ? '...Read more' : 'Show less'}
           </button>
         </div>
       )}
