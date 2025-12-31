@@ -34,7 +34,7 @@ const browserDecode = (html: string) => {
   }
 };
 
-// --- UPDATED COMPONENT: Mobile-Optimized Collapsible Content ---
+// --- STABLE COLLAPSIBLE COMPONENT (No Shaking) ---
 function CollapsibleContent({ 
   contentHtml, 
   onDoubleClick, 
@@ -50,11 +50,7 @@ function CollapsibleContent({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [safeHtml, setSafeHtml] = useState(contentHtml);
-  
-  // State to track if truncation is actually needed based on DOM measurements
-  const [needsTruncate, setNeedsTruncate] = useState(false);
-  const [isMeasuring, setIsMeasuring] = useState(true);
-  
+  const [showButton, setShowButton] = useState(false);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   // Apply browser decode strictly on client
@@ -62,85 +58,51 @@ function CollapsibleContent({
     setSafeHtml(browserDecode(contentHtml));
   }, [contentHtml]);
 
-  // Combined logic: Measure height and decide if we need the button
-  const measure = useCallback(() => {
+  // STABLE MEASUREMENT LOGIC
+  // We do not modify the DOM styles here. We simply check if the browser has hidden any text.
+  const checkOverflow = useCallback(() => {
     const el = contentRef.current;
     if (!el) return;
 
-    // 1. Reset styles to measure the "full" natural height
-    el.style.display = 'block';
-    el.style.webkitLineClamp = 'unset';
-    el.style.webkitBoxOrient = 'unset';
-    el.style.overflow = 'visible';
+    // In modern browsers, scrollHeight gives the FULL height of content,
+    // while clientHeight gives the VISIBLE height (clamped).
+    // If scrollHeight > clientHeight, it is overflowing.
+    const isOverflowing = el.scrollHeight > el.clientHeight + 2; // +2px buffer for sub-pixel rendering
 
-    requestAnimationFrame(() => {
-      // Get the Line Height accurately from the computed style
-      const style = window.getComputedStyle(el);
-      const lineHeight = parseFloat(style.lineHeight);
-      const fontSize = parseFloat(style.fontSize);
-      
-      // Fallback if lineHeight returns "normal" (approx 1.2 to 1.5 depending on browser)
-      const validLineHeight = !isNaN(lineHeight) ? lineHeight : (fontSize * 1.5);
-      
-      const fullHeight = el.scrollHeight;
-      const fullLines = Math.round(fullHeight / validLineHeight);
-      
-      // 2. Check strict line count condition
-      const exceedsMinLines = fullLines > minLinesForToggle;
+    if (isTextOnly && isOverflowing) {
+      // Approximate line count calculation without unclamping
+      try {
+        const style = window.getComputedStyle(el);
+        const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.5;
+        const totalLines = Math.ceil(el.scrollHeight / lineHeight);
+        
+        // If it's text-only and doesn't meet the minimum line requirement, hide the button
+        if (totalLines < minLinesForToggle) {
+          setShowButton(false);
+          return;
+        }
+      } catch (e) {
+        // Fallback: if calculation fails, trust the overflow check
+      }
+    }
 
-      // 3. Re-apply the clamp styles to check for physical overflow
-      el.style.display = '-webkit-box';
-      el.style.webkitLineClamp = '3';
-      el.style.webkitBoxOrient = 'vertical';
-      el.style.overflow = 'hidden';
-
-      // Small delay to let the clamp render before checking overflow
-      requestAnimationFrame(() => {
-        const isOverflowing = el.scrollHeight > el.clientHeight;
-        
-        // LOGIC: Show button if it visually overflows AND (it's mixed content OR it meets the min-line text requirement)
-        const shouldShow = isOverflowing && (!isTextOnly || (isTextOnly && exceedsMinLines));
-        
-        setNeedsTruncate(shouldShow);
-        setIsMeasuring(false);
-        
-        // Reset manual styles so React Render takes over control
-        el.style.display = '';
-        el.style.webkitLineClamp = '';
-        el.style.webkitBoxOrient = '';
-        el.style.overflow = '';
-      });
-    });
+    setShowButton(isOverflowing);
   }, [isTextOnly, minLinesForToggle]);
 
-  // Trigger measurement on content change or window resize (fixing mobile rotation issues)
+  // Run check on mount, content change, and window resize
   useEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-
-    // Initial measure
-    measure();
-
-    // Re-measure on resize
-    const observer = new ResizeObserver(() => {
-      measure();
-    });
-
-    observer.observe(el);
-    observer.observe(document.body); // Fallback for layout shifts
-
-    return () => observer.disconnect();
-  }, [safeHtml, measure]);
-
-  // Dynamic Styles based on state
-  const clampStyle: React.CSSProperties = (!expanded && !isMeasuring && needsTruncate) 
-    ? { 
-        display: '-webkit-box', 
-        WebkitLineClamp: 3, 
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden'
-      } 
-    : {};
+    // Small delay to ensure the browser has finished painting the initial CSS
+    // This prevents the "shake" because we measure AFTER the render is complete
+    const t = setTimeout(checkOverflow, 100);
+    
+    const handleResize = () => checkOverflow();
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [safeHtml, checkOverflow]);
 
   return (
     <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none relative">
@@ -148,16 +110,21 @@ function CollapsibleContent({
         ref={contentRef}
         onDoubleClick={onDoubleClick}
         className={`transition-all whitespace-pre-wrap break-words [&_p]:mb-3 [&_p:last-child]:mb-0`}
-        style={clampStyle}
+        // We apply the clamp styles directly via style prop when not expanded.
+        // This is more reliable than class names for webkit-box-orient.
+        style={
+          !expanded 
+            ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' } 
+            : {}
+        }
         dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
 
-      {/* Only show button if we are done measuring AND truncation is needed */}
-      {!isMeasuring && needsTruncate && (
+      {(showButton || expanded) && (
         <div className="mt-2">
           <button
             type="button"
-            className="text-sm font-semibold text-primary hover:underline focus:outline-none cursor-pointer"
+            className="text-sm font-semibold text-primary hover:underline focus:outline-none cursor-pointer p-1 -ml-1"
             onClick={(e) => {
               e.stopPropagation();
               setExpanded((s) => !s);
