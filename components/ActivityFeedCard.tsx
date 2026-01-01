@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { formatContent, decodeHtmlEntities, escapeHtml } from '@/lib/formatContent';
 
 // Collapsible content component to mimic social media 'See more' behavior
@@ -577,6 +577,9 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     } catch (e) { setShares(prev); } finally { setLoading(false); }
   };
 
+  // Memoize the formatted content to prevent hydration mismatches
+  const formattedContent = useMemo(() => formatContent(activity.content || '', images), [activity.content, images]);
+
   return (
     <>
       <div className="mx-0 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl bg-white border border-gray-200 sm:border-gray-200 shadow-sm">
@@ -718,7 +721,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           )}
 
           <CollapsibleContent
-            contentHtml={formatContent(activity.content || '', images)}
+            contentHtml={formattedContent}
             onDoubleClick={() => handleLike({ optimistic: true, showAnimation: true })}
             onDoubleTapLike={() => handleLike({ optimistic: true, showAnimation: true })}
             isTextOnly={images.length === 0}
