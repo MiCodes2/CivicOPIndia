@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
 import type { Activity } from "@/lib/types/database";
-import RichTextEditor from "@/components/RichTextEditor";
+import WysiwygEditor from "@/components/WysiwygEditor";
 import ImagePicker from "@/components/admin/ImagePicker";
 import { normalizeEntities } from '@/lib/formatContent';
 
@@ -25,6 +25,20 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
   const [error, setError] = useState("");
   const router = useRouter();
   const supabase = createClient();
+
+  const handlePreviewInTab = () => {
+    const all = Array.from(new Set([...(imagePreviews || []), ...(formData.image_urls || [])]));
+    const previewData = {
+      title: formData.title,
+      content: formData.content,
+      location: formData.location,
+      activityDate: formData.activity_date,
+      activityType: formData.type,
+      imageUrls: all
+    };
+    sessionStorage.setItem('preview_data', JSON.stringify(previewData));
+    window.open('/preview', '_blank');
+  };
 
   // Support re-uploading images during edit (multiple)
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -346,10 +360,11 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
             <label htmlFor="content" className="text-sm font-medium">
               Description *
             </label>
-            <RichTextEditor
+            <WysiwygEditor
               value={formData.content}
               onChange={(content) => setFormData({ ...formData, content })}
               placeholder="Describe the activity in detail... Use the toolbar to format text and add links."
+              onPreviewInTab={handlePreviewInTab}
             />
 
             {/* Gallery preview for all images (image_urls + embedded images) */}

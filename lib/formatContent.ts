@@ -1,13 +1,13 @@
 export function escapeHtml(unsafe: string) {
-  // Don't double-escape existing HTML entities like &#039; or &amp; — only escape raw ampersands
+  // Don't escape apostrophes - they're safe in HTML content and escaping causes &#039; to appear
   if (!unsafe) return '';
   return unsafe
     // Replace ampersands that are NOT part of an existing entity (e.g., &#039; or &nbsp;)
     .replace(/&(?!#?\w+;)/g, '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+    .replaceAll('"', '&quot;');
+    // Removed: .replaceAll("'", '&#039;');
 }
 
 export function decodeHtmlEntities(str: string) {
@@ -84,6 +84,8 @@ export function strictClean(str: string) {
 }
 
 export function formatContent(input: string, exclude?: string[]) {
+  const originalInput = input;
+  
   // First, decode HTML entities (handles cases like &amp;#039; or &#039;) so they render as characters
   try {
     input = normalizeEntities(input || '');
@@ -91,6 +93,28 @@ export function formatContent(input: string, exclude?: string[]) {
     // ignore and continue with original input
     input = input || '';
   }
+
+  // AGGRESSIVE FIX: Handle double-encoded entities (e.g., &amp;#039; -> ')
+  input = input.replace(/&amp;#0*39;/gi, "'");
+  input = input.replace(/&amp;#x0*27;/gi, "'");
+  input = input.replace(/&amp;apos;/gi, "'");
+  input = input.replace(/&amp;quot;/gi, '"');
+  input = input.replace(/&amp;lt;/gi, '<');
+  input = input.replace(/&amp;gt;/gi, '>');
+  
+  // Additional cleanup: decode any remaining &#039; and similar entities
+  input = input.replace(/&#0*39;/g, "'");
+  input = input.replace(/&#x0*27;/gi, "'");
+  input = input.replace(/&apos;/g, "'");
+  
+  // Debug logging (remove in production)
+  if (typeof window !== 'undefined' && originalInput.includes("'") && originalInput.length < 200) {
+    console.log('[formatContent] Input has apostrophe:', originalInput.substring(0, 100));
+    console.log('[formatContent] After decode:', input.substring(0, 100));
+  }
+  
+  // Trim trailing whitespace but preserve intentional line breaks
+  input = input.replace(/\s+$/g, '');
 
   function linkifyHashtags(html: string) {
     return html.replace(/(^|[^A-Za-z0-9_\/\-])#([a-zA-Z0-9_-]+)/g, (match, pre, tag) => {
@@ -134,7 +158,8 @@ export function formatContent(input: string, exclude?: string[]) {
     });
 
     processed = linkifyHashtags(processed);
-    return processed;
+    // Trim any trailing whitespace from the final HTML
+    return processed.trim();
   }
 
   const text = input.replace(/\r\n/g, "\n").trim();

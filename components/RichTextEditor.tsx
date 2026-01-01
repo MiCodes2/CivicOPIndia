@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { 
   Bold, 
   Italic, 
@@ -19,9 +19,11 @@ import {
   AlignRight,
   Image as ImageIcon,
   Eye,
-  EyeOff
+  EyeOff,
+  Edit3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatContent } from '@/lib/formatContent';
 
 interface RichTextEditorProps {
   value: string;
@@ -31,10 +33,18 @@ interface RichTextEditorProps {
   onPreview?: () => void;
 }
 
+type EditorMode = 'edit' | 'preview';
+
 export default function RichTextEditor({ value, onChange, placeholder, showPreviewButton = false, onPreview }: RichTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [mode, setMode] = useState<EditorMode>('edit');
   const [showHtml, setShowHtml] = useState(true);
-  const [previewContent, setPreviewContent] = useState("");
+  
+  // Format content for preview using the same logic as feed display
+  const formattedPreview = useMemo(() => {
+    if (mode !== 'preview') return '';
+    return formatContent(value || '');
+  }, [mode, value]);
 
   const insertFormatting = (before: string, after: string = '') => {
     const textarea = textareaRef.current;
@@ -112,13 +122,7 @@ export default function RichTextEditor({ value, onChange, placeholder, showPrevi
     onChange(newText);
   };
 
-  const toggleView = () => {
-    if (showHtml) {
-      // Switching to preview
-      setPreviewContent(value);
-    }
-    setShowHtml(!showHtml);
-  };
+
 
   const addParagraph = () => {
     const textarea = textareaRef.current;
@@ -135,7 +139,32 @@ export default function RichTextEditor({ value, onChange, placeholder, showPrevi
 
   return (
     <div className="space-y-2">
-      {/* Toolbar */}
+      {/* Mode Toggle */}
+      <div className="flex gap-2 mb-2">
+        <Button
+          type="button"
+          variant={mode === 'edit' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setMode('edit')}
+          className="flex-1"
+        >
+          <Edit3 className="h-4 w-4 mr-1" />
+          Edit
+        </Button>
+        <Button
+          type="button"
+          variant={mode === 'preview' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setMode('preview')}
+          className="flex-1"
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          Preview
+        </Button>
+      </div>
+
+      {/* Toolbar - Only show in edit mode */}
+      {mode === 'edit' && (
       <div className="flex flex-wrap gap-1 rounded-md border bg-muted/50 p-2">
         {/* Text Formatting */}
         <Button
@@ -313,42 +342,36 @@ export default function RichTextEditor({ value, onChange, placeholder, showPrevi
         >
           ¶
         </Button>
-        
-        <div className="flex-1" />
-        
-        {/* HTML/Preview Toggle */}
-        <Button
-          type="button"
-          variant={showHtml ? "default" : "outline"}
-          size="sm"
-          onClick={toggleView}
-          title={showHtml ? "Show Preview" : "Show HTML"}
-        >
-          {showHtml ? <Eye className="h-4 w-4 mr-1" /> : <EyeOff className="h-4 w-4 mr-1" />}
-          {showHtml ? "Preview" : "HTML"}
-        </Button>
       </div>
+      )}
 
       {/* Editor/Preview Area */}
-      {showHtml ? (
+      {mode === 'edit' ? (
         <textarea
           ref={textareaRef}
           className="min-h-[200px] max-h-[600px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-mono resize-y overflow-auto"
+          style={{ whiteSpace: 'pre-wrap' }}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
       ) : (
         <div
-          className="min-h-[200px] max-h-[600px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm overflow-auto prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: previewContent }}
-        />
+          className="min-h-[200px] max-h-[600px] w-full rounded-md border border-input bg-background px-4 py-3 text-sm overflow-auto"
+          style={{ whiteSpace: 'pre-wrap' }}
+        >
+          <div
+            className="prose prose-sm max-w-none"
+            style={{ whiteSpace: 'pre-wrap' }}
+            dangerouslySetInnerHTML={{ __html: formattedPreview || '<p class="text-muted-foreground italic">No content to preview</p>' }}
+          />
+        </div>
       )}
 
       <p className="text-xs text-muted-foreground">
-        {showHtml 
+        {mode === 'edit'
           ? "Use the toolbar buttons to format text. You can also use HTML tags directly. To embed YouTube videos, simply paste the YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID) and it will automatically be converted to an embedded player."
-          : "Preview mode - click 'HTML' to return to editing"
+          : "Preview mode - showing how your post will appear on the feed. Switch to Edit to make changes."
         }
       </p>
     </div>

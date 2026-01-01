@@ -147,6 +147,7 @@ export default function ActivityPreviewModal({
           {/* Content */}
           <div 
             className="prose prose-sm md:prose-base max-w-none"
+            style={{ whiteSpace: 'pre-line' }}
             dangerouslySetInnerHTML={{ __html: content || '<p class="text-muted-foreground italic">No content</p>' }}
           />
         </div>

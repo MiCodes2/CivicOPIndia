@@ -8,7 +8,7 @@ import { extractHashtags } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon, Eye } from "lucide-react";
-import RichTextEditor from "@/components/RichTextEditor";
+import WysiwygEditor from "@/components/WysiwygEditor";
 import ImagePicker from "@/components/admin/ImagePicker";
 import ImageLightbox from '@/components/admin/ImageLightbox';
 import ActivityPreviewModal from '@/components/admin/ActivityPreviewModal';
@@ -24,6 +24,21 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
   const [showPreview, setShowPreview] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  const handlePreviewInTab = () => {
+    // Store preview data in sessionStorage
+    const previewData = {
+      title: formData.title,
+      content: formData.content,
+      location: formData.location,
+      activityDate: formData.activity_date,
+      activityType: formData.type,
+      imageUrls: imagePreviews.length > 0 ? imagePreviews : (formData.image_url ? [formData.image_url] : [])
+    };
+    sessionStorage.setItem('preview_data', JSON.stringify(previewData));
+    // Open preview in new tab
+    window.open('/preview', '_blank');
+  };
 
   interface FormState {
     title: string;
@@ -543,10 +558,11 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
             <label htmlFor="content" className="text-sm font-medium">
               Description *
             </label>
-            <RichTextEditor
+            <WysiwygEditor
               value={formData.content}
               onChange={(content) => setFormData({ ...formData, content })}
               placeholder="Describe the activity in detail... Use the toolbar to format text and add links. You can embed YouTube videos by pasting the video URL."
+              onPreviewInTab={handlePreviewInTab}
             />
           </div>
 

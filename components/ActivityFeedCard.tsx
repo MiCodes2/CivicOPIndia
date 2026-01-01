@@ -6,7 +6,9 @@ import { formatContent, decodeHtmlEntities, escapeHtml } from '@/lib/formatConte
 // Collapsible content component to mimic social media 'See more' behavior
 function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTextOnly = false, minLinesForToggle = 6 }: { contentHtml: string; onDoubleClick?: () => void; onDoubleTapLike?: () => void; isTextOnly?: boolean; minLinesForToggle?: number }) {
   const [expanded, setExpanded] = useState(false);
-  const contentText = contentHtml.replace(/<[^>]*>/g, '');
+  // Trim the HTML to remove trailing whitespace
+  const trimmedHtml = contentHtml.trim();
+  const contentText = trimmedHtml.replace(/<[^>]*>/g, '');
   // quick prefilter by length to avoid measuring tiny content
   const shouldAttemptTruncate = contentText.trim().length > 150;
   const [needsTruncate, setNeedsTruncate] = useState(false);
@@ -101,7 +103,7 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
         (el.style as any).WebkitBoxOrient = origBoxOrient;
       });
     }
-  }, [contentHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
+  }, [trimmedHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
 
   return (
     <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
@@ -109,21 +111,22 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
         ref={contentRef}
         onDoubleClick={onDoubleClick}
         className={`transition-all ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
-        style={!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {}}
-        dangerouslySetInnerHTML={{ __html: contentHtml }}
+        style={{
+          whiteSpace: 'pre-line',
+          ...(!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {})
+        }}
+        dangerouslySetInnerHTML={{ __html: trimmedHtml }}
       />
 
       {(!measuring && needsTruncate) && (
-        <div className="mt-1">
-          <button
-            className="text-sm text-muted-foreground"
-            onClick={() => setExpanded((s) => !s)}
-            aria-expanded={expanded}
-            style={{ background: 'transparent', border: 'none', padding: 0 }}
-          >
-            {!expanded ? '...more' : ' less'}
-          </button>
-        </div>
+        <button
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors -mt-1"
+          onClick={() => setExpanded((s) => !s)}
+          aria-expanded={expanded}
+          style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          {!expanded ? '...more' : 'show less'}
+        </button>
       )}
     </div>
   );
@@ -656,12 +659,20 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     setShareAnimating(true);
     setTimeout(() => setShareAnimating(false), 900);
 
+    // Create excerpt: first paragraph or first 150 characters
+    let excerpt = '';
+    if (activity.content) {
+      const plainText = activity.content.replace(/<[^>]*>/g, '').trim();
+      const firstPara = plainText.split(/\n\n/)[0] || plainText;
+      excerpt = firstPara.length > 150 ? firstPara.substring(0, 150) + '...' : firstPara;
+    }
+
     let didShare = false;
     if (navigator.share) {
       try {
         await navigator.share({
-          title: activity.title,
-          text: activity.content || "",
+          title: activity.title || 'Civic Opposition of India',
+          text: excerpt,
           url: window.location.href,
         });
         didShare = true;

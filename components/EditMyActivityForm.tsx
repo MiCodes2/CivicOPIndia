@@ -148,7 +148,7 @@ export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { 
         content={content}
         location={location}
         activityDate={activity.activity_date}
-        activityType={activity.type}
+        activityType={activity.type || undefined}
         imageUrls={[...imagePreviews]}
         videoUrl={videoUrl}
       />

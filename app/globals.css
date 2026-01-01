@@ -135,7 +135,11 @@
 }
 
 .prose p {
-  @apply mb-4 leading-relaxed;
+  @apply mb-3 leading-relaxed;
+}
+
+.prose p + p {
+  @apply mt-3;
 }
 
 .prose a {
@@ -148,6 +152,10 @@
 
 .prose em {
   @apply italic;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-primary pl-4 my-4 italic text-muted-foreground;
 }
 
 .prose ul,
