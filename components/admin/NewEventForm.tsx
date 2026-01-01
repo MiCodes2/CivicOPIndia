@@ -35,6 +35,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
     content: string;
     location: string;
     event_date: string;
+    event_time: string;
     image_url: string;
     image_urls: string[];
     type: string;
@@ -45,6 +46,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
     content: "",
     location: "",
     event_date: new Date().toISOString().split("T")[0],
+    event_time: "10:00", // Default 10am IST
     image_url: "",
     image_urls: [],
     type: EVENT_TYPES[0],
@@ -65,6 +67,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
       location?: string;
       type?: string;
       event_date?: string;
+      event_time?: string;
       image_url?: string;
     };
     image_urls?: string[];
@@ -121,6 +124,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
           location: formData.location,
           type: formData.type,
           event_date: formData.event_date,
+          event_time: formData.event_time,
           image_url: formData.image_url,
         },
         image_urls: formData.image_urls || [],
@@ -205,12 +209,16 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
 
       const rawTitle = formData.title || null;
       const rawContent = formData.content || null;
+      
+      // Combine date and time with IST timezone offset (+05:30)
+      const eventDateTime = new Date(`${formData.event_date}T${formData.event_time || '10:00'}:00+05:30`);
+      
       const payload = {
         title: normalizeEntities(rawTitle as string) || null,
         content: normalizeEntities(rawContent as string) || null,
         location: formData.location || null,
         type: formData.type || null,
-        event_date: new Date(formData.event_date).toISOString(),
+        event_date: eventDateTime.toISOString(),
         image_url: formData.image_url || null,
         tags: ['event'],
         author_id: user.id,
@@ -251,7 +259,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
       const insertError = (insertResult as any).error || (Array.isArray(insertResult) && insertResult[1]) || null;
       if (insertError) throw insertError;
 
-      setFormData({ title: "", content: "", location: "", event_date: new Date().toISOString().split('T')[0], image_url: "", type: EVENT_TYPES[0], image_urls: [] });
+      setFormData({ title: "", content: "", location: "", event_date: new Date().toISOString().split('T')[0], event_time: "10:00", image_url: "", type: EVENT_TYPES[0], image_urls: [] });
       setImageFiles([]);
       setImagePreviews([]);
       setImageFiles([]);
@@ -284,10 +292,15 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
             <RichTextEditor value={formData.content} onChange={(v)=>setFormData({...formData, content: v})} />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-sm font-medium"><Calendar className="mr-2 inline h-4 w-4"/> Event Date *</label>
               <Input type="date" required value={formData.event_date} onChange={(e)=>setFormData({...formData, event_date: e.target.value})} />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Event Time *</label>
+              <Input type="time" required value={formData.event_time} onChange={(e)=>setFormData({...formData, event_time: e.target.value})} />
             </div>
 
             <div className="space-y-2">
@@ -323,6 +336,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
                   content: "",
                   location: "",
                   event_date: new Date().toISOString().split('T')[0],
+                  event_time: "10:00",
                   image_url: "",
                   image_urls: [],
                   type: EVENT_TYPES[0],

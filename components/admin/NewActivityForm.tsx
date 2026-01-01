@@ -427,12 +427,19 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
 
       const rawTitle = formData.title || null;
       const rawContent = contentToInsert || formData.content || null;
+      
+      // Use current timestamp for activity_date to get accurate "X hours ago" display
+      // The date picker is for backdating old activities, but new posts should use now
+      const activityDateTime = formData.activity_date === new Date().toISOString().split('T')[0]
+        ? new Date().toISOString()  // Today's date selected = use current time
+        : new Date(formData.activity_date + 'T10:00:00+05:30').toISOString();  // Past date = use 10 AM IST
+      
       const payload = {
         title: normalizeEntities(rawTitle as string) || null,
         content: normalizeEntities(rawContent as string) || null,
         location: formData.location || null,
         type: canonicalizeType(formData.type) || null,
-        activity_date: new Date(formData.activity_date).toISOString(),
+        activity_date: activityDateTime,
         // `activities` table has `image_url` (TEXT) not `image_urls` array
         image_url: imageUrls[0] || formData.image_url || null,
         video_url: formData.video_url || null,

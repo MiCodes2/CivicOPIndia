@@ -66,7 +66,9 @@ export default function EventsList() {
                 <div className="text-xs text-muted-foreground">{ev.type}</div>
               </div>
               <div className="mt-1 text-xs text-muted-foreground">
-                {new Date(ev.event_date ?? ev.activity_date ?? '').toLocaleDateString()}
+                {new Date(ev.event_date ?? ev.activity_date ?? '').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                {', '}
+                {new Date(ev.event_date ?? ev.activity_date ?? '').toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
                 {(() => {
                   const eventDate = new Date(ev.event_date ?? ev.activity_date ?? '');
                   const now = new Date();

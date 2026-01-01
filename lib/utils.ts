@@ -38,13 +38,25 @@ export function formatPostTime(date?: string | Date) {
   const d = new Date(date);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
-  const diffMins = Math.round(diffMs / 60000);
-  if (diffMins < 1) return 'now';
-  if (diffMins < 60) return `${diffMins}m`;
-  const diffHours = Math.round(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h`;
-
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  // Less than a minute
+  if (diffSecs < 60) return 'just now';
+  
+  // Less than an hour - show minutes
+  if (diffMins < 60) return `${diffMins}m ago`;
+  
+  // Less than 24 hours - show hours
+  if (diffHours < 24) return `${diffHours}hr ago`;
+  
+  // 1-2 days - show "yesterday" or "2 days ago"
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays === 2) return '2 days ago';
+
+  // Older - show exact date
   const isOlderThanYear = diffDays > 365;
 
   try {
@@ -56,6 +68,30 @@ export function formatPostTime(date?: string | Date) {
     const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     if (isOlderThanYear) return `${monthNames[d.getMonth()]} ${String(d.getDate()).padStart(2,'0')}, ${d.getFullYear()}`;
     return `${monthNames[d.getMonth()]} ${String(d.getDate()).padStart(2,'0')}`;
+  }
+}
+
+// Format event date with time
+export function formatEventDateTime(date?: string | Date) {
+  if (!date) return "";
+  const d = new Date(date);
+  
+  try {
+    return new Intl.DateTimeFormat('en-IN', { 
+      month: 'short', 
+      day: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(d);
+  } catch (e) {
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const hours = d.getHours();
+    const mins = d.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const h12 = hours % 12 || 12;
+    return `${monthNames[d.getMonth()]} ${String(d.getDate()).padStart(2,'0')}, ${d.getFullYear()} ${h12}:${String(mins).padStart(2,'0')} ${ampm}`;
   }
 }
 

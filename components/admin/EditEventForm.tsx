@@ -24,11 +24,23 @@ export default function EditEventForm({ event, onCancel, onSuccess }: EditEventF
   const router = useRouter();
   const supabase = createClient();
 
+  // Extract time from existing event_date in IST or default to 10:00
+  const getEventTime = () => {
+    if (!event.event_date) return "10:00";
+    const d = new Date(event.event_date);
+    // Format in IST timezone
+    const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
+    // If time is midnight (00:00), default to 10:00 instead
+    if (timeStr === '00:00') return "10:00";
+    return timeStr;
+  };
+
   const [formData, setFormData] = useState({
     title: event.title || "",
     content: event.content || "",
     location: event.location || "",
     event_date: event.event_date ? new Date(event.event_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    event_time: getEventTime(),
     image_url: event.image_url || "",
     image_urls: event.image_url ? [event.image_url] : [],
     type: event.type || "",
@@ -44,7 +56,16 @@ export default function EditEventForm({ event, onCancel, onSuccess }: EditEventF
     setError("");
     setLoading(true);
     try {
-      const payload: any = { id: event.id, ...formData, title: normalizeEntities(formData.title || ''), content: normalizeEntities(formData.content || '') };
+      // Combine date and time with IST timezone offset (+05:30)
+      const eventDateTime = new Date(`${formData.event_date}T${formData.event_time || '10:00'}:00+05:30`);
+      const payload: any = { 
+        id: event.id, 
+        ...formData, 
+        event_date: eventDateTime.toISOString(),
+        title: normalizeEntities(formData.title || ''), 
+        content: normalizeEntities(formData.content || '') 
+      };
+      delete payload.event_time; // Remove event_time from payload as it's now part of event_date
 
       // Upload any newly added files via ImagePicker
       const imageUrls: string[] = [];
@@ -103,10 +124,15 @@ export default function EditEventForm({ event, onCancel, onSuccess }: EditEventF
             <RichTextEditor value={formData.content} onChange={(v)=>setFormData({...formData, content: v})} />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-sm font-medium"><Calendar className="mr-2 inline h-4 w-4"/> Event Date *</label>
               <Input type="date" required value={formData.event_date} onChange={(e)=>setFormData({...formData, event_date: e.target.value})} />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium"><Calendar className="mr-2 inline h-4 w-4"/> Time</label>
+              <Input type="time" value={formData.event_time} onChange={(e)=>setFormData({...formData, event_time: e.target.value})} />
             </div>
 
             <div className="space-y-2">

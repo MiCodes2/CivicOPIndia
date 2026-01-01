@@ -37,7 +37,21 @@ export default async function EventPage({ params }: Props) {
           <Link href="/events" className="text-primary underline">Events</Link>
         </div>
 
-        <div className="mt-2 text-sm text-muted-foreground">{new Date(event.event_date).toLocaleString()}</div>
+        <div className="mt-2 text-sm text-muted-foreground">
+          {new Date(event.event_date).toLocaleDateString('en-IN', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            timeZone: 'Asia/Kolkata'
+          })}
+          {', '}
+          {new Date(event.event_date).toLocaleTimeString('en-IN', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'Asia/Kolkata'
+          })}
+        </div>
         {event.location && <div className="mt-1 text-sm text-muted-foreground">{event.location}</div>}
         {event.image_url && (
           <EventImage images={[event.image_url]} alt={decodeHtmlEntities(event.title)} />
