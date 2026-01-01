@@ -7,10 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { extractHashtags } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar, MapPin, Tag, Image as ImageIcon } from "lucide-react";
+import { Calendar, MapPin, Tag, Image as ImageIcon, Eye } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
 import ImagePicker from "@/components/admin/ImagePicker";
 import ImageLightbox from '@/components/admin/ImageLightbox';
+import ActivityPreviewModal from '@/components/admin/ActivityPreviewModal';
 import { decodeHtmlEntities, normalizeEntities } from '@/lib/formatContent';
 
 interface NewActivityFormProps {
@@ -20,6 +21,7 @@ interface NewActivityFormProps {
 export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -791,11 +793,35 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Posting..." : "Post Activity"}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => setShowPreview(true)}
+              className="flex-1"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
+            </Button>
+            <Button type="submit" className="flex-1" disabled={loading}>
+              {loading ? "Posting..." : "Post Activity"}
+            </Button>
+          </div>
         </form>
       </CardContent>
+      
+      {/* Preview Modal */}
+      <ActivityPreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        title={formData.title}
+        content={formData.content}
+        location={formData.location}
+        activityDate={formData.activity_date}
+        activityType={formData.type}
+        imageUrls={[...imagePreviews, ...(formData.image_urls || [])]}
+        videoUrl={formData.video_url}
+      />
     </Card>
   );
 }

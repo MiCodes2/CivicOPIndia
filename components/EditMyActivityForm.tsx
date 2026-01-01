@@ -5,11 +5,14 @@ import { Button } from '@/components/ui/button';
 import RichTextEditor from '@/components/RichTextEditor';
 import { Input } from '@/components/ui/input';
 import ImagePicker from '@/components/admin/ImagePicker';
+import ActivityPreviewModal from '@/components/admin/ActivityPreviewModal';
+import { Eye } from 'lucide-react';
 import { decodeHtmlEntities, normalizeEntities } from '@/lib/formatContent';
 import type { Activity } from '@/lib/types/database';
 
 export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { activity: Activity; onCancel: () => void; onSuccess: (updated: Activity) => void }) {
   const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [title, setTitle] = useState(activity.title || '');
   const [content, setContent] = useState(activity.content || '');
   const [location, setLocation] = useState(activity.location || '');
@@ -119,7 +122,15 @@ export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { 
 
       <div className="mt-6 pb-6">
         <div className="sticky bottom-0 bg-white pt-3 flex items-center gap-2 justify-between border-t -mx-4 px-4">
-          <div>
+          <div className="flex gap-2">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => setShowPreview(true)}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
+            </Button>
             <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Save'}</Button>
             <Button variant="ghost" onClick={onCancel}>Cancel</Button>
           </div>
@@ -128,6 +139,19 @@ export default function EditMyActivityForm({ activity, onCancel, onSuccess }: { 
           </div>
         </div>
       </div>
+      
+      {/* Preview Modal */}
+      <ActivityPreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        title={title}
+        content={content}
+        location={location}
+        activityDate={activity.activity_date}
+        activityType={activity.type}
+        imageUrls={[...imagePreviews]}
+        videoUrl={videoUrl}
+      />
     </form>
   );
 }
