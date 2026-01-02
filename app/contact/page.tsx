@@ -13,6 +13,7 @@ const contactReasons = [
   "General Inquiry",
   "Partnership",
   "Media",
+  "Request Government Demo",
   "Volunteer",
   "Report Issue",
   "Other"
@@ -88,11 +89,20 @@ export default function ContactPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold tracking-tight">Contact Us</h1>
-        <p className="mt-2 text-xl font-semibold text-primary">[Civic Opposition of India]</p>
-        <p className="mt-4 text-lg text-muted-foreground">
-          Get in touch with Civic Opposition of India. We'd love to hear from you.
+      <div className="text-center mb-10">
+        <h1 className="text-4xl font-bold mb-4">Contact CivicOp Operations</h1>
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          We are bridging the gap between citizens and administration.
+          <br />
+          <span className="font-semibold text-green-700">
+            Citizens:
+          </span>{" "}
+          Please use the &quot;Report Issue&quot; tab for potholes/garbage.
+          <br />
+          <span className="font-semibold text-blue-700">
+            Officials:
+          </span>{" "}
+          Use the form below to request a Command Center demo.
         </p>
       </div>
 
@@ -186,7 +196,7 @@ export default function ContactPage() {
             <div className="flex justify-center">
               <ReCAPTCHA
                 ref={recaptchaRef}
-                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "your-recaptcha-site-key"}
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ""}
                 onChange={handleCaptchaChange}
               />
             </div>
