@@ -500,6 +500,8 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         video_url: "",
         likes_count: 0,
         shares_count: 0,
+        is_pinned: false,
+        is_highlighted: false,
       });
       setImageFiles([]);
       setImagePreviews([]);
