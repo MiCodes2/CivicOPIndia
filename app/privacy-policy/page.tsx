@@ -1,93 +1,69 @@
 import Link from "next/link"
 
 export const metadata = {
-  title: "Privacy Policy — Civic Opposition of India",
-  description: "Privacy Policy placeholder for Civic Opposition of India.",
+  title: "Privacy Policy — CivicOp",
+  description: "Learn how CivicOp collects, uses, and protects your data while powering AI-driven civic governance.",
 }
 
 export default function PrivacyPolicy() {
   return (
-    <main className="max-w-4xl mx-auto px-6 py-12 prose">
+    <main className="max-w-4xl mx-auto px-6 py-12 prose prose-slate dark:prose-invert">
       <h1>Privacy Policy</h1>
+      <p className="text-sm text-muted-foreground"><strong>Last Updated:</strong> January 1, 2026</p>
 
       <p>
-        Civic Opposition of India ("we", "us", "our") values the privacy of visitors
-        and supporters. This Policy explains what information we collect, how it is
-        used, with whom it may be shared, and the choices available to users of our
-        site. By using our website, you consent to the practices described herein.
+        CivicOp ("we", "us", "our") operates the CivicOp Governance Platform and related services. We value the privacy of our users ("Citizens") and are committed to protecting your data while ensuring transparency in civic governance.
       </p>
 
-      <h2>Information We Collect</h2>
+      <h2>1. Information We Collect</h2>
       <p>
-        We collect information to provide and improve our services. Types of
-        information include:
+        We collect information to verify civic issues and power our AI-driven governance tools.
       </p>
+
+      <h3>A. Data You Provide</h3>
       <ul>
-        <li><strong>Personal Information:</strong> Name, email address and other details you provide when you contact us, sign up for a newsletter, or donate.</li>
-        <li><strong>Usage Data:</strong> Pages visited, time on site, referring pages, and technical data such as browser and device information collected through server logs and analytics.</li>
-        <li><strong>Cookies and Similar Technologies:</strong> Small files stored on your device to improve site functionality, remember preferences, and support analytics.</li>
+        <li><strong>Account Data:</strong> Name, email address, and phone number (for authentication).</li>
+        <li><strong>Civic Reports:</strong> Titles, descriptions, and categories of issues you report.</li>
+        <li><strong>Media:</strong> Photos and videos uploaded to verify infrastructure failures.</li>
       </ul>
 
-      <h2>How We Use Information</h2>
+      <h3>B. Data We Collect Automatically</h3>
+      <ul>
+        <li><strong>Geolocation Data:</strong> Precise location data (GPS/Latitude-Longitude) is required to tag civic issues accurately on the map.</li>
+        <li><strong>Device Metadata:</strong> Browser type, IP address, and timestamps to prevent spam and secure the platform.</li>
+      </ul>
+
+      <h2>2. How We Use Your Information</h2>
+      <ul>
+        <li><strong>AI Verification:</strong> We use Computer Vision models to analyze your uploaded images (e.g., detecting potholes or garbage) to validate reports automatically.</li>
+        <li><strong>Governance Intelligence:</strong> To generate "Ward Analytics" and "Heatmaps" for municipal authorities.</li>
+        <li><strong>Public Transparency:</strong> To display verified issues on the public-facing dashboard (Personal identifiers like email/phone are NEVER displayed publicly).</li>
+      </ul>
+
+      <h2>3. Data Sharing & Disclosure</h2>
+      <ul>
+        <li><strong>Municipal Authorities:</strong> We share <strong>anonymized and aggregated data</strong> with Government agencies (BBMP, Municipal Corporations) to facilitate repairs.</li>
+        <li><strong>Public Dashboard:</strong> The location, photo, and status of reported issues are public records.</li>
+        <li><strong>Service Providers:</strong> We use trusted third-party vendors for cloud hosting (Supabase/Vercel) and AI processing.</li>
+      </ul>
+
+      <h2>4. User-Generated Content</h2>
       <p>
-        We use information to respond to inquiries, provide services, process donations,
-        send newsletters or updates (with your consent), improve the site, and
-        comply with legal obligations.
+        By submitting a report, you acknowledge that the text and images provided may be visible to the public. Please do not upload images that contain sensitive personal information (e.g., faces of bystanders, private vehicle plates) unless relevant to the issue. Our AI automatically attempts to blur faces/plates, but this is not guaranteed.
       </p>
 
-      <h2>Sharing and Disclosure</h2>
+      <h2>5. Security</h2>
       <p>
-        We do not sell personal data. We may share information with service providers
-        who assist in site hosting, payment processing, analytics, and communications.
-        We may also disclose information where required by law, or to protect our
-        rights, property, safety, or that of our users.
+        We employ enterprise-grade encryption and Row Level Security (RLS) protocols to protect your account data. However, no digital transmission is completely secure.
       </p>
 
-      <h2>Third Party Services</h2>
+      <h2>6. Contact Us</h2>
       <p>
-        Our site may contain links to third party websites or services (for example
-        payment processors and social platforms). This Policy does not apply to those
-        third parties; we encourage users to review their privacy practices.
-      </p>
-
-      <h2>Security</h2>
-      <p>
-        We take reasonable measures to protect personal data from unauthorised
-        access, alteration, or disclosure. However, no method of transmission over
-        the internet is fully secure and we cannot guarantee absolute security.
-      </p>
-
-      <h2>Retention</h2>
-      <p>
-        We retain personal information only as long as necessary for the purposes
-        described, or as required by law. When no longer needed, information is
-        deleted or anonymised.
-      </p>
-
-      <h2>Children</h2>
-      <p>
-        Our site is not directed to children under 16. We do not knowingly collect
-        personal information from children without parental consent.
-      </p>
-
-      <h2>Your Choices</h2>
-      <p>
-        You may opt out of marketing emails by following the unsubscribe link in
-        any email. To access, correct, or delete your personal information, please
-        contact us via the Contact page.
-      </p>
-
-      <h2>Changes to This Policy</h2>
-      <p>
-        We may update this Policy from time to time. The effective date will be
-        shown at the top of the page. Continued use of the site after changes
-        constitutes acceptance of the updated Policy.
-      </p>
-
-      <h2>Contact</h2>
-      <p>
-        For questions about privacy or to exercise your data rights, please visit
-        <Link href="/contact" className="text-primary">Contact</Link> or email citizens.east.blr@gmail.com.
+        For data deletion requests or privacy inquiries, please contact us via our{" "}
+        <Link href="/contact" className="text-primary hover:underline">
+          Contact page
+        </Link>
+        .
       </p>
     </main>
   )
