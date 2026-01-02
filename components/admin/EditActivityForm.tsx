@@ -57,6 +57,8 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
     video_url: activity.video_url || "",
     likes_count: activity.likes_count,
     shares_count: activity.shares_count,
+    is_pinned: activity.is_pinned || false,
+    is_highlighted: activity.is_highlighted || false,
   });
 
   const isValidImageUrl = (val: string) => {
@@ -569,6 +571,47 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
                 min="0"
                 value={formData.shares_count}
                 onChange={(e) => setFormData({ ...formData, shares_count: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+
+          {/* Pinned and Highlight Toggles */}
+          <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+            <div className="text-sm font-semibold mb-2">Post Display Options</div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label htmlFor="is_pinned" className="text-sm font-medium flex items-center gap-2">
+                  📌 Pin to Top
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Pin this post to the top of the activities feed (only one post can be pinned at a time)
+                </p>
+              </div>
+              <input
+                id="is_pinned"
+                type="checkbox"
+                checked={formData.is_pinned}
+                onChange={(e) => setFormData({ ...formData, is_pinned: e.target.checked })}
+                className="h-5 w-5 rounded border-gray-300 cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label htmlFor="is_highlighted" className="text-sm font-medium flex items-center gap-2">
+                  ⭐ Highlight Post
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Featured posts appear below pinned post, sorted by when they were highlighted (most recent first)
+                </p>
+              </div>
+              <input
+                id="is_highlighted"
+                type="checkbox"
+                checked={formData.is_highlighted}
+                onChange={(e) => setFormData({ ...formData, is_highlighted: e.target.checked })}
+                className="h-5 w-5 rounded border-gray-300 cursor-pointer"
               />
             </div>
           </div>

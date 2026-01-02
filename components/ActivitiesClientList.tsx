@@ -24,8 +24,36 @@ export default function ActivitiesClientList({ activities, types = [], initialSe
   }, [activities]);
 
   const filtered = useMemo(() => {
-    if (!selected) return activities;
-    return activities.filter(a => (a.type || 'Other') === selected);
+    let result = !selected ? activities : activities.filter(a => (a.type || 'Other') === selected);
+    
+    // Sort: 1) Pinned post (only one), 2) Highlighted posts by highlighted_at, 3) Regular posts by date
+    result = result.sort((a, b) => {
+      // Pinned post always comes first (should only be one)
+      if (a.is_pinned && b.is_pinned) {
+        const aTime = new Date(a.pinned_at || a.activity_date).getTime();
+        const bTime = new Date(b.pinned_at || b.activity_date).getTime();
+        return bTime - aTime;
+      }
+      if (a.is_pinned) return -1;
+      if (b.is_pinned) return 1;
+      
+      // Both highlighted - sort by highlighted_at (most recently highlighted first)
+      if (a.is_highlighted && b.is_highlighted) {
+        const aTime = new Date(a.highlighted_at || a.activity_date).getTime();
+        const bTime = new Date(b.highlighted_at || b.activity_date).getTime();
+        return bTime - aTime;
+      }
+      // Highlighted posts come after pinned but before regular
+      if (a.is_highlighted) return -1;
+      if (b.is_highlighted) return 1;
+      
+      // Neither pinned nor highlighted, sort by activity_date
+      const aDate = new Date(a.activity_date).getTime();
+      const bDate = new Date(b.activity_date).getTime();
+      return bDate - aDate;
+    });
+    
+    return result;
   }, [activities, selected]);
 
   // visibleCount controls how many posts to show; supports 'Load more' pagination

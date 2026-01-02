@@ -51,6 +51,8 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     video_url: string;
     likes_count: number;
     shares_count: number;
+    is_pinned: boolean;
+    is_highlighted: boolean;
   }
 
   const [formData, setFormData] = useState<FormState>({
@@ -64,6 +66,8 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     video_url: "",
     likes_count: 0,
     shares_count: 0,
+    is_pinned: false,
+    is_highlighted: false,
   });
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -763,6 +767,47 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
             </div>
           </div>
 
+          {/* Pinned and Highlight Toggles */}
+          <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+            <div className="text-sm font-semibold mb-2">Post Display Options</div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label htmlFor="is_pinned" className="text-sm font-medium flex items-center gap-2">
+                  📌 Pin to Top
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Pin this post to the top of the activities feed (only one post can be pinned at a time)
+                </p>
+              </div>
+              <input
+                id="is_pinned"
+                type="checkbox"
+                checked={formData.is_pinned}
+                onChange={(e) => setFormData({ ...formData, is_pinned: e.target.checked })}
+                className="h-5 w-5 rounded border-gray-300 cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label htmlFor="is_highlighted" className="text-sm font-medium flex items-center gap-2">
+                  ⭐ Highlight Post
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Featured posts appear below pinned post, sorted by when they were highlighted (most recent first)
+                </p>
+              </div>
+              <input
+                id="is_highlighted"
+                type="checkbox"
+                checked={formData.is_highlighted}
+                onChange={(e) => setFormData({ ...formData, is_highlighted: e.target.checked })}
+                className="h-5 w-5 rounded border-gray-300 cursor-pointer"
+              />
+            </div>
+          </div>
+
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
@@ -787,6 +832,8 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
                   video_url: "",
                   likes_count: 0,
                   shares_count: 0,
+                  is_pinned: false,
+                  is_highlighted: false,
                 });
                 setImageFiles([]);
                 setImagePreviews([]);

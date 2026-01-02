@@ -27,6 +27,10 @@ export type Activity = {
   shares_count: number;
   views_count?: number | null; // real recorded views (incremented server-side)
   type: string | null; // e.g., 'Meeting', 'Protest', 'Campaign', 'Plantation'
+  is_pinned?: boolean; // Pin post to top of feed (like X/Twitter)
+  is_highlighted?: boolean; // Highlight post with special styling
+  pinned_at?: string | null; // Timestamp when pinned
+  highlighted_at?: string | null; // Timestamp when highlighted
 };
 
 export type Archive = {

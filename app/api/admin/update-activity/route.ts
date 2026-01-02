@@ -18,9 +18,27 @@ export async function POST(req: Request) {
 
     // Only allow updating specific fields for safety
     const allowed: Record<string, any> = {};
-    const fields = ['title','content','location','type','activity_date','image_url','video_url','likes_count','shares_count','author_name','tags'];
+    const fields = ['title','content','location','type','activity_date','image_url','video_url','likes_count','shares_count','author_name','tags','is_pinned','is_highlighted'];
     for (const f of fields) {
       if (Object.prototype.hasOwnProperty.call(body, f)) allowed[f] = body[f];
+    }
+
+    // If pinning the post, unpin all other posts first (only one pinned post allowed)
+    if (allowed.is_pinned && body.is_pinned === true) {
+      // Unpin all other posts
+      await supabase.from('activities').update({ is_pinned: false, pinned_at: null }).neq('id', id).eq('is_pinned', true);
+      allowed.pinned_at = new Date().toISOString();
+    } else if (allowed.is_pinned === false) {
+      // If unpinning, clear the pinned_at timestamp
+      allowed.pinned_at = null;
+    }
+
+    // If highlighting the post, set highlighted_at timestamp
+    if (allowed.is_highlighted && body.is_highlighted === true) {
+      allowed.highlighted_at = new Date().toISOString();
+    } else if (allowed.is_highlighted === false) {
+      // If un-highlighting, clear the highlighted_at timestamp
+      allowed.highlighted_at = null;
     }
 
     // convert activity_date to timestamptz if present

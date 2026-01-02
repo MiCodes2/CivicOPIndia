@@ -11,7 +11,7 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
   const contentText = trimmedHtml.replace(/<[^>]*>/g, '');
   // quick prefilter by length to avoid measuring tiny content
   const shouldAttemptTruncate = contentText.trim().length > 150;
-  const [needsTruncate, setNeedsTruncate] = useState(false);
+  const [needsTruncate, setNeedsTruncate] = useState(shouldAttemptTruncate); // Default to true if content is long
   const [measuring, setMeasuring] = useState<boolean>(shouldAttemptTruncate);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -110,10 +110,11 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
-        className={`transition-all ${!expanded && (needsTruncate || measuring) ? 'overflow-hidden' : ''}`}
+        className={`transition-all ${!expanded ? 'overflow-hidden' : ''}`}
         style={{
           whiteSpace: 'pre-line',
-          ...(!expanded && (needsTruncate || measuring) ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {})
+          // Always start collapsed - show clamped view until user expands
+          ...(!expanded ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {})
         }}
         dangerouslySetInnerHTML={{ __html: trimmedHtml }}
       />
@@ -255,15 +256,21 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [realViews, setRealViews] = useState<number>((activity.views_count as any) || 0);
   const { viewsTarget, likesTarget, sharesTarget } = computeSyntheticTargets(activity as any);
   const [tick, setTick] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 15_000); 
     return () => clearInterval(id);
   }, []);
 
-  const displayedViews = displayedMetric({ target: viewsTarget, createdAt: activity.activity_date, realCount: realViews });
-  const displayedLikes = Math.max(likes, displayedMetric({ target: likesTarget, createdAt: activity.activity_date, realCount: likes }));
-  const displayedShares = Math.max(shares, displayedMetric({ target: sharesTarget, createdAt: activity.activity_date, realCount: shares }));
+  // Only calculate displayed metrics on client to avoid hydration mismatch
+  const displayedViews = mounted ? displayedMetric({ target: viewsTarget, createdAt: activity.activity_date, realCount: realViews }) : realViews;
+  const displayedLikes = mounted ? Math.max(likes, displayedMetric({ target: likesTarget, createdAt: activity.activity_date, realCount: likes })) : likes;
+  const displayedShares = mounted ? Math.max(shares, displayedMetric({ target: sharesTarget, createdAt: activity.activity_date, realCount: shares })) : shares;
 
   useEffect(() => {
     let mounted = true;
@@ -582,7 +589,27 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   return (
     <>
-      <div className="mx-0 sm:mx-auto w-full max-w-3xl overflow-hidden transition-shadow hover:shadow-2xl mb-3 rounded-none sm:rounded-xl bg-white border border-gray-200 sm:border-gray-200 shadow-sm">
+      <div className={`mx-0 sm:mx-auto w-full max-w-3xl overflow-hidden transition-all hover:shadow-2xl mb-3 rounded-none sm:rounded-xl bg-white shadow-sm ${
+        activity.is_highlighted 
+          ? 'border-[3px] border-amber-400 shadow-xl shadow-amber-300/60 bg-gradient-to-br from-amber-50/30 to-white' 
+          : 'border border-gray-200'
+      }`}>
+        {/* Pinned indicator */}
+        {activity.is_pinned && (
+          <div className="bg-gradient-to-r from-primary/10 to-accent/10 border-b px-4 py-2 flex items-center gap-2 text-xs font-medium text-primary">
+            <span className="text-base">📌</span>
+            Pinned Post
+          </div>
+        )}
+
+        {/* Highlight indicator */}
+        {activity.is_highlighted && (
+          <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border-b border-amber-300 px-4 py-2 flex items-center gap-2 text-xs font-medium text-amber-900">
+            <span className="text-base">⭐</span>
+            Featured Post
+          </div>
+        )}
+        
         <div className="relative">
           {localType && (
             <div className="absolute right-2 md:right-4 top-2 md:top-4 z-10">
