@@ -75,7 +75,7 @@ export default function Footer() {
           <div>
             <h3 className="mb-4 text-lg font-semibold">Civic Opposition of India</h3>
             <p className="text-sm text-muted-foreground">
-              Building a transparent, accountable democracy through collective civic action and grassroots mobilization.
+              Transforming urban governance through data-driven civic action and intelligent operations.
             </p>
           </div>
 
@@ -109,8 +109,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/admin/login" className="text-muted-foreground transition-colors hover:text-primary" aria-label="Admin (login)" title="Admin (login)">
-                  Admin Login
+                <Link href="/admin/login" className="text-muted-foreground transition-colors hover:text-primary" aria-label="Official Login" title="Official Login">
+                  Official Login
                 </Link>
               </li>
             </ul>
@@ -118,16 +118,18 @@ export default function Footer() {
 
           {/* Support */}
           <div>
-            <h3 className="mb-4 text-lg font-semibold">Join the Beta for CivicOp 2.0</h3>
+            <h3 className="mb-4 text-lg font-semibold">Access the Command Center</h3>
             <p className="mb-4 text-sm text-muted-foreground">
-              Get early access to our real-time tracking tools and help shape the future of digital governance.
+              Access real-time city data and track civic interventions live on our new platform.
             </p>
-            <Link
-              href="/contact"
+            <a
+              href="https://app.civicopindia.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              Request Access
-            </Link>
+              Launch Portal
+            </a>
           </div>
         </div>
       </div>

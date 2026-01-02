@@ -543,11 +543,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Transparency by Design Section */}
+      {/* The Intelligence Engine Section */}
       <section className="py-16 bg-background">
         <div className="container mx-auto px-3">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Transparency by Design</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">The Intelligence Engine</h2>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground">
               Our AI systems are built with open-source principles and full accountability
             </p>

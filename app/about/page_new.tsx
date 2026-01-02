@@ -82,7 +82,6 @@ export default function AboutPage() {
               <li>Established a <strong>Quick Action Team</strong> to manage traffic flow on the choked Sarjapur Road corridor, reducing peak-hour congestion times.</li>
             </ul>
           </li>
-
         </ol>
       </section>
 
