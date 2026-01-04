@@ -478,7 +478,7 @@ export default function HomePage() {
                   Your voice matters - we will share with relevant authorities
                 </CardDescription>
                 <Button asChild size="sm" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.05]">
-                  <Link href="/citizens-issue" className="flex items-center justify-center gap-2">
+                  <Link href="https://app.civicopindia.com/?report=true" className="flex items-center justify-center gap-2">
                     <span>Report Issue</span>
                     <span className="animate-bounce text-sm">→</span>
                   </Link>
@@ -513,7 +513,7 @@ export default function HomePage() {
                     <Link href="/activities">View Operations</Link>
                   </Button>
                   <Button asChild variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">
-                    <Link href="/citizens-issue">Report Issue</Link>
+                    <Link href="https://app.civicopindia.com/?report=true">Report Issue</Link>
                   </Button>
                 </div>
               </div>

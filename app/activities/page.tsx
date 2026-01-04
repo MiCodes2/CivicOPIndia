@@ -181,7 +181,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
                 </CardHeader>
                 <CardContent className="pt-0">
                   <Button asChild className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
-                    <Link href="/citizens-issue" className="flex items-center justify-center">
+                    <Link href="https://app.civicopindia.com/?report=true" className="flex items-center justify-center">
                       Report Issue Now
                     </Link>
                   </Button>
