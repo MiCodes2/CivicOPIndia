@@ -59,25 +59,31 @@ const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession:
       else console.log('Reduced shares for', r.id, 'from', r.shares_count, 'to', newShares);
     }
 
-    // Reduce views at cap and likely synthetic
+    // Reduce views at cap that look synthetic: only target rows where initial_views_count or likes are small
     const { data: viewsAtCap, error: vErr } = await supabase
       .from('activities')
-      .select('id, title, views_count, likes_count')
+      .select('id, title, views_count, likes_count, initial_views_count, initial_likes_count')
       .eq('views_count', MAX_VIEWS)
+      .or(`initial_views_count.lte.${INITIAL_VIEWS_CAP},initial_likes_count.lte.${INITIAL_LIKES_CAP},likes_count.lte.${INITIAL_LIKES_CAP}`)
       .limit(1000);
     if (vErr) throw vErr;
 
     for (const r of viewsAtCap || []) {
-      // ensure views remain at least 100x likes if likes present, otherwise just reduce by 2%
+      // If likes imply this view count is organic (likes * 100 > 75% of MAX_VIEWS), skip reduction
       const minBasedOnLikes = r.likes_count ? r.likes_count * 100 : 0;
+      if (minBasedOnLikes >= Math.round(MAX_VIEWS * 0.75)) {
+        // likely real traffic; skip
+        continue;
+      }
+
       const reduceBy = Math.max(1, Math.round(MAX_VIEWS * 0.02)); // 2%
       let newViews = Math.max(0, MAX_VIEWS - reduceBy);
-      if (minBasedOnLikes && minBasedOnLikes < newViews) {
-        newViews = Math.max(newViews, minBasedOnLikes);
-      } else if (minBasedOnLikes && minBasedOnLikes > newViews) {
-        // If min based on likes exceeds the reduced value, set to minBasedOnLikes but do not exceed MAX_VIEWS
+
+      // Ensure newViews is not less than a reasonable ratio to likes (100x), unless likes are very small
+      if (minBasedOnLikes && minBasedOnLikes > 0 && minBasedOnLikes > newViews) {
         newViews = Math.min(MAX_VIEWS - 1, minBasedOnLikes);
       }
+
       if (newViews >= r.views_count) continue;
       const { error: u } = await supabase.from('activities').update({ views_count: newViews }).eq('id', r.id);
       if (u) console.error('Failed to update views for', r.id, u);

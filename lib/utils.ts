@@ -151,9 +151,10 @@ export function computeSyntheticTargets(activity: any) {
   const likesTargetRaw = Math.max(1, Math.round(viewsTarget * likePct));
 
   // Cap multiplier for synthetic relative to initial assigned/seeded likes to avoid runaway growth coming only from synthetic increases
-  // Allow configuration via env var SYNTHETIC_MAX_MULTIPLIER (default 5)
+  // Allow configuration via env var SYNTHETIC_MAX_MULTIPLIER (default 2)
   const envMul = typeof process !== 'undefined' && process.env && process.env.SYNTHETIC_MAX_MULTIPLIER ? parseInt(process.env.SYNTHETIC_MAX_MULTIPLIER) : NaN;
-  const MAX_MULTIPLIER = Number.isFinite(envMul) && envMul > 0 ? envMul : 5;
+  // Default lifetime multiplier for synthetic growth relative to initial assigned values. Use 2x by default per product policy.
+  const MAX_MULTIPLIER = Number.isFinite(envMul) && envMul > 0 ? envMul : 2;
 
   // Compute likes cap based on initial likes; if initialLikes is zero, fallback to a small cap based on assigned base likes
   const likesCapFromInitial = Math.max(initialLikes, Math.round(initialLikes * MAX_MULTIPLIER));
@@ -257,11 +258,14 @@ export function growthFractionToReach(createdAt: string | Date, reachDays: numbe
 }
 
 // Compute displayed metric with respect to an optional initial target that should be reached in `reachDays` (e.g., 3 days). If no initialTarget provided, falls back to `displayedMetric`.
-export function displayedMetricWithInitial({ target, initialTarget = 0, createdAt, realCount = 0, reachDays = 3 }: { target: number; initialTarget?: number; createdAt: string | Date; realCount?: number; reachDays?: number }) {
+export function displayedMetricWithInitial({ target, initialTarget = 0, createdAt, realCount = 0, reachDays = 3, finalReachDays = 30 }: { target: number; initialTarget?: number; createdAt: string | Date; realCount?: number; reachDays?: number; finalReachDays?: number }) {
+  // If there is no initial target, fall back to normal displayed metric behavior
   if (!initialTarget || initialTarget <= 0) return displayedMetric({ target, createdAt, realCount });
 
+  // Fraction to reach the initial assigned value (quick, e.g., 3 days)
   const fracBase = growthFractionToReach(createdAt, reachDays);
-  const fracExtra = growthFractionSince(createdAt);
+  // Fraction to reach the final target over a longer horizon (e.g., 30 days) so growth is slow and natural-looking
+  const fracExtra = growthFractionToReach(createdAt, finalReachDays);
 
   const basePart = Math.round(initialTarget * fracBase);
   const extraPart = Math.round(Math.max(0, target - initialTarget) * fracExtra);

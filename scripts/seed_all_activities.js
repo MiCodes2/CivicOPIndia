@@ -52,7 +52,8 @@ function computeSyntheticTargets(activity) {
   const likesTargetRaw = Math.max(1, Math.round(viewsTarget * likePct));
 
   const envMul = process.env.SYNTHETIC_MAX_MULTIPLIER ? parseInt(process.env.SYNTHETIC_MAX_MULTIPLIER) : NaN;
-  const MAX_MULTIPLIER = Number.isFinite(envMul) && envMul > 0 ? envMul : 5;
+  // Default to 2x lifetime multiplier relative to initial assigned counts (conservative)
+  const MAX_MULTIPLIER = Number.isFinite(envMul) && envMul > 0 ? envMul : 2;
 
   const likesCapFromInitial = Math.max(initialLikes, Math.round(initialLikes * MAX_MULTIPLIER));
   const likesCapFallback = Math.max(assignedBaseLikes, Math.round(assignedBaseLikes * 1.25));
@@ -118,43 +119,43 @@ function growthFractionToReach(createdAt, reachDays) {
       // If activity has an assigned initial likes value, ensure that initial is reached by day 3 and extra synthetic is added over time.
       const frac = growthFractionSince(act.created_at || new Date().toISOString());
 
-      // compute views synthetic; if activity has initial_views_count, reach that in ~3 days
+      // compute views synthetic; if activity has initial_views_count, reach that in ~3 days and then slowly grow to final target over 30 days
       const initialViews = act.initial_views_count || Math.round((act.initial_likes_count || 0) * 100);
       let syntheticViews;
       if (initialViews > 0) {
         const baseFracV = growthFractionToReach(act.created_at || new Date().toISOString(), 3);
-        const extraFracV = frac;
+        const extraFracV = growthFractionToReach(act.created_at || new Date().toISOString(), 30); // slow extra growth
         const basePartV = Math.round(initialViews * baseFracV);
         const extraPartV = Math.round(Math.max(0, viewsTarget - initialViews) * extraFracV);
         syntheticViews = Math.min(viewsTarget, basePartV + extraPartV);
       } else {
-        syntheticViews = Math.round(viewsTarget * frac);
+        syntheticViews = Math.round(viewsTarget * growthFractionToReach(act.created_at || new Date().toISOString(), 30));
       }
 
-      // likes: if activity has initial_likes_count, reach that in ~3 days and add extra later
+      // likes: if activity has initial_likes_count, reach that in ~3 days and add extra later (slowly to final target over 30 days)
       const initialLikes = act.initial_likes_count || 0;
       let syntheticLikes;
       if (initialLikes > 0) {
         const baseFrac = growthFractionToReach(act.created_at || new Date().toISOString(), 3);
-        const extraFrac = frac; // same 7-day curve for extra
+        const extraFrac = growthFractionToReach(act.created_at || new Date().toISOString(), 30);
         const basePart = Math.round(initialLikes * baseFrac);
         const extraPart = Math.round(Math.max(0, likesTarget - initialLikes) * extraFrac);
         syntheticLikes = Math.min(likesTarget, basePart + extraPart);
       } else {
-        syntheticLikes = Math.min(likesTarget, Math.round(likesTarget * frac));
+        syntheticLikes = Math.min(likesTarget, Math.round(likesTarget * growthFractionToReach(act.created_at || new Date().toISOString(), 30)));
       }
 
-      // shares: similarly respect initial shares if present
+      // shares: similarly respect initial shares if present and grow slowly
       const initialShares = act.initial_shares_count || 0;
       let syntheticShares;
       if (initialShares > 0) {
         const baseFracS = growthFractionToReach(act.created_at || new Date().toISOString(), 3);
-        const extraFracS = frac;
+        const extraFracS = growthFractionToReach(act.created_at || new Date().toISOString(), 30);
         const basePartS = Math.round(initialShares * baseFracS);
         const extraPartS = Math.round(Math.max(0, sharesTarget - initialShares) * extraFracS);
         syntheticShares = Math.min(sharesTarget, basePartS + extraPartS);
       } else {
-        syntheticShares = Math.min(sharesTarget, Math.round(sharesTarget * frac));
+        syntheticShares = Math.min(sharesTarget, Math.round(sharesTarget * growthFractionToReach(act.created_at || new Date().toISOString(), 30)));
       }
 
       const updates = {};

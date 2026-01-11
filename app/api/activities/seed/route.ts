@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
-import { computeSyntheticTargets, growthFractionSince } from '@/lib/utils';
+import { computeSyntheticTargets, growthFractionToReach } from '@/lib/utils';
 
 export async function POST(req: Request) {
   try {
@@ -10,17 +10,52 @@ export async function POST(req: Request) {
 
     const supabase = await createServerClient();
 
-    const { data: activity } = await supabase.from('activities').select('id,created_at,likes_count,shares_count,views_count').eq('id', id).maybeSingle();
+    const { data: activity } = await supabase.from('activities').select('id,created_at,likes_count,shares_count,views_count,initial_likes_count,initial_shares_count,initial_views_count').eq('id', id).maybeSingle();
     if (!activity) return NextResponse.json({ error: 'Activity not found' }, { status: 404 });
 
     const { viewsTarget, likesTarget, sharesTarget } = computeSyntheticTargets(activity as any);
 
     // Compute server-side synthetic progress
-    // Prefer created_at (server column); fallback to now if missing
-    const frac = growthFractionSince((activity as any).created_at || new Date().toISOString());
-    const syntheticViews = Math.round(viewsTarget * frac);
-    const syntheticLikes = Math.min(likesTarget, Math.round(likesTarget * frac));
-    const syntheticShares = Math.min(sharesTarget, Math.round(sharesTarget * frac));
+    const createdAt = (activity as any).created_at || new Date().toISOString();
+
+    // Views: if there's an initial_views_count, reach that in ~3 days then slowly grow to final target over 30 days
+    const initialViews = activity.initial_views_count || Math.round((activity.initial_likes_count || 0) * 100);
+    let syntheticViews;
+    if (initialViews > 0) {
+      const baseFracV = growthFractionToReach(createdAt, 3);
+      const extraFracV = growthFractionToReach(createdAt, 30);
+      const basePartV = Math.round(initialViews * baseFracV);
+      const extraPartV = Math.round(Math.max(0, viewsTarget - initialViews) * extraFracV);
+      syntheticViews = Math.min(viewsTarget, basePartV + extraPartV);
+    } else {
+      syntheticViews = Math.round(viewsTarget * growthFractionToReach(createdAt, 30));
+    }
+
+    // Likes: reach initial in ~3 days, then slowly grow to final target (final target is computed by computeSyntheticTargets and will respect 2x default multiplier)
+    const initialLikes = activity.initial_likes_count || 0;
+    let syntheticLikes;
+    if (initialLikes > 0) {
+      const baseFrac = growthFractionToReach(createdAt, 3);
+      const extraFrac = growthFractionToReach(createdAt, 30);
+      const basePart = Math.round(initialLikes * baseFrac);
+      const extraPart = Math.round(Math.max(0, likesTarget - initialLikes) * extraFrac);
+      syntheticLikes = Math.min(likesTarget, basePart + extraPart);
+    } else {
+      syntheticLikes = Math.min(likesTarget, Math.round(likesTarget * growthFractionToReach(createdAt, 30)));
+    }
+
+    // Shares: similarly respect initial shares if present and grow slowly
+    const initialShares = activity.initial_shares_count || 0;
+    let syntheticShares;
+    if (initialShares > 0) {
+      const baseFracS = growthFractionToReach(createdAt, 3);
+      const extraFracS = growthFractionToReach(createdAt, 30);
+      const basePartS = Math.round(initialShares * baseFracS);
+      const extraPartS = Math.round(Math.max(0, sharesTarget - initialShares) * extraFracS);
+      syntheticShares = Math.min(sharesTarget, basePartS + extraPartS);
+    } else {
+      syntheticShares = Math.min(sharesTarget, Math.round(sharesTarget * growthFractionToReach(createdAt, 30)));
+    }
 
     // Prepare updates (only increase counts, never decrease). Use incremental growth for likes/shares so counts
     // don't jump unnaturally: bring them up by at most 25% of the remaining gap per seed.
