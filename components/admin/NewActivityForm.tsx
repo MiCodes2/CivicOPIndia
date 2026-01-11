@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { extractHashtags } from '@/lib/utils';
+import { extractHashtags, getMaxLikes, getMaxShares } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon, Eye } from "lucide-react";
@@ -437,7 +437,41 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
       const activityDateTime = formData.activity_date === new Date().toISOString().split('T')[0]
         ? new Date().toISOString()  // Today's date selected = use current time
         : new Date(formData.activity_date + 'T10:00:00+05:30').toISOString();  // Past date = use 10 AM IST
-      
+
+      // Determine initial seeds when admin didn't provide explicit values
+      // Baseline: likes 1..10, shares 0..3. Apply multiplier 5..10 by default (configurable via NEXT_PUBLIC_* env vars)
+      const envMinMul = typeof window !== 'undefined' ? Number(process.env.NEXT_PUBLIC_SYNTHETIC_INITIAL_MULTIPLIER_MIN) : Number(process.env.SYNTHETIC_INITIAL_MULTIPLIER_MIN);
+      const envMaxMul = typeof window !== 'undefined' ? Number(process.env.NEXT_PUBLIC_SYNTHETIC_INITIAL_MULTIPLIER_MAX) : Number(process.env.SYNTHETIC_INITIAL_MULTIPLIER_MAX);
+      const MIN_MUL = Number.isFinite(envMinMul) && envMinMul > 0 ? envMinMul : 5;
+      const MAX_MUL = Number.isFinite(envMaxMul) && envMaxMul >= MIN_MUL ? envMaxMul : 10;
+
+      const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+      let computedLikes = formData.likes_count ?? 0;
+      let computedShares = formData.shares_count ?? 0;
+
+      if (!computedLikes) {
+        const baseLike = randInt(1, 10);
+        const mul = randInt(MIN_MUL, MAX_MUL);
+        computedLikes = Math.min(getMaxLikes(), Math.round(baseLike * mul));
+      }
+
+      if (!computedShares) {
+        const baseShare = randInt(0, 3);
+        const mul = randInt(MIN_MUL, MAX_MUL);
+        computedShares = Math.min(getMaxShares(), Math.round(baseShare * mul));
+      }
+
+      // safety: shares should not exceed likes
+      if (computedShares > computedLikes) computedShares = Math.min(computedLikes, computedShares);
+
+      // Views: if admin didn't supply, derive as 100..150x of computed likes
+      let computedViews = (formData as any).views_count ?? 0;
+      if (!computedViews) {
+        const viewMul = randInt(100, 150);
+        computedViews = Math.min(getMaxViews(), Math.round(computedLikes * viewMul));
+      }
+
       const payload = {
         title: normalizeEntities(rawTitle as string) || null,
         content: normalizeEntities(rawContent as string) || null,
@@ -448,17 +482,14 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         image_url: imageUrls[0] || formData.image_url || null,
         video_url: formData.video_url || null,
         tags: tags.length ? tags : null,
-        likes_count: formData.likes_count || 0,
-        shares_count: formData.shares_count || 0,
-        author_id: user.id,
-        author_name: 'Civic Admin',
+        likes_count: computedLikes,
+        shares_count: computedShares,
+        views_count: computedViews,
+        // Store initial seeded counts separately so synthetic logic can cap growth relative to the seeded baseline
+        initial_likes_count: computedLikes,
+        initial_shares_count: computedShares,
+        initial_views_count: computedViews,
       };
-
-      // Preserve the full array of image URLs on the activity when present
-      const finalImageUrls = [...(formData.image_urls || []), ...imageUrls].slice(0, 4);
-      if (finalImageUrls.length > 0) (payload as any).image_urls = finalImageUrls;
-
-      console.log('Insert Payload:', payload);
 
       // Use .select() to ask Supabase to return the inserted row and log full response
       const insertResult = await supabase
@@ -766,6 +797,20 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
                 value={formData.shares_count}
                 onChange={(e) => setFormData({ ...formData, shares_count: parseInt(e.target.value) || 0 })}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="views_count" className="text-sm font-medium">
+                Initial Views Count
+              </label>
+              <Input
+                id="views_count"
+                type="number"
+                min="0"
+                value={(formData as any).views_count || ''}
+                onChange={(e) => setFormData({ ...formData, views_count: parseInt(e.target.value) || 0 })}
+              />
+              <p className="text-xs text-muted-foreground">If left empty, views will be derived as ~100-150× likes.</p>
             </div>
           </div>
 

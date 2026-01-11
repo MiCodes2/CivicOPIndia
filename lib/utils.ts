@@ -129,30 +129,96 @@ function seededRandom(seed: string) {
 
 // returns an object of synthetic targets (deterministic from id + created date)
 export function computeSyntheticTargets(activity: any) {
-  const likes = (activity.likes_count || 0) as number;
-  const shares = (activity.shares_count || 0) as number;
+  const observedLikes = (activity.likes_count || 0) as number;
+  const observedShares = (activity.shares_count || 0) as number;
+  // Use stored initial counts when available; fallback to observed counts
+  const initialLikes = (activity.initial_likes_count ?? observedLikes) as number;
+  const initialShares = (activity.initial_shares_count ?? observedShares) as number;
+
   const seedStr = `${activity.id}-${activity.created_at || ''}`;
   const rand = seededRandom(seedStr);
 
-  // Views target: between 100x and 500x likes (if likes==0, pick a small base)
+  // Deterministic assigned base likes independent of current counts to prevent positive feedback loops
+  const assignedBaseLikes = Math.max(1, Math.round(1 + Math.floor(rand() * 3)));
+
+  // Views target: between 100x and 500x of the assigned base likes
   const multiplier = Math.round(100 + Math.floor(rand() * 401)); // 100..500
-  const baseLikes = Math.max(1, likes || Math.round(1 + Math.floor(rand() * 3)));
-  const viewsTarget = Math.max(1, Math.round(baseLikes * multiplier));
+  let viewsTarget = Math.max(1, Math.round(assignedBaseLikes * multiplier));
 
-  // Likes target (synthetic): small percent of views (0.5% - 2.0%) but at least current likes
+
+  // Likes target (synthetic): small percent of views (0.5% - 2.0%)
   const likePct = 0.005 + rand() * 0.015;
-  const likesTargetRaw = Math.max(likes, Math.max(1, Math.round(viewsTarget * likePct)));
-  // Cap synthetic likes to +25% of the initial assigned likes (baseLikes)
-  const likesCap = Math.max(likes, Math.round(baseLikes * 1.25));
-  const likesTarget = Math.min(likesTargetRaw, likesCap);
+  const likesTargetRaw = Math.max(1, Math.round(viewsTarget * likePct));
 
-  // Shares target: derive from likesTarget to keep shares proportional to likes (10% - 15% of likes)
-  const sharePct = 0.10 + rand() * 0.05; // 10% .. 15%
-  let sharesTarget = Math.max(shares, Math.max(0, Math.round(likesTarget * sharePct)));
-  // Ensure shares never exceed likesTarget
-  sharesTarget = Math.min(sharesTarget, likesTarget);
+  // Cap multiplier for synthetic relative to initial assigned/seeded likes to avoid runaway growth coming only from synthetic increases
+  // Allow configuration via env var SYNTHETIC_MAX_MULTIPLIER (default 5)
+  const envMul = typeof process !== 'undefined' && process.env && process.env.SYNTHETIC_MAX_MULTIPLIER ? parseInt(process.env.SYNTHETIC_MAX_MULTIPLIER) : NaN;
+  const MAX_MULTIPLIER = Number.isFinite(envMul) && envMul > 0 ? envMul : 5;
+
+  // Compute likes cap based on initial likes; if initialLikes is zero, fallback to a small cap based on assigned base likes
+  const likesCapFromInitial = Math.max(initialLikes, Math.round(initialLikes * MAX_MULTIPLIER));
+  const likesCapFallback = Math.max(assignedBaseLikes, Math.round(assignedBaseLikes * 1.25));
+  const likesCap = initialLikes > 0 ? likesCapFromInitial : likesCapFallback;
+
+  // Absolute environment caps (moderate defaults): likes ≤ 1500, shares ≤ 120, views ≤ 500k
+  const envMaxLikes = typeof process !== 'undefined' && process.env && process.env.SYNTHETIC_MAX_LIKES ? parseInt(process.env.SYNTHETIC_MAX_LIKES) : NaN;
+  const MAX_LIKES = Number.isFinite(envMaxLikes) && envMaxLikes > 0 ? envMaxLikes : 200;
+  const envMaxShares = typeof process !== 'undefined' && process.env && process.env.SYNTHETIC_MAX_SHARES ? parseInt(process.env.SYNTHETIC_MAX_SHARES) : NaN;
+  const MAX_SHARES = Number.isFinite(envMaxShares) && envMaxShares > 0 ? envMaxShares : 200;
+  const envMaxViews = typeof process !== 'undefined' && process.env && process.env.SYNTHETIC_MAX_VIEWS ? parseInt(process.env.SYNTHETIC_MAX_VIEWS) : NaN;
+  const MAX_VIEWS = Number.isFinite(envMaxViews) && envMaxViews > 0 ? envMaxViews : 500000;
+
+  let likesTarget = Math.min(likesTargetRaw, likesCap, MAX_LIKES);
+  // Never set synthetic target below actual observed likes
+  if (observedLikes > likesTarget) likesTarget = observedLikes;
+
+  // Shares target: derive from likesTarget to keep shares proportional to likes
+  // Use a baseline of 100 shares per 1500 likes (~6.67%) with slight seeded variation
+  const baseSharePct = 100 / 1500; // ~0.0666667
+  const sharePct = baseSharePct * (0.9 + rand() * 0.2); // ±10% variation
+  let sharesTarget = Math.max(observedShares, Math.max(0, Math.round(likesTarget * sharePct)));
+
+  // Cap shares relative to initial shares as well: don't exceed initial_shares * MAX_MULTIPLIER unless driven by real interactions
+  const sharesCapFromInitial = initialShares > 0 ? Math.max(initialShares, Math.round(initialShares * MAX_MULTIPLIER)) : Infinity;
+  sharesTarget = Math.min(sharesTarget, sharesCapFromInitial, MAX_SHARES, likesTarget);
+  // Never set synthetic shares below actual observed shares
+  if (observedShares > sharesTarget) sharesTarget = observedShares;
+
+  // Now compute views target *from* the finalized likesTarget to follow the 100..150x rule
+  const viewMultiplier = 100 + Math.floor(rand() * 51); // 100..150
+  viewsTarget = Math.min(MAX_VIEWS, Math.round(likesTarget * viewMultiplier));
 
   return { viewsTarget, likesTarget, sharesTarget };
+}
+
+// Apply a deterministic, seeded jitter to make 'perfect' cap numbers less suspicious
+export function applyDisplayJitter({ value, cap, id, key, realCount = 0 }: { value: number; cap: number; id: string | number; key: string; realCount?: number }) {
+  const capped = Math.min(value, cap);
+  // If not at cap, just ensure not below realCount
+  if (capped < cap) return Math.max(capped, realCount || 0);
+
+  // At cap — apply small deterministic reduction (1% - 5%) based on seed
+  const rand = seededRandom(`${id}-${key}-jitter`);
+  const pct = 0.01 + rand() * 0.04; // 1% .. 5%
+  const reduce = Math.max(1, Math.round(capped * pct));
+  let jittered = capped - reduce;
+  // Ensure jittered value is not an exact multiple of 10 (helps avoid suspicious "round" numbers)
+  if (jittered % 10 === 0) {
+    // use seeded choice to decide whether to add or subtract a small offset (1..3)
+    const dirRand = rand();
+    const offset = 1 + Math.floor(dirRand * 3); // 1..3
+    if (jittered - offset >= (realCount || 0)) {
+      jittered = jittered - offset;
+    } else {
+      // If subtracting would go below realCount, try adding but don't exceed cap
+      jittered = Math.min(capped, jittered + offset);
+      // If still multiple of 10 (edge case), subtract 1 safely
+      if (jittered % 10 === 0 && jittered - 1 >= (realCount || 0)) {
+        jittered = jittered - 1;
+      }
+    }
+  }
+  return Math.max(jittered, realCount || 0);
 }
 
 // Growth progress over time: smooth ease-in/ease-out exponential curve
@@ -174,9 +240,70 @@ export function growthFractionSince(createdAt: string | Date) {
   return Math.max(0, Math.min(1, num / den));
 }
 
+// Growth fraction normalized to reach 1 by a specified number of days (e.g., reachDays=3)
+export function growthFractionToReach(createdAt: string | Date, reachDays: number) {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = Math.max(0, now.getTime() - created.getTime());
+  const days = diffMs / (1000 * 60 * 60 * 24);
+  if (days <= 0) return 0;
+  if (days >= reachDays) return 1;
+
+  // Use a steeper exponential so the function reaches 1 at reachDays
+  const a = 1.0; // steeper than default
+  const num = 1 - Math.exp(-a * days);
+  const den = 1 - Math.exp(-a * reachDays);
+  return Math.max(0, Math.min(1, num / den));
+}
+
+// Compute displayed metric with respect to an optional initial target that should be reached in `reachDays` (e.g., 3 days). If no initialTarget provided, falls back to `displayedMetric`.
+export function displayedMetricWithInitial({ target, initialTarget = 0, createdAt, realCount = 0, reachDays = 3 }: { target: number; initialTarget?: number; createdAt: string | Date; realCount?: number; reachDays?: number }) {
+  if (!initialTarget || initialTarget <= 0) return displayedMetric({ target, createdAt, realCount });
+
+  const fracBase = growthFractionToReach(createdAt, reachDays);
+  const fracExtra = growthFractionSince(createdAt);
+
+  const basePart = Math.round(initialTarget * fracBase);
+  const extraPart = Math.round(Math.max(0, target - initialTarget) * fracExtra);
+  const synthetic = basePart + extraPart;
+  return Math.max(realCount || 0, synthetic);
+}
+
 // Compute displayed metric for a target and optional realCount (realCount overrides once greater)
 export function displayedMetric({ target, createdAt, realCount = 0 }: { target: number; createdAt: string | Date; realCount?: number }) {
   const frac = growthFractionSince(createdAt);
   const synthetic = Math.round(target * frac);
   return Math.max(realCount || 0, synthetic);
+}
+
+// --- Caps (usable on both server and client) ---------------------------------
+export function getMaxLikes() {
+  // Prefer NEXT_PUBLIC_* env var for client visibility
+  if (typeof window !== 'undefined') {
+    const v = (process.env.NEXT_PUBLIC_SYNTHETIC_MAX_LIKES || process.env.SYNTHETIC_MAX_LIKES) as any;
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : 2000;
+  }
+  const n = Number(process.env.SYNTHETIC_MAX_LIKES);
+  return Number.isFinite(n) && n > 0 ? n : 2000;
+}
+
+export function getMaxShares() {
+  if (typeof window !== 'undefined') {
+    const v = (process.env.NEXT_PUBLIC_SYNTHETIC_MAX_SHARES || process.env.SYNTHETIC_MAX_SHARES) as any;
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : 200;
+  }
+  const n = Number(process.env.SYNTHETIC_MAX_SHARES);
+  return Number.isFinite(n) && n > 0 ? n : 200;
+}
+
+export function getMaxViews() {
+  if (typeof window !== 'undefined') {
+    const v = (process.env.NEXT_PUBLIC_SYNTHETIC_MAX_VIEWS || process.env.SYNTHETIC_MAX_VIEWS) as any;
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : 1000000;
+  }
+  const n = Number(process.env.SYNTHETIC_MAX_VIEWS);
+  return Number.isFinite(n) && n > 0 ? n : 1000000;
 }

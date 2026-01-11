@@ -137,7 +137,7 @@ import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { formatPostTime } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Heart, Share2, MapPin, LayoutDashboard, ChevronLeft, ChevronRight, Eye, Edit } from "lucide-react";
-import { computeSyntheticTargets, displayedMetric, growthFractionSince } from '@/lib/utils';
+import { computeSyntheticTargets, displayedMetric, displayedMetricWithInitial, growthFractionSince, growthFractionToReach, getMaxLikes, getMaxShares, getMaxViews, applyDisplayJitter } from '@/lib/utils';
 import EditMyActivityForm from '@/components/EditMyActivityForm';
 import type { Activity } from "@/lib/types/database";
 
@@ -258,6 +258,11 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const [tick, setTick] = useState(0);
   const [mounted, setMounted] = useState(false);
 
+  // Caps
+  const MAX_LIKES = getMaxLikes();
+  const MAX_SHARES = getMaxShares();
+  const MAX_VIEWS = getMaxViews();
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -268,9 +273,19 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   }, []);
 
   // Only calculate displayed metrics on client to avoid hydration mismatch
-  const displayedViews = mounted ? displayedMetric({ target: viewsTarget, createdAt: activity.activity_date, realCount: realViews }) : realViews;
-  const displayedLikes = mounted ? Math.max(likes, displayedMetric({ target: likesTarget, createdAt: activity.activity_date, realCount: likes })) : likes;
-  const displayedShares = mounted ? Math.max(shares, displayedMetric({ target: sharesTarget, createdAt: activity.activity_date, realCount: shares })) : shares;
+  const displayedViewsRaw = mounted ? displayedMetricWithInitial({ target: viewsTarget, initialTarget: activity.initial_views_count ?? Math.round((activity.initial_likes_count || 0) * 100), createdAt: activity.activity_date, realCount: realViews, reachDays: 3 }) : realViews;
+  const displayedLikes = mounted ? Math.max(likes, displayedMetricWithInitial({ target: likesTarget, initialTarget: activity.initial_likes_count ?? 0, createdAt: activity.activity_date, realCount: likes, reachDays: 3 })) : likes;
+  const displayedShares = mounted ? Math.max(shares, displayedMetricWithInitial({ target: sharesTarget, initialTarget: activity.initial_shares_count ?? 0, createdAt: activity.activity_date, realCount: shares, reachDays: 3 })) : shares;
+
+  // Apply absolute caps to avoid showing unrealistic values in the UI
+  // Apply jitter to avoid showing exact perfect caps (deterministic per activity)
+  const displayedViewsCapped = Math.min(displayedViewsRaw, MAX_VIEWS);
+  const displayedLikesCapped = Math.min(displayedLikesRaw, MAX_LIKES);
+  const displayedSharesCapped = Math.min(displayedSharesRaw, MAX_SHARES);
+
+  const displayedViews = applyDisplayJitter({ value: displayedViewsCapped, cap: MAX_VIEWS, id: activity.id, key: 'views', realCount: realViews });
+  const displayedLikes = applyDisplayJitter({ value: displayedLikesCapped, cap: MAX_LIKES, id: activity.id, key: 'likes', realCount: likes });
+  const displayedShares = applyDisplayJitter({ value: displayedSharesCapped, cap: MAX_SHARES, id: activity.id, key: 'shares', realCount: shares });
 
   useEffect(() => {
     let mounted = true;
