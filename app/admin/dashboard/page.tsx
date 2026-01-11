@@ -162,6 +162,12 @@ export default function AdminDashboard() {
             </Link>
           </Button>
 
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/admin/donors">
+              <ActivityIcon className="mr-2 h-4 w-4" />
+              Donors
+            </Link>
+          </Button>
         </div>
       </div>
 

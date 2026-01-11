@@ -19,6 +19,8 @@ export default function DonationForm() {
   const [customAmount, setCustomAmount] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
   const [paypalAmount, setPaypalAmount] = useState<string>('10.00');
 
   const amountToPay = () => {
@@ -82,11 +84,21 @@ export default function DonationForm() {
             <Input id="name" type="text" placeholder="Anonymous Donor" value={name} onChange={(e: any) => setName(e.target.value)} />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">Email (For Receipt)</label>
+              <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e: any) => setEmail(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="phone" className="text-sm font-medium">Phone (Optional)</label>
+              <Input id="phone" type="tel" placeholder="+91xxxxxxxxxx" value={phone} onChange={(e: any) => setPhone(e.target.value)} />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email (For Receipt)
-            </label>
-            <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e: any) => setEmail(e.target.value)} />
+            <label htmlFor="address" className="text-sm font-medium">Address (Optional)</label>
+            <Input id="address" type="text" placeholder="City, State, Country" value={address} onChange={(e: any) => setAddress(e.target.value)} />
           </div>
 
           <div className="space-y-2">
@@ -101,13 +113,18 @@ export default function DonationForm() {
               value={paypalAmount}
               onChange={(e: any) => setPaypalAmount(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">PayPal processes in USD. Enter amount in USD above (default $10.00).</p>
+            <p className="text-xs text-muted-foreground">Payments are processed in USD via PayPal (default amount: $10).</p>
 
             <div className="mt-4">
-              <PayPalDonate amount={paypalAmount || '10.00'} currency="USD" />
-              <p className="mt-2 text-center text-xs text-muted-foreground">
-                ⚠️ <span className="font-semibold">Tax benefits are not available yet.</span> We are still applying for not-for-profit status.
-              </p>
+              <PayPalDonate
+                amount={paypalAmount || '10.00'}
+                currency="USD"
+                name={name}
+                email={email}
+                phone={phone}
+                address={address}
+              />
+              <p className="mt-2 text-center text-xs text-muted-foreground">Your support helps sustain independent civic initiatives and public-interest projects.</p>
             </div>
           </div>
 

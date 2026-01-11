@@ -2,17 +2,12 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
-type Props = { amount?: string; currency?: string };
+type Props = { amount?: string; currency?: string; name?: string; email?: string; phone?: string; address?: string };
 
-export default function PayPalDonate({ amount = '10.00', currency = 'USD' }: Props) {
+export default function PayPalDonate({ amount = '10.00', currency = 'USD', name, email, phone, address }: Props & { name?: string; email?: string; phone?: string; address?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
-
-  const fallbackBusiness = process.env.NEXT_PUBLIC_PAYPAL_BUSINESS_EMAIL || '';
-  const fallbackUrl = fallbackBusiness
-    ? `https://www.paypal.com/donate?business=${encodeURIComponent(fallbackBusiness)}&currency_code=${currency}&amount=${amount}`
-    : `https://www.paypal.com/donate`;
 
   useEffect(() => {
     let mounted = true;
@@ -105,16 +100,41 @@ export default function PayPalDonate({ amount = '10.00', currency = 'USD' }: Pro
           });
         },
         onApprove: function (data: any, actions: any) {
-          return actions.order.capture().then(function (details: any) {
-            // show a nicer in-page success message instead of alert
+          return actions.order.capture().then(async function (details: any) {
             const txId = details.id || (details.purchase_units && details.purchase_units[0]?.payments?.captures?.[0]?.id) || '';
+
+            // Record donor on server
+            try {
+              await fetch('/api/donations/record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: name || null,
+                  email: email || null,
+                  phone: phone || null,
+                  address: address || null,
+                  amount: amount,
+                  currency: currency,
+                  txId: txId,
+                  source: 'paypal',
+                  metadata: details
+                })
+              });
+            } catch (e) {
+              // ignore recording failures for now, but log
+              console.warn('Failed to record donor on server', e);
+            }
+
             const container = containerRef.current;
             if (container) {
               container.innerHTML = `<div style="padding:1rem;border:1px solid #d1d5db;border-radius:6px;background:#ecfdf5;color:#065f46;">
                 <strong>Thank you!</strong> Payment completed.${txId ? ' Transaction ID: ' + txId : ''}
               </div>`;
+              // reload page after short delay so totals update
+              setTimeout(() => { try { window.location.reload(); } catch (e) {} }, 900);
             } else {
               alert('Thank you for supporting civic initiatives!');
+              try { window.location.reload(); } catch (e) {}
             }
           });
         }
@@ -131,7 +151,7 @@ export default function PayPalDonate({ amount = '10.00', currency = 'USD' }: Pro
         const errMsg = typeof err === 'string' ? err : (err?.message || String(err));
         console.warn('PayPal SDK load error:', errMsg);
         if (!mounted) return;
-        setError(errMsg + '. Please try disabling ad-blockers or click the direct PayPal link below.');
+        setError(errMsg + '. Please try disabling ad-blockers or try a different browser.');
       });
 
     return () => {
@@ -150,9 +170,9 @@ export default function PayPalDonate({ amount = '10.00', currency = 'USD' }: Pro
       {error && (
         <div className="mt-2 text-center text-sm text-red-600">
           <div className="font-medium">{error}</div>
-          <div className="mt-1">Possible fixes: disable ad-blocker or privacy extensions, try a different browser, or click the direct PayPal link below.</div>
+          <div className="mt-1">Possible fixes: disable ad-blocker or privacy extensions, or try a different browser.</div>
           <div className="mt-2">
-            <a className="underline" href={fallbackUrl} target="_blank" rel="noreferrer">Donate via PayPal website</a>
+            <div className="text-sm">Try disabling ad-blockers or privacy extensions, or try another browser.</div>
           </div>
           <div className="mt-2">
             <button

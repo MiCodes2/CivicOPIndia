@@ -43,8 +43,8 @@ export default function DonatePage() {
             Every rupee counts in building a better democracy.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            ⚠️ <span className="font-semibold">Tax benefits are not available yet.</span> We are still applying for not-for-profit status.
-          </p>
+            Your support helps sustain independent civic initiatives and public-interest projects.
+          </p> 
         </div>
 
         {/* Impact Stats */}
@@ -140,9 +140,9 @@ export default function DonatePage() {
         {/* Trust Indicators */}
         <div className="mt-12 text-center">
           <p className="text-sm text-muted-foreground">
-            🔒 SSL Secured • 🛡️ Data Protected • 📊 Fully Transparent • ⚠️ Tax benefits currently unavailable — applying for not-for-profit status
+            🔒 SSL Secured • 🛡️ Data Protected • 📊 Fully Transparent
           </p>
-        </div>
+        </div> 
       </div>
     </div>
   );
