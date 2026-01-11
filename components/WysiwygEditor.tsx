@@ -136,6 +136,30 @@ export default function WysiwygEditor({ value, onChange, placeholder, onPreviewI
       handleInput();
     }
   }, [handleInput]);
+
+  const applyFontSize = useCallback((sizePx: string) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) return; // nothing selected
+
+    // Extract selected content and wrap it in a span with inline font-size
+    const selectedContent = range.extractContents();
+    const span = document.createElement('span');
+    span.style.fontSize = sizePx;
+    span.appendChild(selectedContent);
+    range.insertNode(span);
+
+    // Move cursor after inserted span
+    range.setStartAfter(span);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    editorRef.current?.focus();
+    handleInput();
+  }, [handleInput]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -347,6 +371,54 @@ export default function WysiwygEditor({ value, onChange, placeholder, onPreviewI
           title="Numbered List"
         >
           <ListOrdered className="h-4 w-4" />
+        </Button>
+
+        {/* Font Size */}
+        <div className="mx-2 flex items-center">
+          <label htmlFor="font-size-select" className="sr-only">Font size</label>
+          <select
+            id="font-size-select"
+            className="text-sm bg-transparent border border-transparent focus:border-input rounded px-2 py-1"
+            defaultValue=""
+            onChange={(e) => {
+              const val = e.target.value;
+              if (!val) return;
+              const mapping: Record<string, string> = { small: '12px', normal: '14px', large: '18px', huge: '24px' };
+              const size = mapping[val];
+              if (size) {
+                applyFontSize(size);
+              }
+              // reset select back to placeholder
+              e.currentTarget.value = '';
+            }}
+            title="Font size"
+          >
+            <option value="">Font</option>
+            <option value="small">Small</option>
+            <option value="normal">Normal</option>
+            <option value="large">Large</option>
+            <option value="huge">Huge</option>
+          </select>
+        </div>
+
+        {/* Clear formatting */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            // remove inline formatting
+            execCommand('removeFormat');
+            // normalize block to paragraph
+            execCommand('formatBlock', 'p');
+            // also remove blockquote if inside one
+            removeBlockquote();
+            handleInput();
+          }}
+          title="Clear formatting"
+        >
+          {/* Use simple text for clarity */}
+          Clear
         </Button>
         
         <div className="flex-1" />
