@@ -68,6 +68,8 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 # Google reCAPTCHA (optional)
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key
 RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key
+# Optional: set a public donation goal (INR) used on the donate page
+NEXT_PUBLIC_DONATION_GOAL_INR=1000000
 
 # Upload Backend (supabase or local)
 UPLOAD_BACKEND=supabase
@@ -219,6 +221,7 @@ We run a GitHub Action (`.github/workflows/deploy_checks.yml`) that performs the
 - Run `scripts/check_migrations.js` to verify required DB columns (e.g., `initial_views_count`) exist
 - Run `scripts/verify_growth_logic.js` (sampling) to confirm synthetic seeding logic is applied correctly
 - Run `scripts/report_inflated.js` to detect any inflated activities
+- Run `scripts/verify_donor_aggregates.js` to validate donor aggregates (daily totals, city totals, and raw donors vs canonical totals)
 
 Repository secrets required for the workflow:
 - `NEXT_PUBLIC_SUPABASE_URL`

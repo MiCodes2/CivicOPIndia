@@ -49,7 +49,7 @@ export default function DonationForm() {
                 <Button
                   key={tier.amount}
                   variant={tier.amount === selectedAmount ? 'default' : 'outline'}
-                  className="h-auto flex-col py-3"
+                  className={`h-auto flex-col py-3 transition-transform ${tier.amount === selectedAmount ? 'scale-105 shadow-md' : 'hover:scale-105'}`}
                   onClick={() => {
                     setSelectedAmount(tier.amount);
                     setCustomAmount('');
@@ -58,7 +58,7 @@ export default function DonationForm() {
                   <span className="text-lg font-bold">₹{tier.amount}</span>
                   <span className="text-xs text-muted-foreground">{tier.label}</span>
                 </Button>
-              ))}
+              ))} 
             </div>
           </div>
 

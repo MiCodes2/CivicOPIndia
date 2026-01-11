@@ -15,7 +15,8 @@
     "recalculate:shares": "npx dotenv-cli -e .env.local -- node scripts/recalculate_shares.js",
     "check:migrations": "npx dotenv-cli -e .env.local -- node scripts/check_migrations.js",
     "verify:metrics": "npx dotenv-cli -e .env.local -- node scripts/verify_growth_logic.js --sample=50",
-    "report:inflated": "npx dotenv-cli -e .env.local -- node scripts/report_inflated.js"
+    "report:inflated": "npx dotenv-cli -e .env.local -- node scripts/report_inflated.js",
+    "verify:donors": "npx dotenv-cli -e .env.local -- node scripts/verify_donor_aggregates.js"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",

@@ -127,7 +127,7 @@ export default function PayPalDonate({ amount = '10.00', currency = 'USD', name,
 
             const container = containerRef.current;
             if (container) {
-              container.innerHTML = `<div style="padding:1rem;border:1px solid #d1d5db;border-radius:6px;background:#ecfdf5;color:#065f46;">
+              container.innerHTML = `<div class="p-4 border rounded bg-primary/10 border-primary/20 text-primary">
                 <strong>Thank you!</strong> Payment completed.${txId ? ' Transaction ID: ' + txId : ''}
               </div>`;
               // reload page after short delay so totals update

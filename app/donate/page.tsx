@@ -6,12 +6,49 @@ import PayPalDonate from "@/components/PayPalDonate";
 import DonationForm from "@/components/DonationForm";
 import { Heart, Shield, Users, Eye, CheckCircle } from "lucide-react";
 
-export default function DonatePage() {
+import { createClient } from '@/lib/supabase/server'
+
+export default async function DonatePage() {
+  // Fetch live metrics (fallback to sensible defaults if supabase isn't configured)
+  let totalRaised = 700000; // fallback ₹7L
+  let donorCount = 109; // fallback
+  let campaignCount = 23; // fallback
+  let recentDonors = [] as Array<{ id: number; name: string | null; amount_in_inr: number | null; address: string | null; created_at: string }>;
+
+  // Goal for progress bar (INR)
+  const goal = Number(process.env.NEXT_PUBLIC_DONATION_GOAL_INR || 1000000);
+  let percent = 0;
+
+  try {
+    const supabase = await createClient();
+    const { data: totalsData } = await supabase.from('donor_totals').select('*').maybeSingle();
+    if (totalsData) {
+      totalRaised = Number(totalsData.total_in_inr || totalRaised);
+      donorCount = Number(totalsData.donor_count || donorCount);
+    }
+
+    // Count activities that look like campaigns (case-insensitive 'campaign')
+    const { count } = await supabase.from('activities').select('*', { count: 'exact', head: true }).ilike('type', '%campaign%');
+    if (typeof count === 'number') campaignCount = count;
+
+    // Fetch a short list of recent donors to display on the public donate page (names shortened for privacy)
+    const { data: recent } = await supabase.from('donors').select('id,name,amount_in_inr,address,created_at').order('created_at', { ascending: false }).limit(6);
+    if (recent) recentDonors = recent as any;
+
+    percent = Math.min(100, Math.round((totalRaised / (goal || 1)) * 100));
+  } catch (e) {
+    // Keep fallback values on error
+  }
+
+  // Public capping helpers: do not display numbers larger than 10,000 on the public donate page
+  const capNumber = (n: number) => (n > 10000 ? '10,000+' : n.toLocaleString());
+  const capCurrency = (n: number) => (n > 10000 ? '₹10,000+' : `₹${n.toLocaleString()}`);
+
   const impactStats = [
-    { value: "₹7L", label: "Funds Raised" },
+    { value: capCurrency(totalRaised), label: "Funds Raised" },
     { value: "100%", label: "Transparency" },
-    { value: "109", label: "Donors" },
-    { value: "23", label: "Campaigns" },
+    { value: capNumber(donorCount), label: "Donors" },
+    { value: capNumber(campaignCount), label: "Campaigns" },
   ];
 
   const usageBreakdown = [
@@ -34,21 +71,23 @@ export default function DonatePage() {
       <div className="mx-auto max-w-5xl">
         {/* Hero Section */}
         <div className="mb-12 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 via-primary/20 to-transparent shadow-md">
             <Heart className="h-10 w-10 text-primary" />
           </div>
-          <h1 className="text-5xl font-bold tracking-tight">Support Our Mission</h1>
+          <h1 className="text-5xl font-bold tracking-tight text-primary">Support Our Mission</h1>
           <p className="mt-4 text-xl text-muted-foreground">
             Your contribution helps us fight for transparency, accountability, and justice.
             Every rupee counts in building a better democracy.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Your support helps sustain independent civic initiatives and public-interest projects.
-          </p> 
-        </div>
+          </p>
+
+
+        </div> 
 
         {/* Impact Stats */}
-        <div className="mb-12 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
           {impactStats.map((stat, index) => (
             <Card key={index} className="text-center">
               <CardContent className="pt-6">
@@ -59,11 +98,52 @@ export default function DonatePage() {
           ))}
         </div>
 
+        {/* Progress toward funding goal */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+            <div>Progress toward goal</div>
+            <div className="font-semibold">{capCurrency(totalRaised)} / {capCurrency(goal)}</div>
+          </div>
+          <div className="w-full bg-muted h-3 rounded overflow-hidden">
+            <div className="h-full bg-primary transition-all" style={{ width: `${percent}%` }} />
+          </div>
+        </div>
+
         <div className="grid gap-8 lg:grid-cols-2">
           <DonationForm />
 
           {/* Fund Usage & Transparency */}
           <div className="space-y-6">
+              {/* Recent Donors */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Donors</CardTitle>
+                <CardDescription className="text-sm">Names may be shortened for privacy</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  {recentDonors.length === 0 ? (
+                    <li className="text-sm text-muted-foreground">No recent donors yet — be the first to contribute!</li>
+                  ) : (
+                    recentDonors.map((d) => {
+                      const name = d.name || 'Anonymous';
+                      const parts = name.trim().split(/\s+/);
+                      const display = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+                      return (
+                        <li key={d.id} className="flex items-center justify-between">
+                          <div className="text-sm">
+                            <div className="font-medium">{display}</div>
+                            <div className="text-xs text-muted-foreground">{d.address || ''}</div>
+                          </div>
+                          <div className="text-sm font-semibold">{capCurrency(Number(d.amount_in_inr || 0))}</div>
+                        </li>
+                      );
+                    })
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+
             {/* Transparency Promise */}
             <Card className="border-primary/20 bg-primary/5">
               <CardHeader>
