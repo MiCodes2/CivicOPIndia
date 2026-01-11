@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { extractHashtags, getMaxLikes, getMaxShares } from '@/lib/utils';
+import { extractHashtags, getMaxLikes, getMaxShares, getMaxViews } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Tag, Image as ImageIcon, Eye } from "lucide-react";
@@ -51,6 +51,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     video_url: string;
     likes_count: number;
     shares_count: number;
+    views_count?: number;
     is_pinned: boolean;
     is_highlighted: boolean;
   }
@@ -66,6 +67,7 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
     video_url: "",
     likes_count: 0,
     shares_count: 0,
+    views_count: 0,
     is_pinned: false,
     is_highlighted: false,
   });

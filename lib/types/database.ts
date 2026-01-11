@@ -26,6 +26,12 @@ export type Activity = {
   likes_count: number;
   shares_count: number;
   views_count?: number | null; // real recorded views (incremented server-side)
+
+  // Auditable initial seed values (set by admin or backfilled)
+  initial_likes_count?: number | null;
+  initial_shares_count?: number | null;
+  initial_views_count?: number | null;
+
   type: string | null; // e.g., 'Meeting', 'Protest', 'Campaign', 'Plantation'
   is_pinned?: boolean; // Pin post to top of feed (like X/Twitter)
   is_highlighted?: boolean; // Highlight post with special styling

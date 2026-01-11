@@ -212,6 +212,18 @@ vercel
 - `POST /api/activities/share` - Increment share count
 - `POST /api/activities/seed` - Seed synthetic metrics
 
+## Deployment & CI checks
+We run a GitHub Action (`.github/workflows/deploy_checks.yml`) that performs the following on push to `main` and daily on schedule:
+
+- Install dependencies and run `pnpm run build` to ensure the app compiles
+- Run `scripts/check_migrations.js` to verify required DB columns (e.g., `initial_views_count`) exist
+- Run `scripts/verify_growth_logic.js` (sampling) to confirm synthetic seeding logic is applied correctly
+- Run `scripts/report_inflated.js` to detect any inflated activities
+
+Repository secrets required for the workflow:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
 ### Admin (Protected)
 - `POST /api/admin/create-activity` - Create new activity
 - `POST /api/admin/update-activity` - Update activity
