@@ -40,15 +40,16 @@ export default async function DonatePage() {
     // Keep fallback values on error
   }
 
-  // Public capping helpers: do not display numbers larger than 10,000 on the public donate page
-  const capNumber = (n: number) => (n > 10000 ? '10,000+' : n.toLocaleString());
-  const capCurrency = (n: number) => (n > 10000 ? '₹10,000+' : `₹${n.toLocaleString()}`);
+  // Public capping helpers: only cap individual donor amounts (displayed in Recent Donors) at ₹10,000+; overall totals remain uncapped
+  const capDonorCurrency = (n: number) => (n > 10000 ? '₹10,000+' : `₹${n.toLocaleString()}`);
+  const formatCurrency = (n: number) => `₹${n.toLocaleString()}`;
+  const formatNumber = (n: number) => n.toLocaleString();
 
   const impactStats = [
-    { value: capCurrency(totalRaised), label: "Funds Raised" },
+    { value: formatCurrency(totalRaised), label: "Funds Raised" },
     { value: "100%", label: "Transparency" },
-    { value: capNumber(donorCount), label: "Donors" },
-    { value: capNumber(campaignCount), label: "Campaigns" },
+    { value: formatNumber(donorCount), label: "Donors" },
+    { value: formatNumber(campaignCount), label: "Campaigns" },
   ];
 
   const usageBreakdown = [
@@ -102,7 +103,7 @@ export default async function DonatePage() {
         <div className="mb-12">
           <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
             <div>Progress toward goal</div>
-            <div className="font-semibold">{capCurrency(totalRaised)} / {capCurrency(goal)}</div>
+            <div className="font-semibold">{formatCurrency(totalRaised)} / {formatCurrency(goal)}</div>
           </div>
           <div className="w-full bg-muted h-3 rounded overflow-hidden">
             <div className="h-full bg-primary transition-all" style={{ width: `${percent}%` }} />
@@ -135,7 +136,7 @@ export default async function DonatePage() {
                             <div className="font-medium">{display}</div>
                             <div className="text-xs text-muted-foreground">{d.address || ''}</div>
                           </div>
-                          <div className="text-sm font-semibold">{capCurrency(Number(d.amount_in_inr || 0))}</div>
+                          <div className="text-sm font-semibold">{capDonorCurrency(Number(d.amount_in_inr || 0))}</div>
                         </li>
                       );
                     })

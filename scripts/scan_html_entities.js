@@ -4,10 +4,13 @@
  * Usage: NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/scan_html_entities.js
  */
 
-require('dotenv').config({ path: process.env.DOTENV_PATH || '.env.local' });
-const { createClient } = require('@supabase/supabase-js');
+// Using dynamic imports to avoid top-level CommonJS `require()` and satisfy lint rules
 
 (async function main() {
+  // Load env and supabase client via dynamic import
+  await (await import('dotenv')).config({ path: process.env.DOTENV_PATH || '.env.local' });
+  const { createClient } = (await import('@supabase/supabase-js'));
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {

@@ -2,20 +2,23 @@
 // Verify donor aggregates: compare donor_totals vs sums over donor_daily_totals, donor_city_totals, and raw donors table
 // Usage: npx dotenv -e .env.local -- node scripts/verify_donor_aggregates.js
 
-require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
+// Using dynamic imports to avoid top-level CommonJS `require()` and satisfy lint rules
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!supabaseUrl || !serviceKey) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in env');
-  process.exit(1);
-}
 
-const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
 (async function run() {
   try {
+    // Load env and create supabase client dynamically
+    await (await import('dotenv')).config();
+    const { createClient } = (await import('@supabase/supabase-js'));
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceKey) {
+      console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in env');
+      process.exit(1);
+    }
+    const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
     const results = [];
 
     // Get canonical totals from view

@@ -2,10 +2,9 @@
 // Verify growth logic for a sample of activities (non-destructive)
 // Usage: npx dotenv-cli -e .env.local -- node scripts/verify_growth_logic.js [--sample=N]
 
-require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
+// Using dynamic imports to avoid top-level CommonJS `require()` and satisfy lint rules
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
 
 function seededRandom(seed) {
   let h = 2166136261 >>> 0;

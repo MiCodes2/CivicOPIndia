@@ -1,6 +1,6 @@
-const fs = require('fs');
 (async () => {
   try {
+    const fs = await import('fs');
     const env = fs.readFileSync('.env.local','utf8');
     env.split(/\n/).forEach(line=>{
       line=line.trim();

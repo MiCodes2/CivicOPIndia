@@ -2,19 +2,23 @@
 // Softly reduce counts that sit exactly at caps and appear synthetic
 // Usage: npx dotenv-cli -e .env.local -- node scripts/soft_reduce_caps.js
 
-require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
+// Using dynamic imports to avoid top-level CommonJS `require()` and satisfy lint rules
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!supabaseUrl || !serviceKey) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in env');
-  process.exit(1);
-}
-const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+(async function run() {
 
 (async function run() {
   try {
+    // Load env and create supabase client dynamically
+    await (await import('dotenv')).config();
+    const { createClient } = (await import('@supabase/supabase-js'));
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceKey) {
+      console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in env');
+      process.exit(1);
+    }
+    const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
     const MAX_LIKES = process.env.SYNTHETIC_MAX_LIKES ? parseInt(process.env.SYNTHETIC_MAX_LIKES) : 200;
     const MAX_SHARES = process.env.SYNTHETIC_MAX_SHARES ? parseInt(process.env.SYNTHETIC_MAX_SHARES) : 200;
     const MAX_VIEWS = process.env.SYNTHETIC_MAX_VIEWS ? parseInt(process.env.SYNTHETIC_MAX_VIEWS) : 500000;
