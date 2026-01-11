@@ -2,14 +2,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { pageMetadata } from '@/lib/pageMetadata'
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import PayPalDonate from "@/components/PayPalDonate";
+import DonationForm from "@/components/DonationForm";
 import { Heart, Shield, Users, Eye, CheckCircle } from "lucide-react";
 
 export default function DonatePage() {
   const impactStats = [
-    { value: "₹25L+", label: "Funds Raised" },
+    { value: "₹7L", label: "Funds Raised" },
     { value: "100%", label: "Transparency" },
-    { value: "5000+", label: "Donors" },
-    { value: "50+", label: "Campaigns" },
+    { value: "109", label: "Donors" },
+    { value: "23", label: "Campaigns" },
   ];
 
   const usageBreakdown = [
@@ -40,6 +42,9 @@ export default function DonatePage() {
             Your contribution helps us fight for transparency, accountability, and justice.
             Every rupee counts in building a better democracy.
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            ⚠️ <span className="font-semibold">Tax benefits are not available yet.</span> We are still applying for not-for-profit status.
+          </p>
         </div>
 
         {/* Impact Stats */}
@@ -55,100 +60,7 @@ export default function DonatePage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-2">
-          {/* Donation Form */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Make a Donation</CardTitle>
-                <CardDescription className="text-base">
-                  Secure payment powered by Razorpay
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Quick Amount Selection */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Select Amount</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {donationTiers.map((tier) => (
-                      <Button key={tier.amount} variant="outline" className="h-auto flex-col py-3">
-                        <span className="text-lg font-bold">₹{tier.amount}</span>
-                        <span className="text-xs text-muted-foreground">{tier.label}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Custom Amount */}
-                <div className="space-y-2">
-                  <label htmlFor="amount" className="text-sm font-medium">
-                    Or Enter Custom Amount (₹)
-                  </label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    placeholder="Enter amount"
-                    min="1"
-                    className="text-lg"
-                  />
-                </div>
-
-                {/* Donor Details */}
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium">
-                    Your Name (Optional)
-                  </label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Anonymous Donor"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email (For Receipt)
-                  </label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                  />
-                </div>
-
-                <Button className="w-full" size="lg">
-                  <Heart className="mr-2 h-4 w-4" />
-                  Proceed to Payment
-                </Button>
-
-                <p className="text-center text-xs text-muted-foreground">
-                  🔒 Secure payment • UPI, Cards, Netbanking, Wallets accepted
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Why Donate */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Why Your Support Matters</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {[
-                    "Enable citizens to hold power accountable",
-                    "Fund critical RTI requests and legal battles",
-                    "Organize protests and awareness campaigns",
-                    "Provide free legal support to affected citizens",
-                    "Build a transparent democracy for future generations",
-                  ].map((item, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 shrink-0 text-primary" />
-                      <span className="text-sm">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
+          <DonationForm />
 
           {/* Fund Usage & Transparency */}
           <div className="space-y-6">
@@ -228,7 +140,7 @@ export default function DonatePage() {
         {/* Trust Indicators */}
         <div className="mt-12 text-center">
           <p className="text-sm text-muted-foreground">
-            🔒 SSL Secured • 🛡️ Data Protected • 📊 Fully Transparent • ✅ Tax Receipt Provided
+            🔒 SSL Secured • 🛡️ Data Protected • 📊 Fully Transparent • ⚠️ Tax benefits currently unavailable — applying for not-for-profit status
           </p>
         </div>
       </div>
