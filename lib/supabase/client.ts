@@ -12,8 +12,6 @@ export function createClient() {
   return createBrowserClient(supabaseUrl, supabaseKey, {
     auth: {
       persistSession: true,
-      // Disable automatic refresh attempts in the browser to avoid
-      // noisy "Invalid Refresh Token" errors when no refresh token exists.
       autoRefreshToken: false,
       detectSessionInUrl: false,
       storageKey: 'civic-op-auth',

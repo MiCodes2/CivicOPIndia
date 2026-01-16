@@ -491,6 +491,8 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
         initial_likes_count: computedLikes,
         initial_shares_count: computedShares,
         initial_views_count: computedViews,
+        author_id: user.id,
+        author_name: 'Civic Admin',
       };
 
       // Use .select() to ask Supabase to return the inserted row and log full response

@@ -222,7 +222,7 @@ export default function NewEventForm({ onSuccess }: NewEventFormProps = {}) {
         image_url: formData.image_url || null,
         tags: ['event'],
         author_id: user.id,
-        author_name: 'Admin',
+        author_name: 'Civic Admin',
         published: true,
       };
 
