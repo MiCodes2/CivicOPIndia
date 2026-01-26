@@ -64,13 +64,22 @@ export function formatContent(input: string, exclude?: string[]) {
     // Process block-level HTML content
     processed = processEmbedsInHtml(processed, exclude);
     processed = linkifyHashtags(processed);
+    // Clean up extra whitespace from removed images - more aggressive
+    processed = processed.replace(/<p>\s*<\/p>/g, '');
+    processed = processed.replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
+    processed = processed.replace(/\n{2,}/g, '\n');
+    processed = processed.replace(/\s+$/gm, ''); // Remove trailing whitespace from each line
     return processed.trim();
   }
 
   // 3. For plain text, process with paragraph structure
   processed = processPlainText(processed, exclude);
 
-  return processed;
+  // Final cleanup: remove trailing whitespace and empty elements
+  processed = processed.replace(/<p>\s*<\/p>/g, '');
+  processed = processed.replace(/\s+$/g, '');
+  
+  return processed.trim();
 }
 
 // Minimal cleanup - only strip extra whitespace, preserve all valid HTML
@@ -143,13 +152,19 @@ function processEmbedsInHtml(content: string, exclude?: string[]): string {
     return `<div class="twitter-video-embed w-full bg-gray-100 rounded-md overflow-hidden flex justify-center py-4"><div class="w-full flex justify-center"><iframe src="${embedUrl}" width="100%" height="600" frameborder="0" scrolling="no" allowfullscreen class="w-full max-w-md md:max-w-lg lg:max-w-2xl border-0" style="min-height: 600px;" loading="lazy"></iframe></div></div>`;
   });
 
-  // Image embeds
-  const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
+  // Image embeds - including Twitter/X media URLs and URLs with format in query params
+  const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|https?:\/\/pbs\.twimg\.com\/media\/[^\s?]+(?:\?[^\s]*)?|https?:\/\/[^\s]+\?[^\s]*format=(?:jpg|jpeg|png|gif|webp)[^\s]*)/gi;
   const excludeSet = new Set(exclude || []);
   processed = processed.replace(imageRegex, (match) => {
-    if (excludeSet.has(match)) return '';
+    if (excludeSet.has(match)) return '__REMOVED_IMAGE__';
     return `<div class="inline-image"><img src="${match}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${match.replace(/'/g, "\\'")}')" loading="lazy" /></div>`;
   });
+
+  // Clean up removed images and their surrounding whitespace
+  processed = processed.replace(/\s*__REMOVED_IMAGE__\s*/g, ' ');
+  processed = processed.replace(/\n+/g, ' '); // Replace all newlines with spaces
+  processed = processed.replace(/  +/g, ' '); // Collapse multiple spaces
+  processed = processed.trim();
 
   return processed;
 }
@@ -203,8 +218,8 @@ function processPlainText(input: string, exclude?: string[]): string {
       return `__TWITTER_VIDEO_EMBED_${tweetId}__`;
     });
 
-    // Image embeds
-    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
+    // Image embeds - including Twitter/X media URLs and URLs with format in query params
+    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|https?:\/\/pbs\.twimg\.com\/media\/[^\s?]+(?:\?[^\s]*)?|https?:\/\/[^\s]+\?[^\s]*format=(?:jpg|jpeg|png|gif|webp)[^\s]*)/gi;
     processed = processed.replace(imageRegex, (match) => {
       return `__IMAGE_EMBED_${base64Encode(match)}__`;
     });
@@ -244,21 +259,32 @@ function processPlainText(input: string, exclude?: string[]): string {
     const excludeSet = new Set(exclude || []);
     restored = restored.replace(/__IMAGE_EMBED_([^_]+)__/g, (match, encodedUrl) => {
       const imageUrl = base64Decode(encodedUrl);
-      if (excludeSet.has(imageUrl)) return '';
+      if (excludeSet.has(imageUrl)) return '__REMOVED_IMAGE__';
       return `<div class="inline-image"><img src="${imageUrl}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${imageUrl.replace(/'/g, "\\'")}')" loading="lazy" /></div>`;
     });
 
+    // Clean up removed images and their surrounding whitespace
+    restored = restored.replace(/\s*__REMOVED_IMAGE__\s*/g, ' ');
+    restored = restored.replace(/\n+/g, ' '); // Replace all newlines with spaces
+    restored = restored.replace(/  +/g, ' '); // Collapse multiple spaces
+
     // Only convert double+ line breaks to paragraph separators, single breaks stay as spaces
     // This prevents single newlines from appearing as double-spaced
-    const withBreaks = restored.replace(/\n/g, ' ').replace(/  +/g, ' ').trim();
+    const withBreaks = restored.replace(/  +/g, ' ').trim();
+    if (!withBreaks) return ''; // Return empty string for completely empty content
     return `<p>${withBreaks}</p>`;
   });
 
   let out = paragraphs.join("\n");
   // Remove empty paragraphs
   out = out.replace(/<p>\s*<\/p>/g, '');
-  // Remove multiple consecutive newlines
+  // Remove multiple consecutive newlines - allow max 1
   out = out.replace(/\n{2,}/g, '\n');
+  // Remove excessive breaks - allow max 1
+  out = out.replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
+  // Clean up whitespace around block elements
+  out = out.replace(/\s*<\/p>\s*<p>\s*/g, '</p><p>');
+  out = out.replace(/\s+$/gm, ''); // Remove trailing whitespace from each line
   // Ensure raw ampersands immediately followed by an anchor are escaped consistently
   out = out.replace(/&(?!#?\w+;)(?=<a\s)/g, '&amp;');
   return out.trim();
