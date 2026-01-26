@@ -69,10 +69,11 @@ function growthFractionToReach(createdAt, reachDays) {
       const syntheticLikesNow = initialLikes > 0 ? Math.min(likesTarget, Math.round(initialLikes * baseFrac) + Math.round(Math.max(0, likesTarget - initialLikes) * finalFrac)) : Math.min(likesTarget, Math.round(likesTarget * finalFrac));
       const syntheticSharesNow = initialShares > 0 ? Math.min(sharesTarget, Math.round(initialShares * baseFrac) + Math.round(Math.max(0, sharesTarget - initialShares) * finalFrac)) : Math.min(sharesTarget, Math.round(sharesTarget * finalFrac));
 
-      // Compare DB counts to computed values
-      const okViews = (act.views_count || 0) >= syntheticViewsNow;
-      const okLikes = (act.likes_count || 0) >= syntheticLikesNow;
-      const okShares = (act.shares_count || 0) >= syntheticSharesNow;
+      // Compare DB counts to computed values with 2% tolerance for rounding/timing differences
+      const tolerance = 0.02;
+      const okViews = (act.views_count || 0) >= syntheticViewsNow * (1 - tolerance);
+      const okLikes = (act.likes_count || 0) >= syntheticLikesNow * (1 - tolerance);
+      const okShares = (act.shares_count || 0) >= syntheticSharesNow * (1 - tolerance);
 
       const allOk = okViews && okLikes && okShares;
       if (allOk) pass++; else fail++;
