@@ -106,13 +106,12 @@ function CollapsibleContent({ contentHtml, onDoubleClick, onDoubleTapLike, isTex
   }, [trimmedHtml, shouldAttemptTruncate, isTextOnly, minLinesForToggle]);
 
   return (
-    <div className="mb-4 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
+    <div className="mb-2 px-4 md:px-4 text-muted-foreground prose prose-sm max-w-none">
       <div
         ref={contentRef}
         onDoubleClick={onDoubleClick}
         className={`transition-all ${!expanded ? 'overflow-hidden' : ''}`}
         style={{
-          whiteSpace: 'pre-line',
           // Always start collapsed - show clamped view until user expands
           ...(!expanded ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any } : {})
         }}
@@ -216,7 +215,8 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   const extractImageUrlsFromContent = (content?: string) => {
     if (!content) return [] as string[];
-    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?)/gi;
+    // Match image URLs with extensions OR Twitter/X media URLs OR URLs with format=jpg/png/etc in query params
+    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|\/uploads\/[^^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|ico|jfif)(?:\?[^\s]*)?|https?:\/\/pbs\.twimg\.com\/media\/[^\s?]+(?:\?[^\s]*)?|https?:\/\/[^\s]+\?[^\s]*format=(?:jpg|jpeg|png|gif|webp)[^\s]*)/gi;
     const matches = Array.from((content || '').matchAll(imageRegex)).map(m => m[0]);
     return matches;
   };
@@ -382,6 +382,15 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   const nextImage = useCallback(() => { setCurrentIndex((i) => Math.min(images.length - 1, i + 1)); }, [images.length]);
 
+  // Sync modalImage with modalIndex
+  useEffect(() => {
+    if (modalOpen && images.length > 0 && modalIndex >= 0 && modalIndex < images.length) {
+      setModalImage(resolveUrl(images[modalIndex]));
+      setModalUseIframe(true);
+      setModalIframeLoaded(false);
+    }
+  }, [modalIndex, modalOpen]);
+
   useEffect(() => {
     if (!modalOpen) return;
     let t: any = setTimeout(() => { if (!modalIframeLoaded) setModalUseIframe(false); }, 1500);
@@ -433,15 +442,29 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
     touchStartTime.current = null;
   };
 
+  const prevModalImage = useCallback(() => {
+    setModalIndex((i) => Math.max(0, i - 1));
+  }, []);
+
+  const nextModalImage = useCallback(() => {
+    setModalIndex((i) => Math.min(images.length - 1, i + 1));
+  }, [images.length]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (modalOpen && images.length > 1) {
+        if (e.key === 'ArrowLeft') prevModalImage();
+        if (e.key === 'ArrowRight') nextModalImage();
+        if (e.key === 'Escape') setModalOpen(false);
+        return;
+      }
       if (images.length <= 1) return;
       if (e.key === 'ArrowLeft') prevImage();
       if (e.key === 'ArrowRight') nextImage();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [images.length, nextImage, prevImage]);
+  }, [images.length, nextImage, prevImage, modalOpen, prevModalImage, nextModalImage]);
 
   useEffect(() => {
     let mounted = true;
@@ -771,7 +794,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           />
 
           {images.length > 1 && (
-            <div className="mb-4 flex justify-center">
+            <div className="flex justify-center">
               <div className="flex gap-2 items-center">
                 {images.map((_, i) => (
                   <button key={i} onClick={() => setCurrentIndex(i)} className={`h-2 w-2 rounded-full ${i === currentIndex ? 'bg-white' : 'bg-white/50'}`} aria-label={`Go to image ${i+1}`} />
@@ -832,6 +855,41 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
             <div className="absolute top-2 right-2 z-50">
               <button onClick={() => setModalOpen(false)} className="rounded-full bg-white/90 p-2 text-sm">✕</button>
             </div>
+            
+            {/* Navigation buttons for multiple images */}
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={prevModalImage}
+                  disabled={modalIndex === 0}
+                  className={`absolute left-2 top-1/2 -translate-y-1/2 z-50 rounded-full shadow-lg p-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                    modalIndex === 0
+                      ? 'bg-white/50 text-gray-400 cursor-not-allowed'
+                      : 'bg-white/90 text-gray-800 hover:bg-white'
+                  }`}
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  onClick={nextModalImage}
+                  disabled={modalIndex === images.length - 1}
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 z-50 rounded-full shadow-lg p-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                    modalIndex === images.length - 1
+                      ? 'bg-white/50 text-gray-400 cursor-not-allowed'
+                      : 'bg-white/90 text-gray-800 hover:bg-white'
+                  }`}
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+                {/* Image counter */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                  {modalIndex + 1} / {images.length}
+                </div>
+              </>
+            )}
+
             {(() => {
               const getOriginalUrl = (u: string) => {
                 if (!u) return u;
