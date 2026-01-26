@@ -19,7 +19,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: '8' 
+          version: '9' 
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
 
@@ -35,7 +35,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: '8'
+          version: '9'
       - name: Install deps
         run: pnpm install --frozen-lockfile
       - name: Run migration check
@@ -56,7 +56,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: '8'
+          version: '9'
       - name: Install deps
         run: pnpm install --frozen-lockfile
       - name: Run verification script
@@ -82,7 +82,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: '8'
+          version: '9'
       - name: Install deps
         run: pnpm install --frozen-lockfile
       - name: Reset and apply maintenance pipeline

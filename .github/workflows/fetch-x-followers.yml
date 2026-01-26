@@ -18,8 +18,13 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '9'
+
       - name: Install dependencies
-        run: npm install  # Changed from 'ci' to 'install' to prevent lockfile errors
+        run: pnpm install --frozen-lockfile
 
       - name: Run fetch script
         env:
@@ -28,5 +33,5 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
           NEXT_PUBLIC_X_HANDLE: ${{ secrets.NEXT_PUBLIC_X_HANDLE }}
-        # Run node directly. No 'dotenv-cli' needed.
-        run: node scripts/fetch_x_followers.js
+        # Run node with pnpm
+        run: pnpm exec -- node scripts/fetch_x_followers.js
