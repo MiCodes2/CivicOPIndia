@@ -288,7 +288,7 @@ export default function HomePage() {
                 name="Mithilesh Kumar"
                 role="GovTech Architect & Founder"
                 description="Building scalable civic infrastructure with AI and real-time operations management"
-                imageSrc="/mithilesh-kumar.jpeg"
+                imageSrc="/mithilesh-kumar.png"
                 initials="MK"
               />
             </Link>

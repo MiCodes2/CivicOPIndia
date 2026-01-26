@@ -31,7 +31,7 @@ export default function TeamMemberCard({
               alt={name}
               width={128}
               height={128}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover object-center"
               onError={() => setImageError(true)}
             />
           ) : (
