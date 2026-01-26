@@ -3,8 +3,17 @@
 // Usage: npx dotenv-cli -e .env.local -- node scripts/verify_growth_logic.js [--sample=N]
 
 // Using dynamic imports to avoid top-level CommonJS `require()` and satisfy lint rules
+const { createClient } = require('@supabase/supabase-js');
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 function seededRandom(seed) {
   let h = 2166136261 >>> 0;
