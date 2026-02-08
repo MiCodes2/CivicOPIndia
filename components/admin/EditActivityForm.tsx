@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import ImageLightbox from '@/components/admin/ImageLightbox';
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +13,7 @@ import type { Activity } from "@/lib/types/database";
 import WysiwygEditor from "@/components/WysiwygEditor";
 import ImagePicker from "@/components/admin/ImagePicker";
 import { normalizeEntities } from '@/lib/formatContent';
+import { DEFAULT_ACTIVITY_TYPES, mergeActivityTypes } from '@/lib/constants/activityTypes';
 
 interface EditActivityFormProps {
   activity: Activity;
@@ -45,6 +46,7 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
   const [imagePreviews, setImagePreviews] = useState<string[]>(activity.image_url ? [activity.image_url] : []);
   const [deletedFiles, setDeletedFiles] = useState<string[]>([]);
   const initialRemoteUrlsRef = useRef<string[]>([]);
+  const [typeOptions, setTypeOptions] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     title: activity.title,
@@ -106,6 +108,27 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
       // ignore
     }
   }, [activity.content, activity.image_url]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('activity_types').select('name').order('name');
+        if (error) {
+          console.warn('Could not load activity types for edit form:', error.message);
+          return;
+        }
+        if (mounted && Array.isArray(data)) {
+          setTypeOptions(data.map((r: any) => r.name));
+        }
+      } catch (err) {
+        console.warn('Failed to fetch activity types for edit form', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [supabase]);
+
+  const availableTypeOptions = useMemo(() => mergeActivityTypes(typeOptions), [typeOptions]);
 
   // Hidden input used by the + Add Images button to append images
   const addInputRef = useRef<HTMLInputElement | null>(null);
@@ -458,12 +481,9 @@ export default function EditActivityForm({ activity, onCancel, onSuccess }: Edit
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               >
                 <option value="">Select type</option>
-                <option value="Meeting">Meeting</option>
-                <option value="Protest">Protest</option>
-                <option value="Campaign">Campaign</option>
-                <option value="Plantation">Plantation</option>
-                <option value="News">News</option>
-                <option value="Other">Other</option>
+                {availableTypeOptions.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
             </div>
           </div>

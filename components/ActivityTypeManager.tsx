@@ -1,20 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import { DEFAULT_ACTIVITY_TYPES } from '@/lib/constants/activityTypes';
 
 interface Props {
   types: string[];
   counts: Record<string, number>;
 }
-
-const CANONICAL = [
-  'Meetings',
-  'Campaigns',
-  'Protests',
-  'Drive',
-  'Plantation',
-  'Other',
-];
 
 export default function ActivityTypeManager({ types, counts }: Props) {
   const [mapping, setMapping] = useState<Record<string,string>>(() => {
@@ -80,7 +72,7 @@ export default function ActivityTypeManager({ types, counts }: Props) {
               onChange={(e) => setMapping(prev => ({ ...prev, [t]: e.target.value }))}
             >
               <option value="">— keep —</option>
-              {CANONICAL.map(c => <option key={c} value={c}>{c}</option>)}
+              {DEFAULT_ACTIVITY_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         ))}

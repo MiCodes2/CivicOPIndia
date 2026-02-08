@@ -21,18 +21,46 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
   } else {
     paramsObj = searchParams as any;
   }
-  const selectedType = paramsObj?.type || undefined;
+  let selectedType = paramsObj?.type || undefined;
   const selectedTag = (paramsObj as any)?.tag || undefined;
 
   // Fetch activity types (lookup table)
   const { data: typeRows } = await supabase.from('activity_types').select('name').order('name');
+
+  const canonicalNames: string[] = (typeRows || []).map((r: any) => r.name);
+
+  const canonicalize = (raw?: string | null) => {
+    const s = (raw || '').toString().trim();
+    if (!s) return 'Other';
+    if (!canonicalNames.length) return s;
+    const exact = canonicalNames.find((c) => c === s);
+    if (exact) return exact;
+    const lower = s.toLowerCase();
+    const fuzzy = canonicalNames.find((c) => {
+      const cl = c.toLowerCase();
+      if (cl === lower) return true;
+      if (cl.endsWith('s') && cl.slice(0, -1) === lower) return true;
+      if (lower.endsWith('s') && lower.slice(0, -1) === cl) return true;
+      if (lower.includes(cl) || cl.includes(lower)) return true;
+      return false;
+    });
+    return fuzzy || 'Other';
+  };
+
+  if (selectedType) {
+    selectedType = canonicalize(selectedType);
+  }
 
   // Fetch activities from Supabase ordered by activity_date
   let query = supabase.from('activities').select('*').order('activity_date', { ascending: false });
   const { data: activities, error } = await query;
 
   // Build counts and distinct types from fetched activities
-  let activitiesList: Activity[] = activities || [];
+  let activitiesList: Activity[] = (activities || []).map((activity) => {
+    const normalizedType = canonicalize(activity.type || '');
+    if ((activity.type || 'Other') === normalizedType) return activity;
+    return { ...activity, type: normalizedType };
+  });
 
   // Apply in-memory filters (type/tag) for cases where tags may be in content only
   if (selectedType) activitiesList = activitiesList.filter(a => ((a.type||'') === selectedType));
@@ -47,27 +75,6 @@ export default async function ActivitiesPage({ searchParams }: { searchParams?: 
   }
 
   // Build canonical mapping using activity_types lookup to dedupe UI entries
-  const canonicalNames: string[] = (typeRows || []).map((r: any) => r.name);
-
-  const canonicalize = (raw?: string) => {
-    const s = (raw || '').toString().trim();
-    if (!s) return 'Other';
-    // exact match
-    const exact = canonicalNames.find((c) => c === s);
-    if (exact) return exact;
-    const lower = s.toLowerCase();
-    // try plural/singular and substring matches
-    const fuzzy = canonicalNames.find((c) => {
-      const cl = c.toLowerCase();
-      if (cl === lower) return true;
-      if (cl.endsWith('s') && cl.slice(0, -1) === lower) return true;
-      if (lower.endsWith('s') && lower.slice(0, -1) === cl) return true;
-      if (lower.includes(cl) || cl.includes(lower)) return true;
-      return false;
-    });
-    return fuzzy || 'Other';
-  };
-
   const countsByType: Record<string, number> = {};
   // initialize with canonical names so UI order is stable
   canonicalNames.forEach((n) => (countsByType[n] = 0));

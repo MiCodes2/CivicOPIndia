@@ -10,56 +10,40 @@ interface Props {
   initialSelected?: string | null;
 }
 
-export default function ActivitiesClientList({ activities, types = [], initialSelected = null }: Props) {
+const compareActivities = (a: Activity, b: Activity) => {
+  const getTime = (raw?: string | null) => (raw ? new Date(raw).getTime() : 0);
+
+  if (a.is_pinned && b.is_pinned) {
+    return getTime(b.pinned_at || b.activity_date) - getTime(a.pinned_at || a.activity_date);
+  }
+  if (a.is_pinned) return -1;
+  if (b.is_pinned) return 1;
+
+  if (a.is_highlighted && b.is_highlighted) {
+    return getTime(b.highlighted_at || b.activity_date) - getTime(a.highlighted_at || a.activity_date);
+  }
+  if (a.is_highlighted) return -1;
+  if (b.is_highlighted) return 1;
+
+  return getTime(b.activity_date) - getTime(a.activity_date);
+};
+
+export default function ActivitiesClientList({ activities, initialSelected = null }: Props) {
   const [selected, setSelected] = useState<string | null>(initialSelected || null);
   const [visibleCount, setVisibleCount] = useState<number>(10);
 
-  const counts = useMemo(() => {
-    const map: Record<string, number> = {};
-    activities.forEach((a) => {
-      const t = (a.type || 'Other').toString();
-      map[t] = (map[t] || 0) + 1;
-    });
-    return map;
+  const sortedActivities = useMemo(() => {
+    if (!activities?.length) return [];
+    return [...activities].sort(compareActivities);
   }, [activities]);
 
   const filtered = useMemo(() => {
-    let result = !selected ? activities : activities.filter(a => (a.type || 'Other') === selected);
-    
-    // Sort: 1) Pinned post (only one), 2) Highlighted posts by highlighted_at, 3) Regular posts by date
-    result = result.sort((a, b) => {
-      // Pinned post always comes first (should only be one)
-      if (a.is_pinned && b.is_pinned) {
-        const aTime = new Date(a.pinned_at || a.activity_date).getTime();
-        const bTime = new Date(b.pinned_at || b.activity_date).getTime();
-        return bTime - aTime;
-      }
-      if (a.is_pinned) return -1;
-      if (b.is_pinned) return 1;
-      
-      // Both highlighted - sort by highlighted_at (most recently highlighted first)
-      if (a.is_highlighted && b.is_highlighted) {
-        const aTime = new Date(a.highlighted_at || a.activity_date).getTime();
-        const bTime = new Date(b.highlighted_at || b.activity_date).getTime();
-        return bTime - aTime;
-      }
-      // Highlighted posts come after pinned but before regular
-      if (a.is_highlighted) return -1;
-      if (b.is_highlighted) return 1;
-      
-      // Neither pinned nor highlighted, sort by activity_date
-      const aDate = new Date(a.activity_date).getTime();
-      const bDate = new Date(b.activity_date).getTime();
-      return bDate - aDate;
-    });
-    
-    return result;
-  }, [activities, selected]);
+    if (!selected) return sortedActivities;
+    return sortedActivities.filter((a) => (a.type || 'Other') === selected);
+  }, [sortedActivities, selected]);
 
   // visibleCount controls how many posts to show; supports 'Load more' pagination
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
-
-  const displayTypes = types && types.length ? types : Array.from(new Set(activities.map(a=> (a.type||'Other').toString())));
 
   // sync URL when filter changes (pushState)
   React.useEffect(() => {

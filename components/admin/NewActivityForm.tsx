@@ -13,6 +13,7 @@ import ImagePicker from "@/components/admin/ImagePicker";
 import ImageLightbox from '@/components/admin/ImageLightbox';
 import ActivityPreviewModal from '@/components/admin/ActivityPreviewModal';
 import { decodeHtmlEntities, normalizeEntities } from '@/lib/formatContent';
+import { DEFAULT_ACTIVITY_TYPES, mergeActivityTypes } from '@/lib/constants/activityTypes';
 
 interface NewActivityFormProps {
   onSuccess?: () => void;
@@ -571,13 +572,15 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
 
   const canonicalizeType = (chosen: string | null) => {
     if (!chosen) return null;
-    if (typeOptions.includes(chosen)) return chosen;
+    const pool = typeOptions.length ? typeOptions : DEFAULT_ACTIVITY_TYPES;
+    if (pool.includes(chosen)) return chosen;
     const lower = chosen.toLowerCase();
-    if (typeOptions.includes(chosen + 's')) return chosen + 's';
-    const found = typeOptions.find(t => t.toLowerCase().includes(lower) || lower.includes(t.toLowerCase()));
+    if (pool.includes(chosen + 's')) return chosen + 's';
+    const found = pool.find(t => t.toLowerCase().includes(lower) || lower.includes(t.toLowerCase()));
     if (found) return found;
     return chosen;
   };
+  const availableTypeOptions = mergeActivityTypes(typeOptions);
 
   return (
     <Card>
@@ -641,20 +644,9 @@ export default function NewActivityForm({ onSuccess }: NewActivityFormProps = {}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               >
                 <option value="">Select type</option>
-                {typeOptions.length > 0 ? (
-                  typeOptions.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))
-                ) : (
-                  <>
-                    <option value="Meeting">Meeting</option>
-                    <option value="Protest">Protest</option>
-                    <option value="Campaign">Campaign</option>
-                    <option value="Plantation">Plantation</option>
-                    <option value="News">News</option>
-                    <option value="Other">Other</option>
-                  </>
-                )}
+                {availableTypeOptions.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
               </select>
             </div>
           </div>

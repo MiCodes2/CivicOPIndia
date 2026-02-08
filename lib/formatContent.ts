@@ -40,8 +40,11 @@ const base64Decode = (s: string) => {
 export function formatContent(input: string, exclude?: string[]) {
   if (!input?.trim()) return '';
 
+  // Normalize Unicode line/paragraph separators into standard newlines so manual formatting survives copy/paste from rich editors
+  const normalizedInput = input.replace(/[\u2028\u2029]/g, '\n');
+
   // 1. Decode HTML entities consistently
-  let processed = decodeEntitiesCrossPlatform(input);
+  let processed = decodeEntitiesCrossPlatform(normalizedInput);
   
   // Additional double-encoded entity cleanup
   processed = processed.replace(/&amp;#0*39;/gi, "'");
@@ -263,16 +266,17 @@ function processPlainText(input: string, exclude?: string[]): string {
       return `<div class="inline-image"><img src="${imageUrl}" alt="Embedded image" class="max-w-full h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageModal('${imageUrl.replace(/'/g, "\\'")}')" loading="lazy" /></div>`;
     });
 
-    // Clean up removed images and their surrounding whitespace
+    // Clean up removed images and their surrounding whitespace without stripping author-intended line breaks
     restored = restored.replace(/\s*__REMOVED_IMAGE__\s*/g, ' ');
-    restored = restored.replace(/\n+/g, ' '); // Replace all newlines with spaces
-    restored = restored.replace(/  +/g, ' '); // Collapse multiple spaces
+    restored = restored.replace(/\r/g, '');
+    restored = restored.replace(/[ \t]{2,}/g, ' '); // Collapse repeated spaces but keep newlines intact
 
-    // Only convert double+ line breaks to paragraph separators, single breaks stay as spaces
-    // This prevents single newlines from appearing as double-spaced
-    const withBreaks = restored.replace(/  +/g, ' ').trim();
+    const withBreaks = restored.trim();
     if (!withBreaks) return ''; // Return empty string for completely empty content
-    return `<p>${withBreaks}</p>`;
+
+    // Preserve single newlines inside each paragraph by converting them to <br /> tags for display
+    const htmlWithLineBreaks = withBreaks.replace(/\n/g, '<br />');
+    return `<p>${htmlWithLineBreaks}</p>`;
   });
 
   let out = paragraphs.join("\n");
