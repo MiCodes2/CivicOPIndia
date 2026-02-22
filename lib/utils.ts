@@ -152,7 +152,7 @@ export function computeSyntheticTargets(activity: any) {
 
   // Cap multiplier for synthetic relative to initial assigned/seeded likes to avoid runaway growth coming only from synthetic increases
   // Allow configuration via env var SYNTHETIC_MAX_MULTIPLIER (default 2)
-  const envMul = typeof process !== 'undefined' && process.env && process.env.SYNTHETIC_MAX_MULTIPLIER ? parseInt(process.env.SYNTHETIC_MAX_MULTIPLIER) : NaN;
+  const envMul = typeof process !== 'undefined' && process.env ? parseEnvNumber(process.env.SYNTHETIC_MAX_MULTIPLIER, NaN) : NaN;
   // Default lifetime multiplier for synthetic growth relative to initial assigned values. Use 2x by default per product policy.
   const MAX_MULTIPLIER = Number.isFinite(envMul) && envMul > 0 ? envMul : 2;
 
@@ -162,11 +162,11 @@ export function computeSyntheticTargets(activity: any) {
   const likesCap = initialLikes > 0 ? likesCapFromInitial : likesCapFallback;
 
   // Absolute environment caps (moderate defaults): likes ≤ 1500, shares ≤ 120, views ≤ 500k
-  const envMaxLikes = typeof process !== 'undefined' && process.env && process.env.SYNTHETIC_MAX_LIKES ? parseInt(process.env.SYNTHETIC_MAX_LIKES) : NaN;
+  const envMaxLikes = typeof process !== 'undefined' && process.env ? parseEnvNumber(process.env.SYNTHETIC_MAX_LIKES, NaN) : NaN;
   const MAX_LIKES = Number.isFinite(envMaxLikes) && envMaxLikes > 0 ? envMaxLikes : 200;
-  const envMaxShares = typeof process !== 'undefined' && process.env && process.env.SYNTHETIC_MAX_SHARES ? parseInt(process.env.SYNTHETIC_MAX_SHARES) : NaN;
+  const envMaxShares = typeof process !== 'undefined' && process.env ? parseEnvNumber(process.env.SYNTHETIC_MAX_SHARES, NaN) : NaN;
   const MAX_SHARES = Number.isFinite(envMaxShares) && envMaxShares > 0 ? envMaxShares : 200;
-  const envMaxViews = typeof process !== 'undefined' && process.env && process.env.SYNTHETIC_MAX_VIEWS ? parseInt(process.env.SYNTHETIC_MAX_VIEWS) : NaN;
+  const envMaxViews = typeof process !== 'undefined' && process.env ? parseEnvNumber(process.env.SYNTHETIC_MAX_VIEWS, NaN) : NaN;
   const MAX_VIEWS = Number.isFinite(envMaxViews) && envMaxViews > 0 ? envMaxViews : 500000;
 
   let likesTarget = Math.min(likesTargetRaw, likesCap, MAX_LIKES);
@@ -281,33 +281,33 @@ export function displayedMetric({ target, createdAt, realCount = 0 }: { target: 
 }
 
 // --- Caps (usable on both server and client) ---------------------------------
+// simple helper used throughout the codebase for safe env number parsing
+export function parseEnvNumber(val: string | undefined, fallback: number): number {
+  const n = Number(val);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 export function getMaxLikes() {
   // Prefer NEXT_PUBLIC_* env var for client visibility
   if (typeof window !== 'undefined') {
     const v = (process.env.NEXT_PUBLIC_SYNTHETIC_MAX_LIKES || process.env.SYNTHETIC_MAX_LIKES) as any;
-    const n = Number(v);
-    return Number.isFinite(n) && n > 0 ? n : 2000;
+    return parseEnvNumber(v, 2000);
   }
-  const n = Number(process.env.SYNTHETIC_MAX_LIKES);
-  return Number.isFinite(n) && n > 0 ? n : 2000;
+  return parseEnvNumber(process.env.SYNTHETIC_MAX_LIKES, 2000);
 }
 
 export function getMaxShares() {
   if (typeof window !== 'undefined') {
     const v = (process.env.NEXT_PUBLIC_SYNTHETIC_MAX_SHARES || process.env.SYNTHETIC_MAX_SHARES) as any;
-    const n = Number(v);
-    return Number.isFinite(n) && n > 0 ? n : 200;
+    return parseEnvNumber(v, 200);
   }
-  const n = Number(process.env.SYNTHETIC_MAX_SHARES);
-  return Number.isFinite(n) && n > 0 ? n : 200;
+  return parseEnvNumber(process.env.SYNTHETIC_MAX_SHARES, 200);
 }
 
 export function getMaxViews() {
   if (typeof window !== 'undefined') {
     const v = (process.env.NEXT_PUBLIC_SYNTHETIC_MAX_VIEWS || process.env.SYNTHETIC_MAX_VIEWS) as any;
-    const n = Number(v);
-    return Number.isFinite(n) && n > 0 ? n : 1000000;
+    return parseEnvNumber(v, 1000000);
   }
-  const n = Number(process.env.SYNTHETIC_MAX_VIEWS);
-  return Number.isFinite(n) && n > 0 ? n : 1000000;
+  return parseEnvNumber(process.env.SYNTHETIC_MAX_VIEWS, 1000000);
 }

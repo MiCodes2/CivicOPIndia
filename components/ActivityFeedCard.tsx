@@ -288,7 +288,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
   const displayedShares = applyDisplayJitter({ value: displayedSharesCapped, cap: MAX_SHARES, id: activity.id, key: 'shares', realCount: shares });
 
   useEffect(() => {
-    let mounted = true;
+    let isActive = true;
     const trySeed = async () => {
       try {
         if (displayedViews - realViews >= 3 && displayedViews < viewsTarget) {
@@ -297,9 +297,11 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           const last = raw ? parseInt(raw, 10) : 0;
           const now = Date.now();
           const COOLDOWN = 1000 * 60 * 10; 
-          if (now - last > COOLDOWN) {
+          if (Math.max(0, now - last) > COOLDOWN) {
             const resp = await fetch('/api/activities/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id }) });
+            if (!isActive) return;
             const json = await resp.json();
+            if (!isActive) return;
             if (json?.activity?.views_count != null) { setRealViews(json.activity.views_count); try { localStorage.setItem(lastKey, String(now)); } catch (e) {} }
           }
         }
@@ -309,16 +311,18 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
           const last = raw ? parseInt(raw, 10) : 0;
           const now = Date.now();
           const COOLDOWN = 1000 * 60 * 30; 
-          if (now - last > COOLDOWN) {
+          if (Math.max(0, now - last) > COOLDOWN) {
             const resp = await fetch('/api/activities/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id }) });
+            if (!isActive) return;
             const json = await resp.json();
+            if (!isActive) return;
             if (json?.activity?.likes_count != null) { setLikes(json.activity.likes_count); try { localStorage.setItem(lastKey, String(now)); } catch (e) {} }
           }
         }
       } catch (e) {}
     };
     trySeed();
-    return () => { mounted = false; };
+    return () => { isActive = false; };
   }, [displayedViews, realViews, viewsTarget, displayedLikes, likesTarget, likes, activity.id, tick]);
 
   useEffect(() => { checkLikeStatus(); }, [activity.id]);
@@ -342,12 +346,12 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    let mounted = true;
+    let isActive = true;
     const el = document.getElementById(`activity-${activity.id}`);
     if (!el) return;
     const observer = new IntersectionObserver(async (entries) => {
       for (const entry of entries) {
-        if (!mounted) return;
+        if (!isActive) return;
         if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
           try {
             const key = `viewed_v1_${activity.id}`;
@@ -355,10 +359,12 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
             const last = raw ? parseInt(raw, 10) : 0;
             const now = Date.now();
             const COOLDOWN = 1000 * 60 * 60;
-            if (now - last > COOLDOWN) {
+            if (Math.max(0, now - last) > COOLDOWN) {
               const visitorId = localStorage.getItem('visitor_id');
               const resp = await fetch('/api/activities/view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId: activity.id, visitorId }) });
+              if (!isActive) return;
               const json = await resp.json();
+              if (!isActive) return;
               if (json?.views_count != null) setRealViews(json.views_count);
               try { localStorage.setItem(key, String(now)); } catch (e) {}
             }
@@ -367,7 +373,7 @@ export default function ActivityFeedCard({ activity }: ActivityFeedCardProps) {
       }
     }, { threshold: [0.5] });
     observer.observe(el);
-    return () => { mounted = false; observer.disconnect(); };
+    return () => { isActive = false; observer.disconnect(); };
   }, [activity.id, realViews, viewsTarget]);
   
   const openImageModal = (imageUrl: string) => {

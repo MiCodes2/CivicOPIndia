@@ -5,6 +5,8 @@ const twitterUrl = 'https://x.com/east_bengaluru/status/1813571389799960733/vide
 const driveUrl = 'https://drive.google.com/file/d/1i6FrEGJEM_TTEhm0oq0krL8216yd759S/view?usp=sharing';
 
 console.log('Twitter URL:', twitterUrl);
+// regex is global; ensure we start from beginning each time
+twitterRegex.lastIndex = 0;
 const twitterMatch = twitterRegex.exec(twitterUrl);
 console.log('Twitter match:', twitterMatch);
 if (twitterMatch) {
@@ -14,6 +16,8 @@ if (twitterMatch) {
 }
 
 console.log('\nDrive URL:', driveUrl);
+// reset drive regex as well
+driveRegex.lastIndex = 0;
 const driveMatch = driveRegex.exec(driveUrl);
 console.log('Drive match:', driveMatch);
 if (driveMatch) {

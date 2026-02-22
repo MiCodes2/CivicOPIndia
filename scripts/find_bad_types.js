@@ -47,4 +47,32 @@ async function run() {
   }
 }
 
-run().then(() => process.exit(0));
+// original run() remains for reference but we now call runFixed which has clearer fallback logic
+async function runFixed() {
+  try {
+    let rows;
+    try {
+      const { data, error } = await supabase.rpc('get_activity_type_counts');
+      if (error) throw error;
+      rows = data;
+    } catch (rpcErr) {
+      console.warn('RPC get_activity_type_counts failed; grouping client-side', rpcErr.message || rpcErr);
+      const { data: all } = await supabase.from('activities').select('id,type');
+      const counts = {};
+      (all || []).forEach(r => { const t = (r.type || '').toString(); counts[t] = (counts[t] || 0) + 1; });
+      rows = Object.entries(counts).map(([type,count]) => ({ type, count }));
+    }
+
+    if (Array.isArray(rows)) {
+      console.log('Type counts:');
+      rows.sort((a,b) => b.count - a.count).forEach(r => console.log(`${r.count}\t${r.type}`));
+      console.log('\nPotential matches for /portest|protest/i:');
+      rows.forEach(r => { if (/portest|protest/i.test(r.type)) console.log(`${r.count}\t${r.type}`); });
+    }
+  } catch (e) {
+    console.error('Error:', e);
+    process.exit(1);
+  }
+}
+
+runFixed().then(() => process.exit(0));

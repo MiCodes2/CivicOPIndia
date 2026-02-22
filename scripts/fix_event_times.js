@@ -30,7 +30,11 @@ async function fixEventTimes() {
   
   for (const event of events) {
     const oldDate = new Date(event.event_date);
-    
+    if (isNaN(oldDate.getTime())) {
+      console.warn(`Skipping event ${event.id} because event_date is invalid:`, event.event_date);
+      continue;
+    }
+
     // Check if time is midnight or 5:30 AM (which indicates it was stored without time)
     const hours = oldDate.getUTCHours();
     const mins = oldDate.getUTCMinutes();

@@ -16,11 +16,18 @@ const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession:
 
 (async function run() {
   try {
-    const MAX_LIKES = process.env.SYNTHETIC_MAX_LIKES ? parseInt(process.env.SYNTHETIC_MAX_LIKES) : 200;
-    const MAX_SHARES = process.env.SYNTHETIC_MAX_SHARES ? parseInt(process.env.SYNTHETIC_MAX_SHARES) : 200;
-    const MAX_VIEWS = process.env.SYNTHETIC_MAX_VIEWS ? parseInt(process.env.SYNTHETIC_MAX_VIEWS) : 500000;
-    const INITIAL_LIKES_CAP = process.env.INITIAL_LIKES_CAP ? parseInt(process.env.INITIAL_LIKES_CAP) : 30;
-    const INITIAL_SHARES_CAP = process.env.INITIAL_SHARES_CAP ? parseInt(process.env.INITIAL_SHARES_CAP) : 5;
+    // helper for parsing integer env vars with fallback
+    const parseIntEnv = (key, def) => {
+      const v = process.env[key];
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) ? n : def;
+    };
+
+    const MAX_LIKES = parseIntEnv('SYNTHETIC_MAX_LIKES', 200);
+    const MAX_SHARES = parseIntEnv('SYNTHETIC_MAX_SHARES', 200);
+    const MAX_VIEWS = parseIntEnv('SYNTHETIC_MAX_VIEWS', 500000);
+    const INITIAL_LIKES_CAP = parseIntEnv('INITIAL_LIKES_CAP', 30);
+    const INITIAL_SHARES_CAP = parseIntEnv('INITIAL_SHARES_CAP', 5);
 
     // By default we DO NOT clamp current (real) counts because real interactions must always be preserved.
     // Instead, report how many rows exceed the synthetic caps so the operator can decide on manual action.
@@ -66,7 +73,7 @@ const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession:
     console.log('Clamped initial shares for', changedInitShares?.length || 0, 'activities');
 
     // Clamp initial views relative to initial likes * 150 if present
-    const INITIAL_VIEWS_CAP = process.env.INITIAL_VIEWS_CAP ? parseInt(process.env.INITIAL_VIEWS_CAP) : (INITIAL_LIKES_CAP * 150);
+    const INITIAL_VIEWS_CAP = parseIntEnv('INITIAL_VIEWS_CAP', INITIAL_LIKES_CAP * 150);
     console.log('Clamping initial_views_count >', INITIAL_VIEWS_CAP, 'to', INITIAL_VIEWS_CAP);
     const { data: changedInitViews, error: e5 } = await supabase.from('activities').update({ initial_views_count: INITIAL_VIEWS_CAP }).gt('initial_views_count', INITIAL_VIEWS_CAP).select('id,initial_views_count').limit(1000);
     if (e5) throw e5;
