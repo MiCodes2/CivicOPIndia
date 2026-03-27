@@ -1,7 +1,14 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
 
+const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true'
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Return empty sitemap during maintenance — prevents Google from crawling internal pages
+  if (MAINTENANCE_MODE) {
+    return []
+  }
+
   const baseUrl = 'https://civicopindia.com'
 
   // Static pages

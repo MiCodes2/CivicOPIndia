@@ -78,6 +78,8 @@ export const metadata: Metadata = {
   },
 };
 
+const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -89,9 +91,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SupabaseProvider>
-          <Navbar />
+          {!MAINTENANCE_MODE && <Navbar />}
           {children}
-          <Footer />
+          {!MAINTENANCE_MODE && <Footer />}
         </SupabaseProvider>
       </body>
     </html>
