@@ -50,7 +50,7 @@ cp .env.example .env.local
 # Run migrations from supabase/migrations/ in order
 
 # Start development server
-pnpm dev
+cd /workspaces/CivicOPIndia && vercel --prod
 ```
 
 Visit http://localhost:3000
